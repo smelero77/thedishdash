@@ -1,4 +1,11 @@
-# Node modules
+# Next.js build output
+.next/
+
+# Local environment variables
+.env.local
+.env
+
+# Dependency directories
 node_modules/
 
 # Logs
@@ -6,8 +13,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment variables
-.env
+# Mac files
+.DS_Store
+
+# Test coverage
+coverage/
 
 # Build
 dist/
@@ -15,4 +25,3 @@ build/
 
 # IDE settings
 .vscode/
-.DS_Store
