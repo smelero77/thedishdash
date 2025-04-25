@@ -1,6 +1,6 @@
-# 📘 GOURMETON – Base de datos del sistema de pedidos
+# 📘 The DishDash – Base de datos del sistema de pedidos
 
-Esta documentación describe la estructura de la base de datos del sistema de pedidos **GOURMETON**, diseñada para gestionar menús digitales, pedidos colaborativos, alérgenos, modificadores y sugerencias gastronómicas en tiempo real.
+Esta documentación describe la estructura de la base de datos del sistema de pedidos **DishDash**, diseñada para gestionar menús digitales, pedidos colaborativos, alérgenos, modificadores y sugerencias gastronómicas en tiempo real.
 
 Cada tabla está pensada para representar un elemento clave del flujo de experiencia en mesa, combinando precisión técnica con un enfoque centrado en la gastronomía.
 
