@@ -5,8 +5,8 @@
 .env.local
 .env
 
-# Dependency directories
-node_modules/
+# Dependency directory
+/node_modules/
 
 # Logs
 npm-debug.log*
@@ -17,7 +17,7 @@ yarn-error.log*
 .DS_Store
 
 # Test coverage
-coverage/
+/coverage/
 
 # Build
 dist/
