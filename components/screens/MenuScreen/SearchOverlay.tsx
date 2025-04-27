@@ -69,7 +69,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
 
             {/* Área de resultados con scroll oculto */}
             <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-20">
-              {searchQuery ? (
+              {searchQuery && searchQuery.trim().length >= 3 ? (
                 <div className="pt-4">
                   {filteredItems.length > 0 ? (
                     <div className="space-y-2">
@@ -80,7 +80,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
                           <MenuItem
                             key={item.id}
                             {...item}
-                            allergens={item.allergens.map(allergen => ({
+                            allergens={(item.allergens ?? []).map(allergen => ({
                               ...allergen,
                               icon_url: allergen.icon_url ?? ''
                             }))}

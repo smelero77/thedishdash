@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/Button'
 import { ShoppingCart, Search, X, ArrowLeft, UserCircle } from 'lucide-react'
 import MenuItem from './MenuItem'
 import { useSearchParams } from 'next/navigation'
-import { useCustomerAlias } from '@/hooks/useCustomerAlias'
 import MenuHeader from './MenuScreen/MenuHeader'
 import FloatingCartButton from './MenuScreen/FloatingCartButton'
 import SearchOverlay from './MenuScreen/SearchOverlay'
@@ -13,11 +12,10 @@ import LoadingScreen from './MenuScreen/LoadingScreen'
 import ErrorScreen from './MenuScreen/ErrorScreen'
 import CategoryTabs from './MenuScreen/CategoryTabs'
 import CategorySection from './MenuScreen/CategorySection'
-import { MenuItemData, SupabaseMenuItem, Category, Slot } from '@/types/menu'
-import useCart from '@/hooks/useCart'
-import useMenuData from '@/hooks/useMenuData'
+import { MenuItemData, Category, Slot } from '@/types/menu'
+import { useCartContext } from '@/context/CartContext'
 import { useModifiers } from '@/hooks/useModifiers'
-import { validateTableCode } from '@/hooks/useTableCode'
+import { validateTableCode } from '@/lib/data'
 import { handleModifierSubmit } from '@/hooks/useModifierSubmit'
 import { searchMenuItems, resetSearch } from '@/utils/searchUtils'
 import { useCustomer } from '@/context/CustomerContext'
@@ -29,6 +27,12 @@ import useDebounce from '@/hooks/useDebounce'
 import { FixedSizeList as List } from 'react-window'
 import Image from 'next/image'
 import { removeFromCart } from '@/utils/cart'
+import useMenuData, { CategoryWithItems } from '@/hooks/useMenuData'
+import SearchButton from './SearchButton'
+import { useCustomerAlias } from '@/hooks/useCustomerAlias'
+import { validateTableCode as useTableCode } from '@/hooks/useTableCode'
+import useCart from '@/hooks/useCart'
+import { getCartQuantityForItem } from '@/utils/cart'
 // import MenuItemProps from './MenuItem'
 
 // Load heavy libraries dynamically
@@ -179,53 +183,52 @@ const getCartKey = (itemId: string, modifiers: Record<string, any>) => {
 };
 
 interface MenuScreenProps {
-  initialTableNumber?: number;
+  initialSlots: Slot[];
+  initialCategories: Category[];
+  initialMenuItems: MenuItemData[];
+  initialCurrentSlot: Slot | null;
 }
 
-export default function MenuScreen({ initialTableNumber = 0 }: MenuScreenProps) {
-  const { slots, currentSlot, categories, menuItems, loading, error } = useMenuData();
-  const searchParams = useSearchParams();
+export default function MenuScreen({ 
+  initialSlots, 
+  initialCategories, 
+  initialMenuItems, 
+  initialCurrentSlot 
+}: MenuScreenProps) {
+  const { slots, currentSlot, categories, loading, error } = useMenuData();
   const [activeTab, setActiveTab] = useState<string>('');
+  const menuScrollRef = useRef<HTMLDivElement>(null);
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [showModifierModal, setShowModifierModal] = useState(false);
   const [showCartModal, setShowCartModal] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredItems, setFilteredItems] = useState<MenuItemData[]>([]);
-  const menuScrollRef = useRef<HTMLDivElement>(null);
   const [showAliasModal, setShowAliasModal] = useState(false);
-  const { alias, saveAlias, isLoading: isAliasLoading } = useCustomerAlias();
-  const hasModalBeenShown = useRef(false);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
-  const { tableNumber, setTableNumber } = useTable();
+  const { alias } = useCustomer();
+  const { tableNumber } = useTable();
   const isScrollingProgrammatically = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
   const lastScrollTime = useRef(Date.now());
-  const aliasModalTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // Usar el contexto del carrito
   const { 
-    cart, 
-    cartTotal, 
-    handleAddToCart, 
-    handleRemoveFromCartByItem, 
-    handleRemoveFromCartByKey, 
-    getTotalItems,
-    findCartKey,
-    getCartKey
-  } = useCart(menuItems, alias ?? undefined);
-  const { modifiers, setModifiers, fetchModifiers } = useModifiers();
+    addToCart, 
+    removeFromCartByItem, 
+    getItemQuantity,
+    cart: cartItems,
+    cartTotal,
+    getTotalItems
+  } = useCartContext();
 
+  // Inicializar activeTab cuando cambien las categorías
   useEffect(() => {
-    const validateCode = async () => {
-      const code = searchParams.get('code');
-      const tableNumber = await validateTableCode(code);
-      if (tableNumber !== null) {
-        setTableNumber(tableNumber);
-      }
-    };
+    if (categories.length > 0 && !activeTab) {
+      setActiveTab(categories[0].id);
+    }
+  }, [categories, activeTab]);
 
-    validateCode();
-  }, [searchParams, setTableNumber]);
+  const { modifiers, fetchModifiers } = useModifiers();
 
   // Función para determinar qué categoría es más visible
   const getMostVisibleCategory = useCallback(() => {
@@ -237,7 +240,7 @@ export default function MenuScreen({ initialTableNumber = 0 }: MenuScreenProps) 
     let maxVisibleRatio = 0;
     let mostVisibleCategory = null;
 
-    categories.forEach(category => {
+    categories.forEach((category: CategoryWithItems) => {
       const element = document.getElementById(`category-${category.id}`);
       if (!element) return;
 
@@ -339,7 +342,7 @@ export default function MenuScreen({ initialTableNumber = 0 }: MenuScreenProps) 
   }, [getMostVisibleCategory]);
 
   const handleItemClick = useCallback(async (itemId: string) => {
-    const item = menuItems.find(item => item.id === itemId);
+    const item = initialMenuItems.find(item => item.id === itemId);
     if (!item) return;
 
     if (item.modifiers && item.modifiers.length > 0) {
@@ -355,26 +358,26 @@ export default function MenuScreen({ initialTableNumber = 0 }: MenuScreenProps) 
       return;
     }
 
-    handleAddToCart(itemId);
-  }, [menuItems, fetchModifiers, handleAddToCart]);
+    addToCart(itemId, {});
+  }, [initialMenuItems, fetchModifiers, addToCart]);
 
   const onModifierSubmit = useCallback((options: Record<string, string[]>) => {
     if (selectedItem) {
       handleModifierSubmit(
         selectedItem,
         options,
-        handleAddToCart,
+        modifiers,
+        addToCart,
         () => {
-      setShowModifierModal(false);
-      setSelectedOptions({});
-      setSelectedItem(null);
-    }
+          setShowModifierModal(false);
+          setSelectedItem(null);
+        }
       );
     }
-  }, [selectedItem, handleModifierSubmit, handleAddToCart]);
+  }, [selectedItem, modifiers, addToCart]);
 
   const debouncedSearch = useDebounce((query: string) => {
-    setFilteredItems(searchMenuItems(query, menuItems));
+    setFilteredItems(searchMenuItems(query, initialMenuItems));
   }, 200);
 
   const handleSearch = (query: string) => {
@@ -408,58 +411,23 @@ export default function MenuScreen({ initialTableNumber = 0 }: MenuScreenProps) 
     };
   }, [searchActive]);
 
-  useEffect(() => {
-    if (!isAliasLoading && !alias && !hasModalBeenShown.current) {
-      console.log('[MenuScreen] Mostrando modal de alias');
-      setShowAliasModal(true);
-      hasModalBeenShown.current = true;
-    }
-  }, [alias, isAliasLoading]);
-
-  // Establecer la categoría inicial
-  useEffect(() => {
-    if (categories.length > 0 && !activeTab) {
-      const initialCategory = getMostVisibleCategory() || categories[0].id;
-      setActiveTab(initialCategory);
-    }
-  }, [categories, activeTab, getMostVisibleCategory]);
-
   // Función para manejar la eliminación de items del carrito
   const handleRemoveItem = useCallback((cartKey: string) => {
-    console.log('[MenuScreen] Attempting to remove item with cartKey:', cartKey);
+    const item = cartItems[cartKey];
+    if (!item) return;
     
-    // Usar removeFromCart para manejar la eliminación de manera consistente
-    removeFromCart(cart, cartKey, (key) => {
-      const item = cart[key];
-      if (!item) {
-        console.error('[MenuScreen] Item not found in cart for key:', key);
-        return;
-      }
-      
-      // Obtener el precio del ítem para pasarlo a handleRemoveFromCartByKey
-      const price = item.item.price;
-      const modifiersPrice = Object.values(item.modifiers).reduce((total: number, modifier: any) => {
-        return total + modifier.options.reduce((sum: number, option: any) => sum + (option.extra_price || 0), 0);
-      }, 0);
-      
-      const totalPrice = price + modifiersPrice;
-      console.log('[MenuScreen] Removing item with price:', totalPrice);
-      
-      // Llamar a la función de eliminación original con la clave y el precio
-      handleRemoveFromCartByKey(key, totalPrice);
-    }, 'MenuScreen');
-  }, [cart, handleRemoveFromCartByKey]);
+    removeFromCartByItem(item.item.id, {});
+  }, [cartItems, removeFromCartByItem]);
 
   const handleAliasConfirm = async (newAlias: string) => {
     console.log('[MenuScreen] Guardando alias:', newAlias);
-    const success = await saveAlias(newAlias);
-    if (success) {
-      setShowAliasModal(false);
-      // Limpiar cualquier timeout pendiente
-      if (aliasModalTimeout.current) {
-        clearTimeout(aliasModalTimeout.current);
-      }
+    // Limpiar cualquier timeout pendiente
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
     }
+    // Cerrar el modal
+    setShowAliasModal(false);
+    return true; // Indicar que se guardó correctamente
   };
 
   if (loading && !activeTab) {
@@ -467,7 +435,7 @@ export default function MenuScreen({ initialTableNumber = 0 }: MenuScreenProps) 
   }
 
   if (error) {
-    return <ErrorScreen error={error} />;
+    return <ErrorScreen error={error.message} />;
   }
 
   return (
@@ -492,36 +460,37 @@ export default function MenuScreen({ initialTableNumber = 0 }: MenuScreenProps) 
           menuScrollRef={menuScrollRef}
         />
 
-        {categories.map((category) => (
+        {categories.map((category: CategoryWithItems) => (
           <CategorySection
             key={category.id}
             category={category}
-            menuItems={menuItems}
-            cart={cart}
-            onItemClick={handleItemClick}
-            onRemoveItem={handleRemoveItem}
+            cart={cartItems}
+            onAddToCart={(item) => handleItemClick(item.id)}
+            onRemoveFromCart={(item) => removeFromCartByItem(item.id, {})}
           />
         ))}
       </div>
 
       <FloatingCartButton
-          onClick={() => {
-            console.log('Opening cart modal');
-            setShowCartModal(true);
-          }}
+        onClick={() => setShowCartModal(true)}
         getTotalItems={getTotalItems}
         cartTotal={cartTotal}
       />
+
+      <SearchButton onClick={() => setSearchActive(true)} />
 
       <SearchOverlay
         searchQuery={searchQuery}
         searchActive={searchActive}
         filteredItems={filteredItems}
-        handleSearch={handleSearch}
-        onClose={() => setSearchActive(false)}
+        handleSearch={(q) => {
+          setSearchQuery(q);
+          setFilteredItems(searchMenuItems(q, initialMenuItems));
+        }}
+        onClose={() => resetSearch(setSearchQuery, setFilteredItems, setSearchActive)}
         onAddToCart={handleItemClick}
         onRemoveItem={handleRemoveItem}
-        cart={cart}
+        cart={cartItems}
         resetSearch={() => resetSearch(setSearchQuery, setFilteredItems, setSearchActive)}
       />
 
@@ -533,33 +502,27 @@ export default function MenuScreen({ initialTableNumber = 0 }: MenuScreenProps) 
           itemDescription={selectedItem.description}
           itemAllergens={selectedItem.allergens}
           modifiers={modifiers}
-          menuItems={menuItems}
+          menuItems={initialMenuItems}
           onClose={() => {
             console.log('Closing modifier modal');
             setShowModifierModal(false);
             setSelectedItem(null);
-            setModifiers([]);
           }}
           onConfirm={(selectedOptions) => onModifierSubmit(selectedOptions)}
         />, document.body
         )
       }
 
-      {showCartModal &&
-        ReactDOM.createPortal(
+      {showCartModal && (
         <CartModal
-          items={cart}
-          menuItems={menuItems}
-          onClose={() => {
-            console.log('Closing cart modal');
-            setShowCartModal(false);
-          }}
-            onRemoveItem={handleRemoveItem}
-          onAddToCart={handleAddToCart}
-            currentClientAlias={alias ?? undefined}
-          />, document.body
-        )
-      }
+          items={cartItems}
+          menuItems={initialMenuItems}
+          onClose={() => setShowCartModal(false)}
+          onRemoveItem={handleRemoveItem}
+          onAddToCart={addToCart}
+          currentClientAlias={alias ?? undefined}
+        />
+      )}
 
       {showAliasModal && (
         <AliasModal

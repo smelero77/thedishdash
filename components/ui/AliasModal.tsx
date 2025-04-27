@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react'
+import { useCustomer } from '@/context/CustomerContext'
+import { useTable } from '@/context/TableContext'
 
 interface AliasModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (alias: string) => void
+  onConfirm: (alias: string) => Promise<boolean>
 }
 
 function generateRandomAlias(tableNumber: string): string {
@@ -19,30 +21,22 @@ function generateRandomAlias(tableNumber: string): string {
 
 export function AliasModal({ isOpen, onClose, onConfirm }: AliasModalProps) {
   const [alias, setAlias] = useState('')
-  const [storedAlias, setStoredAlias] = useState<string | null>(null)
+  const { alias: storedAlias, isLoading } = useCustomer()
+  const { tableNumber } = useTable()
   
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setStoredAlias(localStorage.getItem('gourmeton_client_alias'))
-    }
-  }, [])
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
-    const finalAlias = alias.trim() || generateRandomAlias(
-      typeof window !== 'undefined' 
-        ? localStorage.getItem('gourmeton_table_number') || '0' 
-        : '0'
-    )
-    
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('gourmeton_client_alias', finalAlias)
+    const finalAlias = alias.trim() || generateRandomAlias(tableNumber?.toString() || '0')
+    try {
+      const success = await onConfirm(finalAlias)
+      if (success) {
+        onClose()
+      }
+    } catch (error) {
+      console.error('Error al confirmar alias:', error)
     }
-    
-    onConfirm(finalAlias)
-    onClose()
   }
 
   return (

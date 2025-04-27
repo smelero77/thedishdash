@@ -177,8 +177,8 @@ Clasificación de platos (ej: entrantes, postres, bebidas).
 
 ---
 
-## 👥 `table_codes` y `customer_aliases`
-Gestión de mesas y alias temporales.
+## 👥 `table_codes` 
+Gestión de mesas
 
 ### `table_codes`
 | Columna       | Tipo    | Null | Descripción |
@@ -187,12 +187,6 @@ Gestión de mesas y alias temporales.
 | table_number  | integer | NO   | Número de mesa visible |
 | created_at    | timestamp | YES | Creación |
 
-### `customer_aliases`
-| Columna    | Tipo | Null | Descripción |
-|------------|------|------|-------------|
-| device_id  | uuid | NO   | Identificador único del dispositivo |
-| alias      | text | NO   | Alias mostrado en el pedido |
-| created_at | timestamp | YES | Fecha de creación |
 
 ---
 

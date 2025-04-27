@@ -2,7 +2,7 @@
 
 import React, { HTMLAttributes } from "react";
 import { Plus, Minus } from "lucide-react";
-import { MenuItemAllergen as Allergen } from "../types/menu";
+import { MenuItemAllergen as Allergen } from "../../types/menu";
 import Image from "next/image";
 
 interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
@@ -21,6 +21,7 @@ interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   onAddToCart: () => void;
   onRemoveFromCart: () => void;
   quantity: number;
+  is_available: boolean;
 }
 
 export default function MenuItem({
@@ -39,6 +40,7 @@ export default function MenuItem({
   onAddToCart,
   onRemoveFromCart,
   quantity,
+  is_available,
   ...rest
 }: MenuItemProps) {
   const formatPrice = (price: number) => {

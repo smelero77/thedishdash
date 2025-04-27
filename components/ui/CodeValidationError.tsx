@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { Button } from './button';
+import { Button } from './Button';
 import { useRouter } from 'next/navigation';
 
 interface CodeValidationErrorProps {

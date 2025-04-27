@@ -26,13 +26,11 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
     
     const activeTabElement = tabsContainerRef.current.querySelector(`[data-category-id="${activeTab}"]`);
     if (activeTabElement) {
-      // Calcular posición centrada
       const container = tabsContainerRef.current;
       const tabRect = activeTabElement.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
       const centerPosition = tabRect.left + (tabRect.width / 2) - containerRect.left - (containerRect.width / 2);
       
-      // Scroll suave al centro
       container.scrollTo({
         left: container.scrollLeft + centerPosition,
         behavior: 'smooth'
@@ -49,12 +47,13 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
         {categories.map((category) => (
           <div
             key={category.id}
+            data-category-id={category.id}
+            onClick={() => setActiveTab(category.id)}
             className={`flex items-center justify-center px-4 py-2 cursor-pointer transition-all duration-300 ${
               activeTab === category.id
                 ? 'text-[#0e1b19] font-bold border-b-4 border-[#1ce3cf]'
                 : 'text-[#4f968f] hover:text-[#0e1b19]'
             }`}
-            onClick={() => setActiveTab(category.id)}
           >
             <p className="text-sm leading-normal tracking-[0.015em] px-1">{category.name}</p>
           </div>
@@ -63,5 +62,7 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
     </div>
   );
 };
+
+CategoryTabs.displayName = "CategoryTabs";
 
 export default CategoryTabs; 

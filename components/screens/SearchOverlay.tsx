@@ -3,8 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
 interface SearchOverlayProps {
+  /** Controla la visibilidad */
   isOpen: boolean;
+  /** Cierra el overlay */
   onClose: () => void;
+  /** Lanza la búsqueda */
   onSearch: (query: string) => void;
 }
 
@@ -12,9 +15,9 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    onSearch(query);
+    const q = e.target.value;
+    setSearchQuery(q);
+    onSearch(q);
   };
 
   const handleClose = () => {

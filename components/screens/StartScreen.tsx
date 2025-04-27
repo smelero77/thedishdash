@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import TransitionScreen from './TransitionScreen'
 import { AliasModal } from '@/components/ui/AliasModal'
-import { supabase } from '@/lib/supabase/client'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react'
 import { motion } from 'framer-motion'
+import { useTableCodeValidation } from '@/hooks/useTableCodeValidation'
+import { useCustomer } from '@/context/CustomerContext'
+import { useTable } from '@/context/TableContext'
 
 // Componente personalizado para Lottie con log
 interface LoggedLottieProps {
@@ -33,18 +35,20 @@ const LoggedLottie = ({ name, src, ...props }: LoggedLottieProps) => {
 
 export default function StartScreen() {
   const router = useRouter()
-  const [isValidating, setIsValidating] = useState(false)
+  const searchParams = useSearchParams()
   const [showTransition, setShowTransition] = useState(false)
   const [showAliasModal, setShowAliasModal] = useState(false)
   const [nextRoute, setNextRoute] = useState<string | null>(null)
-  const [loadingState, setLoadingState] = useState<'initial' | 'validating' | 'transition' | 'modal'>('initial')
+  const [loadingState, setLoadingState] = useState<'initial' | 'validating' | 'transition' | 'modal' | 'saving'>('initial')
   const [backgroundLoaded, setBackgroundLoaded] = useState(false)
   const [showQRLottie, setShowQRLottie] = useState(false)
+  const { validateCode, isValidating, error } = useTableCodeValidation()
+  const { saveAlias, isLoading: isSavingAlias } = useCustomer()
+  const { tableNumber } = useTable()
 
   // Efecto para controlar la visualización del Lottie QR
   useEffect(() => {
     if (backgroundLoaded) {
-      // Retrasar ligeramente la aparición del Lottie para asegurar que el fondo esté visible
       const timer = setTimeout(() => {
         setShowQRLottie(true)
       }, 300)
@@ -53,7 +57,6 @@ export default function StartScreen() {
   }, [backgroundLoaded])
 
   useEffect(() => {
-    // Simular la carga del fondo
     const imageLoader = new Image()
     imageLoader.src = "https://cdn.usegalileo.ai/sdxl10/36e7e026-ee59-417b-aa5a-9480957baf30.png"
     imageLoader.onload = () => {
@@ -61,7 +64,6 @@ export default function StartScreen() {
       setBackgroundLoaded(true)
     }
     
-    // Backup en caso de que la imagen falle
     const timer = setTimeout(() => {
       if (!backgroundLoaded) {
         console.log('🖼️ FONDO CARGADO (TIMEOUT)')
@@ -77,13 +79,15 @@ export default function StartScreen() {
     const code = urlParams.get('code')
     
     if (code) {
-      validateCode(code)
+      handleValidateCode(code)
     }
   }, [])
 
   // Actualizar el estado de carga cuando cambien los estados
   useEffect(() => {
-    if (showTransition) {
+    if (isSavingAlias) {
+      setLoadingState('saving')
+    } else if (showTransition) {
       setLoadingState('transition')
     } else if (showAliasModal) {
       setLoadingState('modal')
@@ -92,100 +96,79 @@ export default function StartScreen() {
     } else {
       setLoadingState('initial')
     }
-  }, [isValidating, showTransition, showAliasModal])
+  }, [isValidating, showTransition, showAliasModal, isSavingAlias])
 
-  const validateCode = async (code: string) => {
-    console.log('[StartScreen] Validando código:', code)
-    setIsValidating(true)
+  const handleValidateCode = async (code: string) => {
+    console.log('[StartScreen] Validando código:', { code })
     setShowQRLottie(false)
     
-    try {
-      // Validar formato UUID
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(code)) {
-        console.log('[StartScreen] Formato UUID inválido')
-        setNextRoute('invalid')
-        setShowTransition(true)
-        return
-      }
-
-      console.log('[StartScreen] Formato UUID válido, consultando a Supabase:', code)
-      
-      // Consultar a Supabase
-      const { data, error } = await supabase
-        .from('table_codes')
-        .select('id, table_number')
-        .eq('id', code)
-        .single()
-
-      console.log('[StartScreen] Resultado de Supabase:', { data, error })
-      
-      if (error) {
-        console.error('[StartScreen] Error de Supabase:', error)
-        setNextRoute('invalid')
-        setShowTransition(true)
-        return
-      }
-
-      if (!data) {
-        console.log('[StartScreen] No se encontró la mesa')
-        setNextRoute('invalid')
-        setShowTransition(true)
-        return
-      }
-
-      console.log('[StartScreen] Código válido, datos obtenidos:', data)
-      
-      // Guardar datos en localStorage
-      localStorage.setItem('gourmeton_table_code', code)
-      localStorage.setItem('gourmeton_table_number', data.table_number.toString())
-      
-      // Limpiar la URL
-      window.history.replaceState({}, '', '/')
-      
-      console.log('[StartScreen] Código válido, mostrando transición')
-      setNextRoute('valid')
-      setShowTransition(true)
-      
-    } catch (error) {
-      console.error('[StartScreen] Error al validar código:', error)
+    const { table, error: validationError } = await validateCode(code)
+    console.log('[StartScreen] Resultado validación:', { table, validationError })
+    
+    if (validationError) {
+      console.log('[StartScreen] Error de validación:', validationError)
       setNextRoute('invalid')
       setShowTransition(true)
-    } finally {
-      setIsValidating(false)
+      return
     }
+
+    if (!table) {
+      console.log('[StartScreen] No se encontró la mesa')
+      setNextRoute('invalid')
+      setShowTransition(true)
+      return
+    }
+
+    console.log('[StartScreen] Código válido, mostrando transición')
+    setNextRoute('valid')
+    setShowTransition(true)
   }
 
   const handleTransitionComplete = () => {
-    console.log('📱 TRANSICIÓN COMPLETADA: Próxima ruta =', nextRoute)
+    console.log('[StartScreen] Transición completada:', { nextRoute })
     
     if (nextRoute === 'valid') {
-      console.log('⭐ MOSTRANDO MODAL: Código válido')
+      console.log('[StartScreen] Mostrando modal de alias')
       setShowTransition(false)
-      // Esperar un momento antes de mostrar el modal para que la transición se complete
       setTimeout(() => {
-        console.log('⭐ ABRIENDO MODAL DESPUÉS DEL TIMEOUT')
+        console.log('[StartScreen] Abriendo modal después del timeout')
         setShowAliasModal(true)
       }, 100)
     } else {
+      console.log('[StartScreen] Navegando a invalid')
       router.replace('/invalid')
     }
   }
 
-  const handleAliasConfirm = (alias: string) => {
-    console.log('✅ ALIAS CONFIRMADO:', alias)
-    router.replace('/menu')
+  const handleAliasConfirm = async (alias: string): Promise<boolean> => {
+    console.log('[StartScreen] Alias confirmado:', { alias })
+    setLoadingState('saving')
+    
+    const success = await saveAlias(alias)
+    console.log('[StartScreen] Resultado guardado:', { success })
+    
+    if (success) {
+      console.log('[StartScreen] Navegando a menu')
+      const code = searchParams.get('code')
+      router.push(`/menu?code=${code}`)
+      return true
+    }
+    return false
   }
 
-  console.log('ESTADO ACTUAL:', { 
-    isValidating, 
-    showTransition, 
-    showAliasModal, 
-    nextRoute, 
-    loadingState, 
-    backgroundLoaded, 
-    showQRLottie 
-  })
+  // Efecto para actualizar el estado de carga
+  useEffect(() => {
+    console.log('[StartScreen] Estado actualizado:', { 
+      isValidating, 
+      showTransition, 
+      showAliasModal, 
+      nextRoute, 
+      loadingState, 
+      backgroundLoaded, 
+      showQRLottie,
+      isSavingAlias
+    })
+  }, [isValidating, showTransition, showAliasModal, nextRoute, loadingState, backgroundLoaded, showQRLottie, isSavingAlias])
 
   const renderContent = () => {
     if (showTransition) {

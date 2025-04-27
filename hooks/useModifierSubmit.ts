@@ -1,4 +1,5 @@
-import { SelectedItem } from '@/components/screens/MenuScreen';
+import type { Modifier } from '@/types/modifiers';
+import type { SelectedItem } from '@/components/screens/MenuScreen';
 
 interface ProcessedOption {
   id: string;
@@ -6,42 +7,66 @@ interface ProcessedOption {
   extra_price: number;
 }
 
-interface ProcessedModifier {
-  name: string;
-  options: ProcessedOption[];
+// Type guard para ProcessedOption
+function isProcessedOption(o: ProcessedOption | null): o is ProcessedOption {
+  return o !== null;
 }
 
-export const handleModifierSubmit = (
+export function handleModifierSubmit(
   selectedItem: SelectedItem,
   selectedOptions: Record<string, string[]>,
-  onAddToCart: (id: string, modifiers: Record<string, ProcessedModifier>) => void,
+  modifiers: Modifier[],
+  onAddToCart: (id: string, mods: any) => void,
   reset: () => void
-) => {
-  const processedModifiers: Record<string, ProcessedModifier> = {};
+) {
+  // Verificar que tenemos los datos necesarios
+  if (!selectedItem || !selectedOptions || !modifiers) {
+    console.error('Datos incompletos para procesar modificadores');
+    return;
+  }
 
+  // Log para debug
+  console.log('IDs de modificadores recibidos:', Object.keys(selectedOptions));
+
+  const processedModifiers: Record<string, {
+    name: string;
+    options: ProcessedOption[];
+  }> = {};
+
+  // Procesar cada modificador seleccionado
   Object.entries(selectedOptions).forEach(([modifierId, optionIds]) => {
-    const modifier = selectedItem.modifiers.find(m => m.id === modifierId);
-    if (modifier) {
-      const options = optionIds.map(optionId => {
-        const option = modifier.options.find(o => o.id === optionId);
-        if (!option) return null;
-        return { 
-          id: optionId, 
-          name: option.name, 
-          extra_price: option.extra_price 
-        } as ProcessedOption;
-      }).filter(Boolean) as ProcessedOption[];
+    // Buscar el modificador
+    const modifier = modifiers.find(m => m.id === modifierId);
+    if (!modifier) {
+      console.warn(`Modifier con id ${modifierId} no encontrado`);
+      return; // saltar este modificador
+    }
 
-      if (options.length > 0) {
-        processedModifiers[modifierId] = { 
-          name: modifier.name, 
-          options 
-        };
-      }
+    // Procesar las opciones seleccionadas
+    const options = optionIds
+      .map((optionId): ProcessedOption | null => {
+        const opt = modifier.options.find(
+          (o: { id: string; name: string; extra_price: number }) => o.id === optionId
+        );
+        if (!opt) return null;
+        return { id: opt.id, name: opt.name, extra_price: opt.extra_price };
+      })
+      .filter(isProcessedOption);
+
+    // Solo añadir si hay opciones válidas
+    if (options.length > 0) {
+      processedModifiers[modifierId] = {
+        name: modifier.name,
+        options
+      };
     }
   });
 
-  console.log('[useModifierSubmit] Processed modifiers:', processedModifiers);
-  onAddToCart(selectedItem.id, processedModifiers);
+  // Añadir al carrito si hay modificadores procesados
+  if (Object.keys(processedModifiers).length > 0) {
+    onAddToCart(selectedItem.id, processedModifiers);
+  }
+
+  // Resetear el formulario
   reset();
-}; 
+} 

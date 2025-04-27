@@ -7,37 +7,27 @@ import useCart from '@/hooks/useCart';
 interface CartContextType {
   cart: Cart;
   cartTotal: number;
-  addToCart: (itemId: string, modifiers?: Record<string, any>) => void;
+  addToCart: (itemId: string, modifiers: Record<string, any>) => void;
   removeFromCartByItem: (itemId: string, modifiers: Record<string, any>) => void;
-  removeFromCartByKey: (cartKey: string, price: number) => void;
+  removeFromCartByKey: (key: string) => void;
   getTotalItems: () => number;
   getItemQuantity: (itemId: string) => number;
-  findCartKey: (itemId: string) => string | undefined;
-  findExactCartKey: (itemId: string, modifiers: Record<string, any>) => string | undefined;
-  calculateItemPrice: (item: MenuItemData, modifiers: Record<string, any>) => number;
+  findCartKey: (itemId: string, modifiers: Record<string, any>) => string | null;
+  findExactCartKey: (itemId: string, modifiers: Record<string, any>) => string | null;
+  calculateItemPrice: (itemId: string, modifiers: Record<string, any>) => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const useCartContext = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCartContext must be used within a CartProvider');
-  }
-  return context;
-};
-
 interface CartProviderProps {
   children: ReactNode;
   menuItems: MenuItemData[];
-  currentClientAlias?: string;
+  slotId: string;
+  alias: string;
+  tableCode: string;
 }
 
-export const CartProvider: React.FC<CartProviderProps> = ({ 
-  children, 
-  menuItems, 
-  currentClientAlias 
-}) => {
+export function CartProvider({ children, menuItems, slotId, alias, tableCode }: CartProviderProps) {
   const {
     cart,
     cartTotal,
@@ -49,14 +39,19 @@ export const CartProvider: React.FC<CartProviderProps> = ({
     findCartKey,
     findExactCartKey,
     calculateItemPrice
-  } = useCart(menuItems, currentClientAlias);
+  } = useCart(menuItems, alias);
+
+  // Ahora simplemente
+  const addToCart = handleAddToCart;
+  const removeFromCartByItem = handleRemoveFromCartByItem;
+  const removeFromCartByKey = handleRemoveFromCartByKey;
 
   const value: CartContextType = {
     cart,
     cartTotal,
-    addToCart: handleAddToCart,
-    removeFromCartByItem: handleRemoveFromCartByItem,
-    removeFromCartByKey: handleRemoveFromCartByKey,
+    addToCart,
+    removeFromCartByItem,
+    removeFromCartByKey,
     getTotalItems,
     getItemQuantity,
     findCartKey,
@@ -69,4 +64,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       {children}
     </CartContext.Provider>
   );
-}; 
+}
+
+export function useCartContext() {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCartContext must be used within a CartProvider');
+  }
+  return context;
+} 

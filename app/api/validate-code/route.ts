@@ -1,10 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { validateTableCode } from '@/lib/data'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -15,17 +10,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('table_codes')
-      .select('table_number')
-      .eq('id', code)
-      .single()
-
-    if (error || !data) {
+    const tableNumber = await validateTableCode(code)
+    
+    if (!tableNumber) {
       return NextResponse.json({ error: 'Invalid code' }, { status: 404 })
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json({ table_number: tableNumber })
   } catch (error) {
     console.error('Error validating code:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

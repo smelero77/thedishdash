@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Suspense } from 'react'
 import StartScreen from "@/components/screens/StartScreen"
-import { LoadingFallback } from "@/components/ui/loading-fallback"
+import { LoadingFallback } from "@/components/ui/LoadingFallback"
 
 export default function Home() {
   return (
