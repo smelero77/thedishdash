@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, Users, Plus, Minus } from 'lucide-react';
@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cart, CartItem } from '@/types/menu';
 import { removeFromCart, getItemTotalPrice, formatPrice } from '@/utils/cart';
+import { getCartKey } from './MenuScreen';
 
 interface MenuItemData {
   id: string;
@@ -20,7 +21,7 @@ interface CartModalProps {
   };
   menuItems: MenuItemData[];
   onClose: () => void;
-  onRemoveItem: (cartKey: string) => void;
+  onRemoveItem: (itemId: string, modifiers: Record<string, any>) => void;
   onAddToCart: (itemId: string, modifiers: Record<string, any>) => void;
   currentClientAlias?: string;
 }
@@ -31,7 +32,7 @@ export default function CartModal({
   onClose,
   onRemoveItem,
   onAddToCart,
-  currentClientAlias
+  currentClientAlias,
 }: CartModalProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -48,30 +49,31 @@ export default function CartModal({
 
   const handleQuantityChange = (item: CartItem, increment: boolean) => {
     if (increment) {
-      // Aumentar la cantidad llamando a onAddToCart con los modificadores
       onAddToCart(item.id, item.modifiers);
     } else {
-      // Generar cartKey y usar removeFromCart para eliminar el ítem
-      const cartKey = `${item.id}-${JSON.stringify(item.modifiers)}`;
-      removeFromCart(items, cartKey, onRemoveItem, 'CartModal');
+      const cartKey = getCartKey(item.id, item.modifiers);
+      onRemoveItem(cartKey);
     }
   };
 
   // Eliminar el estado local del carrito ya que usaremos el del padre
-  const groupedItems = Object.values(items).reduce((acc, cartItem) => {
-    const alias = cartItem.client_alias || 'Sin alias';
-    if (!acc[alias]) {
-      acc[alias] = {
-        items: [],
-        total: 0,
-        itemCount: 0
-      };
-    }
-    acc[alias].items.push(cartItem);
-    acc[alias].total += getItemTotalPrice(cartItem);
-    acc[alias].itemCount += cartItem.quantity;
-    return acc;
-  }, {} as Record<string, { items: CartItem[], total: number, itemCount: number }>);
+  const groupedItems = Object.values(items).reduce(
+    (acc, cartItem) => {
+      const alias = cartItem.client_alias || 'Sin alias';
+      if (!acc[alias]) {
+        acc[alias] = {
+          items: [],
+          total: 0,
+          itemCount: 0,
+        };
+      }
+      acc[alias].items.push(cartItem);
+      acc[alias].total += getItemTotalPrice(cartItem);
+      acc[alias].itemCount += cartItem.quantity;
+      return acc;
+    },
+    {} as Record<string, { items: CartItem[]; total: number; itemCount: number }>,
+  );
 
   const dinerCount = Object.keys(groupedItems).length;
 
@@ -84,14 +86,14 @@ export default function CartModal({
   return (
     <div className="fixed inset-0 z-50">
       {/* Fondo semi-transparente */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: isVisible ? 0.5 : 0 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black"
         onClick={handleClose}
       />
-      
+
       {/* Modal */}
       <motion.div
         initial={{ x: '100%' }}
@@ -104,15 +106,14 @@ export default function CartModal({
           {/* Header */}
           <div className="p-4 border-b border-[#d0e6e4]">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-[#0e1b19] text-xl font-bold leading-tight tracking-[-0.015em]">Tu pedido</h2>
-              <button
-                onClick={handleClose}
-                className="text-[#4f968f] transition-colors"
-              >
+              <h2 className="text-[#0e1b19] text-xl font-bold leading-tight tracking-[-0.015em]">
+                Tu pedido
+              </h2>
+              <button onClick={handleClose} className="text-[#4f968f] transition-colors">
                 <X className="h-6 w-6" />
               </button>
             </div>
-            
+
             {/* Resumen de comensales */}
             <div className="flex items-center gap-2 p-3 bg-[#f8fbfb] rounded-lg">
               <Users className="h-5 w-5 text-[#4f968f]" />
@@ -177,14 +178,19 @@ export default function CartModal({
                             EXTRA:{' '}
                             {Object.entries(item.modifiers)
                               .flatMap(([_, modifier]) =>
-                                modifier.options.map((opt: { id: string; name: string; extra_price: number }) => `${opt.name} (+${opt.extra_price.toFixed(2)}€)`)
+                                modifier.options.map(
+                                  (opt: { id: string; name: string; extra_price: number }) =>
+                                    `${opt.name} (+${opt.extra_price.toFixed(2)}€)`,
+                                ),
                               )
                               .join(', ')}
                           </p>
                         ) : null}
 
                         {/* Mostrar precio unitario debajo, SIEMPRE */}
-                        <p className="text-sm text-[#4f968f] mt-1">{formatPrice(getItemTotalPrice(item) / item.quantity)} c/u</p>
+                        <p className="text-sm text-[#4f968f] mt-1">
+                          {formatPrice(getItemTotalPrice(item) / item.quantity)} c/u
+                        </p>
                       </div>
                       <div className="flex items-center border border-[#d0e6e4] rounded-full bg-[#4f968f]/10">
                         <button
@@ -230,4 +236,4 @@ export default function CartModal({
       </motion.div>
     </div>
   );
-} 
+}

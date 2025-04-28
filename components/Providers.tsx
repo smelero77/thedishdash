@@ -13,17 +13,10 @@ interface ProvidersProps {
 
 export default function Providers({ children, menuItems }: ProvidersProps) {
   return (
-    <CartProvider
-      menuItems={menuItems}
-      slotId=""
-      alias="guest" // Se actualizará en el cliente
-      tableCode="" // Se actualizará en el cliente
-    >
-      <TableProvider>
-        <CustomerProvider>
-          {children}
-        </CustomerProvider>
-      </TableProvider>
-    </CartProvider>
+    <TableProvider>
+      <CartProvider menuItems={menuItems} slotId="" alias="guest" tableCode="">
+        <CustomerProvider>{children}</CustomerProvider>
+      </CartProvider>
+    </TableProvider>
   );
-} 
+}

@@ -1,45 +1,51 @@
-"use client"
+'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Button } from '@/components/ui/Button'
-import { ShoppingCart, Search, X, ArrowLeft, UserCircle } from 'lucide-react'
-import MenuItem from './MenuItem'
-import { useSearchParams } from 'next/navigation'
-import MenuHeader from './MenuScreen/MenuHeader'
-import FloatingCartButton from './MenuScreen/FloatingCartButton'
-import SearchOverlay from './MenuScreen/SearchOverlay'
-import LoadingScreen from './MenuScreen/LoadingScreen'
-import ErrorScreen from './MenuScreen/ErrorScreen'
-import CategoryTabs from './MenuScreen/CategoryTabs'
-import CategorySection from './MenuScreen/CategorySection'
-import { MenuItemData, Category, Slot } from '@/types/menu'
-import { useCartContext } from '@/context/CartContext'
-import { useModifiers } from '@/hooks/useModifiers'
-import { validateTableCode } from '@/lib/data'
-import { handleModifierSubmit } from '@/hooks/useModifierSubmit'
-import { searchMenuItems, resetSearch } from '@/utils/searchUtils'
-import { useCustomer } from '@/context/CustomerContext'
-import { useTable } from '@/context/TableContext'
-import dynamic from 'next/dynamic'
-import ReactDOM from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import useDebounce from '@/hooks/useDebounce'
-import { FixedSizeList as List } from 'react-window'
-import Image from 'next/image'
-import { removeFromCart } from '@/utils/cart'
-import useMenuData, { CategoryWithItems } from '@/hooks/useMenuData'
-import SearchButton from './SearchButton'
-import { useCustomerAlias } from '@/hooks/useCustomerAlias'
-import { validateTableCode as useTableCode } from '@/hooks/useTableCode'
-import useCart from '@/hooks/useCart'
-import { getCartQuantityForItem } from '@/utils/cart'
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Button } from '@/components/ui/Button';
+import { ShoppingCart, Search, X, ArrowLeft, UserCircle } from 'lucide-react';
+import MenuItem from './MenuItem';
+import { useSearchParams } from 'next/navigation';
+import MenuHeader from './MenuScreen/MenuHeader';
+import FloatingCartButton from './MenuScreen/FloatingCartButton';
+import SearchOverlay from './MenuScreen/SearchOverlay';
+import LoadingScreen from './MenuScreen/LoadingScreen';
+import ErrorScreen from './MenuScreen/ErrorScreen';
+import CategoryTabs from './MenuScreen/CategoryTabs';
+import CategorySection from './MenuScreen/CategorySection';
+import { MenuItemData, Category, Slot } from '@/types/menu';
+import { useCartContext } from '@/context/CartContext';
+import { useModifiers } from '@/hooks/useModifiers';
+import { validateTableCode } from '@/lib/data';
+import { handleModifierSubmit } from '@/hooks/useModifierSubmit';
+import { searchMenuItems, resetSearch } from '@/utils/searchUtils';
+import { useCustomer } from '@/context/CustomerContext';
+import { useTable } from '@/context/TableContext';
+import dynamic from 'next/dynamic';
+import ReactDOM from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import useDebounce from '@/hooks/useDebounce';
+import { FixedSizeList as List } from 'react-window';
+import Image from 'next/image';
+import { removeFromCart } from '@/utils/cart';
+import useMenuData, { CategoryWithItems } from '@/hooks/useMenuData';
+import SearchButton from './SearchButton';
+import { useCustomerAlias } from '@/hooks/useCustomerAlias';
+import { validateTableCode as useTableCode } from '@/hooks/useTableCode';
+import useCart from '@/hooks/useCart';
+import { getCartQuantityForItem } from '@/utils/cart';
 // import MenuItemProps from './MenuItem'
 
 // Load heavy libraries dynamically
-const ModifierModal = dynamic(() => import('./ModifierModal'), { ssr: false })
-const CartModal = dynamic(() => import('./CartModal'), { ssr: false })
-const AliasModal = dynamic(() => import('@/components/ui/AliasModal').then(mod => mod.AliasModal), { ssr: false })
-const DotLottieReact = dynamic(() => import('@lottiefiles/dotlottie-react').then(mod => mod.DotLottieReact), { ssr: false })
+const ModifierModal = dynamic(() => import('./ModifierModal'), { ssr: false });
+const CartModal = dynamic(() => import('./CartModal'), { ssr: false });
+const AliasModal = dynamic(
+  () => import('@/components/ui/AliasModal').then((mod) => mod.AliasModal),
+  { ssr: false },
+);
+const DotLottieReact = dynamic(
+  () => import('@lottiefiles/dotlottie-react').then((mod) => mod.DotLottieReact),
+  { ssr: false },
+);
 
 interface Allergen {
   id: string;
@@ -113,14 +119,17 @@ export interface SelectedItem {
 interface CartItem {
   id: string;
   quantity: number;
-  modifiers: Record<string, {
-    name: string;
-    options: {
-      id: string;
+  modifiers: Record<
+    string,
+    {
       name: string;
-      extra_price: number;
-    }[];
-  }>;
+      options: {
+        id: string;
+        name: string;
+        extra_price: number;
+      }[];
+    }
+  >;
   item: MenuItemData;
   client_alias?: string;
 }
@@ -150,7 +159,7 @@ function VirtualizedMenuItems({ items }: VirtualizedMenuItemsProps) {
             description={items[index].description}
             price={items[index].price}
             image_url={items[index].image_url}
-            allergens={items[index].allergens.map(a => ({ ...a, icon_url: a.icon_url || '' }))}
+            allergens={items[index].allergens.map((a) => ({ ...a, icon_url: a.icon_url || '' }))}
             diet_tags={[]}
             food_info={''}
             origin={''}
@@ -178,7 +187,7 @@ function OptimizedImage({ src, alt }: OptimizedImageProps) {
 }
 
 // Agregar la función getCartKey
-const getCartKey = (itemId: string, modifiers: Record<string, any>) => {
+export const getCartKey = (itemId: string, modifiers: Record<string, any>) => {
   return `${itemId}-${JSON.stringify(modifiers)}`;
 };
 
@@ -189,11 +198,11 @@ interface MenuScreenProps {
   initialCurrentSlot: Slot | null;
 }
 
-export default function MenuScreen({ 
-  initialSlots, 
-  initialCategories, 
-  initialMenuItems, 
-  initialCurrentSlot 
+export default function MenuScreen({
+  initialSlots,
+  initialCategories,
+  initialMenuItems,
+  initialCurrentSlot,
 }: MenuScreenProps) {
   const { slots, currentSlot, categories, loading, error } = useMenuData();
   const [activeTab, setActiveTab] = useState<string>('');
@@ -212,13 +221,13 @@ export default function MenuScreen({
   const lastScrollTime = useRef(Date.now());
 
   // Usar el contexto del carrito
-  const { 
-    addToCart, 
-    removeFromCartByItem, 
+  const {
+    addToCart,
+    removeFromCartByItem,
     getItemQuantity,
     cart: cartItems,
     cartTotal,
-    getTotalItems
+    getTotalItems,
   } = useCartContext();
 
   // Inicializar activeTab cuando cambien las categorías
@@ -302,79 +311,86 @@ export default function MenuScreen({
   }, [activeTab, getMostVisibleCategory]);
 
   // Función para manejar clic en categorías
-  const handleCategoryClick = useCallback((categoryId: string) => {
-    const element = document.getElementById(`category-${categoryId}`);
-    if (!element || !menuScrollRef.current) return;
+  const handleCategoryClick = useCallback(
+    (categoryId: string) => {
+      const element = document.getElementById(`category-${categoryId}`);
+      if (!element || !menuScrollRef.current) return;
 
-    isScrollingProgrammatically.current = true;
-    setActiveTab(categoryId);
+      isScrollingProgrammatically.current = true;
+      setActiveTab(categoryId);
 
-    const headerHeight = 120;
-    const elementTop = element.getBoundingClientRect().top;
-    const currentScroll = menuScrollRef.current.scrollTop;
-    const targetScroll = currentScroll + elementTop - headerHeight;
+      const headerHeight = 120;
+      const elementTop = element.getBoundingClientRect().top;
+      const currentScroll = menuScrollRef.current.scrollTop;
+      const targetScroll = currentScroll + elementTop - headerHeight;
 
-    // Detectar si es un scroll largo hacia arriba
-    const isLongUpwardScroll = targetScroll < currentScroll && Math.abs(targetScroll - currentScroll) > 1000;
+      // Detectar si es un scroll largo hacia arriba
+      const isLongUpwardScroll =
+        targetScroll < currentScroll && Math.abs(targetScroll - currentScroll) > 1000;
 
-    menuScrollRef.current.scrollTo({
-      top: targetScroll,
-      behavior: isLongUpwardScroll ? 'auto' : 'smooth' // Usamos 'auto' para scrolls largos hacia arriba
-    });
-
-    // Limpiamos cualquier timeout anterior
-    if (scrollTimeout.current) {
-      clearTimeout(scrollTimeout.current);
-    }
-
-    // Para scrolls largos hacia arriba, damos un poco más de tiempo
-    scrollTimeout.current = setTimeout(() => {
-      isScrollingProgrammatically.current = false;
-      
-      // Para scrolls largos hacia arriba, forzamos un recheck de la categoría
-      if (isLongUpwardScroll) {
-        const mostVisibleCategory = getMostVisibleCategory();
-        if (mostVisibleCategory) {
-          setActiveTab(mostVisibleCategory);
-        }
-      }
-    }, isLongUpwardScroll ? 100 : 800);
-  }, [getMostVisibleCategory]);
-
-  const handleItemClick = useCallback(async (itemId: string) => {
-    const item = initialMenuItems.find(item => item.id === itemId);
-    if (!item) return;
-
-    if (item.modifiers && item.modifiers.length > 0) {
-      await fetchModifiers(itemId);
-      setSelectedItem({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        allergens: item.allergens,
-        modifiers: item.modifiers
+      menuScrollRef.current.scrollTo({
+        top: targetScroll,
+        behavior: isLongUpwardScroll ? 'auto' : 'smooth', // Usamos 'auto' para scrolls largos hacia arriba
       });
-      setShowModifierModal(true);
-      return;
-    }
 
-    addToCart(itemId, {});
-  }, [initialMenuItems, fetchModifiers, addToCart]);
+      // Limpiamos cualquier timeout anterior
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
 
-  const onModifierSubmit = useCallback((options: Record<string, string[]>) => {
-    if (selectedItem) {
-      handleModifierSubmit(
-        selectedItem,
-        options,
-        modifiers,
-        addToCart,
+      // Para scrolls largos hacia arriba, damos un poco más de tiempo
+      scrollTimeout.current = setTimeout(
         () => {
+          isScrollingProgrammatically.current = false;
+
+          // Para scrolls largos hacia arriba, forzamos un recheck de la categoría
+          if (isLongUpwardScroll) {
+            const mostVisibleCategory = getMostVisibleCategory();
+            if (mostVisibleCategory) {
+              setActiveTab(mostVisibleCategory);
+            }
+          }
+        },
+        isLongUpwardScroll ? 100 : 800,
+      );
+    },
+    [getMostVisibleCategory],
+  );
+
+  const handleItemClick = useCallback(
+    async (itemId: string) => {
+      const item = initialMenuItems.find((item) => item.id === itemId);
+      if (!item) return;
+
+      if (item.modifiers && item.modifiers.length > 0) {
+        await fetchModifiers(itemId);
+        setSelectedItem({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          allergens: item.allergens,
+          modifiers: item.modifiers,
+        });
+        setShowModifierModal(true);
+        return;
+      }
+
+      addToCart(itemId, {});
+    },
+    [initialMenuItems, fetchModifiers, addToCart],
+  );
+
+  const onModifierSubmit = useCallback(
+    (options: Record<string, string[]>) => {
+      if (selectedItem) {
+        handleModifierSubmit(selectedItem, options, modifiers, addToCart, () => {
           setShowModifierModal(false);
           setSelectedItem(null);
-        }
-      );
-    }
-  }, [selectedItem, modifiers, addToCart]);
+        });
+      }
+    },
+    [selectedItem, modifiers, addToCart],
+  );
 
   const debouncedSearch = useDebounce((query: string) => {
     setFilteredItems(searchMenuItems(query, initialMenuItems));
@@ -412,12 +428,15 @@ export default function MenuScreen({
   }, [searchActive]);
 
   // Función para manejar la eliminación de items del carrito
-  const handleRemoveItem = useCallback((cartKey: string) => {
-    const item = cartItems[cartKey];
-    if (!item) return;
-    
-    removeFromCartByItem(item.item.id, {});
-  }, [cartItems, removeFromCartByItem]);
+  const handleRemoveItem = useCallback(
+    (cartKey: string) => {
+      const item = cartItems[cartKey];
+      if (!item) return;
+
+      removeFromCartByItem(item.id, item.modifiers);
+    },
+    [cartItems, removeFromCartByItem],
+  );
 
   const handleAliasConfirm = async (newAlias: string) => {
     console.log('[MenuScreen] Guardando alias:', newAlias);
@@ -449,8 +468,8 @@ export default function MenuScreen({
         setSearchActive={setSearchActive}
       />
 
-      <div 
-        ref={menuScrollRef} 
+      <div
+        ref={menuScrollRef}
         className="fixed top-[120px] bottom-0 left-0 right-0 overflow-y-auto no-scrollbar pb-20"
       >
         <CategoryTabs
@@ -494,24 +513,26 @@ export default function MenuScreen({
         resetSearch={() => resetSearch(setSearchQuery, setFilteredItems, setSearchActive)}
       />
 
-      {showModifierModal && selectedItem && modifiers.length > 0 &&
+      {showModifierModal &&
+        selectedItem &&
+        modifiers.length > 0 &&
         ReactDOM.createPortal(
-        <ModifierModal
-          isOpen={showModifierModal}
-          itemName={selectedItem.name}
-          itemDescription={selectedItem.description}
-          itemAllergens={selectedItem.allergens}
-          modifiers={modifiers}
-          menuItems={initialMenuItems}
-          onClose={() => {
-            console.log('Closing modifier modal');
-            setShowModifierModal(false);
-            setSelectedItem(null);
-          }}
-          onConfirm={(selectedOptions) => onModifierSubmit(selectedOptions)}
-        />, document.body
-        )
-      }
+          <ModifierModal
+            isOpen={showModifierModal}
+            itemName={selectedItem.name}
+            itemDescription={selectedItem.description}
+            itemAllergens={selectedItem.allergens}
+            modifiers={modifiers}
+            menuItems={initialMenuItems}
+            onClose={() => {
+              console.log('Closing modifier modal');
+              setShowModifierModal(false);
+              setSelectedItem(null);
+            }}
+            onConfirm={(selectedOptions) => onModifierSubmit(selectedOptions)}
+          />,
+          document.body,
+        )}
 
       {showCartModal && (
         <CartModal
@@ -536,4 +557,4 @@ export default function MenuScreen({
       )}
     </div>
   );
-} 
+}

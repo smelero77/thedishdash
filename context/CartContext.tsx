@@ -3,6 +3,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { Cart, CartItem, MenuItemData } from '@/types/menu';
 import useCart from '@/hooks/useCart';
+import { useTable } from './TableContext';
 
 interface CartContextType {
   cart: Cart;
@@ -28,6 +29,8 @@ interface CartProviderProps {
 }
 
 export function CartProvider({ children, menuItems, slotId, alias, tableCode }: CartProviderProps) {
+  const { tableNumber } = useTable();
+
   const {
     cart,
     cartTotal,
@@ -38,8 +41,8 @@ export function CartProvider({ children, menuItems, slotId, alias, tableCode }: 
     getItemQuantity,
     findCartKey,
     findExactCartKey,
-    calculateItemPrice
-  } = useCart(menuItems, alias);
+    calculateItemPrice,
+  } = useCart(menuItems, alias, tableNumber);
 
   // Ahora simplemente
   const addToCart = handleAddToCart;
@@ -56,14 +59,10 @@ export function CartProvider({ children, menuItems, slotId, alias, tableCode }: 
     getItemQuantity,
     findCartKey,
     findExactCartKey,
-    calculateItemPrice
+    calculateItemPrice,
   };
 
-  return (
-    <CartContext.Provider value={value}>
-      {children}
-    </CartContext.Provider>
-  );
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCartContext() {
@@ -72,4 +71,4 @@ export function useCartContext() {
     throw new Error('useCartContext must be used within a CartProvider');
   }
   return context;
-} 
+}
