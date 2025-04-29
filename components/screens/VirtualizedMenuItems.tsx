@@ -1,18 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { useContext, useCallback } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import MenuItem from '@/components/screens/MenuItem';
-import { useCartContext } from '@/context/CartContext';
-import type { MenuItemData } from '@/types/menu';
+import { CartActionsContext } from '@/context/CartActionsContext';
+import type { MenuItemData, SelectedModifiers } from '@/types/menu';
 
 interface VirtualizedMenuItemsProps {
   items: MenuItemData[];
 }
 
 export default function VirtualizedMenuItems({ items }: VirtualizedMenuItemsProps) {
-  // ① 👇 extraemos del contexto los helpers
-  const { addToCart, removeFromCartByItem, getItemQuantity } = useCartContext();
+  const cartActions = useContext(CartActionsContext);
+
+  const handleAddItem = useCallback((itemId: string, modifiers: SelectedModifiers | null = null) => {
+    if (!cartActions) return;
+    cartActions.handleAddToCart(itemId, modifiers ?? {});
+  }, [cartActions]);
+
+  const handleRemoveItem = useCallback((itemId: string, modifiers: SelectedModifiers | null = null) => {
+    if (!cartActions) return;
+    cartActions.handleDecrementCart(itemId, modifiers ?? {});
+  }, [cartActions]);
 
   return (
     <List
@@ -23,7 +32,7 @@ export default function VirtualizedMenuItems({ items }: VirtualizedMenuItemsProp
     >
       {({ index, style }) => {
         const item = items[index];
-        const qty = getItemQuantity(item.id);
+        const qty = cartActions ? cartActions.getItemQuantity(item.id) : 0;
 
         return (
           <div style={style}>
@@ -40,13 +49,10 @@ export default function VirtualizedMenuItems({ items }: VirtualizedMenuItemsProp
               pairing_suggestion={item.pairing_suggestion}
               chef_notes={item.chef_notes}
               is_recommended={item.is_recommended}
-
-              // ② 👇 mostramos la cantidad real
+              is_available={item.is_available}
               quantity={qty}
-
-              // ③ 👇 handlers efectivos que suman y restan
-              onAddToCart={() => addToCart(item.id, {})}
-              onRemoveFromCart={() => removeFromCartByItem(item.id, {})}
+              onAddToCart={() => handleAddItem(item.id)}
+              onRemoveFromCart={() => handleRemoveItem(item.id)}
             />
           </div>
         );

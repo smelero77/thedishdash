@@ -1,5 +1,3 @@
-import { Modifier, ModifierOption } from './modifiers';
-
 export interface SupabaseModifier {
   id: string;
   name: string;
@@ -60,6 +58,7 @@ export interface MenuItemData {
   origin: string;
   pairing_suggestion: string;
   chef_notes: string;
+  is_available: boolean;
 }
 
 export interface MenuItemAllergen {
@@ -119,4 +118,49 @@ export interface CartItem {
   }>;
   item: MenuItemData;
   client_alias?: string;
+}
+
+export interface CartActions {
+  handleAddToCart: (itemId: string, modifiers?: SelectedModifiers | null) => Promise<void>;
+  handleDecrementCart: (itemId: string, modifiers?: SelectedModifiers | null) => Promise<void>;
+  getTotalItems: () => number;
+  getItemQuantity: (itemId: string) => number;
+}
+
+// --- Tipos para Modificadores Seleccionados ---
+export interface SelectedModifierOption {
+  id: string;
+  name: string;
+  extra_price: number;
+}
+
+export interface SelectedModifier {
+  name: string; // Nombre del grupo modificador (ej. "Tamaño", "Extras")
+  options: SelectedModifierOption[]; // Opciones seleccionadas para ese grupo
+}
+
+// Usamos un Record donde la clave es el ID del *grupo* modificador
+export type SelectedModifiers = Record<string, SelectedModifier>;
+
+export interface ModifierOption {
+  id: string;
+  name: string;
+  extra_price: number;
+  is_default: boolean;
+  icon_url: string | undefined;
+  related_menu_item_id: string | undefined;
+  allergens: {
+    id: string;
+    name: string;
+    icon_url: string | undefined;
+  }[];
+}
+
+export interface Modifier {
+  id: string;
+  name: string;
+  description: string;
+  required: boolean;
+  multi_select: boolean;
+  options: ModifierOption[];
 } 
