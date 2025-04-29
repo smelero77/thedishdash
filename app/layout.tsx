@@ -1,3 +1,4 @@
+// app/layout.tsx
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
@@ -13,8 +14,8 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Gourmeton'
-  }
+    title: 'Gourmeton',
+  },
 }
 
 export const viewport: Viewport = {
@@ -22,15 +23,19 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#1ce3cf'
+  themeColor: '#1ce3cf',
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Cargar datos del servidor
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  // Cargamos en paralelo los datos que necesita el Provider
   const [menuItems, slot] = await Promise.all([
     getMenuItems(),
-    getCurrentSlot()
-  ]);
+    getCurrentSlot(),
+  ])
 
   return (
     <html lang="es">
@@ -40,11 +45,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={inter.className}>
-        {/* El wrapper Clientside que provee el CartContext */}
+        {/*
+          El primer componente cliente es Providers.
+          Ahí es donde inyectamos why-did-you-render (en desarrollo)
+          y levantamos todos los contextos.
+        */}
         <Providers menuItems={menuItems}>
           {children}
         </Providers>
       </body>
     </html>
   )
-} 
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 
 interface CustomerContextType {
   alias: string | null;
@@ -15,7 +15,6 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const [alias, setAlias] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Cargar alias del localStorage al inicio
   useEffect(() => {
     const savedAlias = localStorage.getItem('customerAlias');
     if (savedAlias) {
@@ -23,7 +22,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const saveAlias = async (newAlias: string): Promise<boolean> => {
+  const saveAlias = useCallback(async (newAlias: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       localStorage.setItem('customerAlias', newAlias);
@@ -35,15 +34,22 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const clearCustomerAlias = () => {
+  const clearCustomerAlias = useCallback(() => {
     localStorage.removeItem('customerAlias');
     setAlias(null);
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    alias,
+    isLoading,
+    saveAlias,
+    clearCustomerAlias
+  }), [alias, isLoading, saveAlias, clearCustomerAlias]);
 
   return (
-    <CustomerContext.Provider value={{ alias, isLoading, saveAlias, clearCustomerAlias }}>
+    <CustomerContext.Provider value={value}>
       {children}
     </CustomerContext.Provider>
   );
@@ -51,8 +57,8 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
 export function useCustomer() {
   const context = useContext(CustomerContext);
-  if (context === undefined) {
-    throw new Error('useCustomer must be used within a CustomerProvider');
+  if (!context) {
+    throw new Error('useCustomer must be used within a <CustomerProvider>. Please wrap your component tree with <CustomerProvider>.');
   }
   return context;
-} 
+}

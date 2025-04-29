@@ -214,15 +214,14 @@ export default function MenuScreen({
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredItems, setFilteredItems] = useState<MenuItemData[]>([]);
   const [showAliasModal, setShowAliasModal] = useState(false);
-  const { alias } = useCustomer();
-  const { tableNumber } = useTable();
+  const { alias, tableNumber } = useTable();
+  const { addToCart, decrementCart } = useCartContext();
   const isScrollingProgrammatically = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
   const lastScrollTime = useRef(Date.now());
 
   // Usar el contexto del carrito
   const {
-    addToCart,
     removeFromCartByItem,
     getItemQuantity,
     cart: cartItems,
@@ -541,6 +540,7 @@ export default function MenuScreen({
           onClose={() => setShowCartModal(false)}
           onRemoveItem={handleRemoveItem}
           onAddToCart={addToCart}
+          onDecrementCart={decrementCart}
           currentClientAlias={alias ?? undefined}
         />
       )}

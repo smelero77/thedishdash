@@ -16,6 +16,7 @@ interface CartContextType {
   findCartKey: (itemId: string, modifiers: Record<string, any>) => string | null;
   findExactCartKey: (itemId: string, modifiers: Record<string, any>) => string | null;
   calculateItemPrice: (itemId: string, modifiers: Record<string, any>) => number;
+  decrementCart: (itemId: string, modifiers: Record<string, any>) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -35,6 +36,7 @@ export function CartProvider({ children, menuItems, slotId, alias, tableCode }: 
     cart,
     cartTotal,
     handleAddToCart,
+    handleDecrementCart,
     handleRemoveFromCartByItem,
     handleRemoveFromCartByKey,
     getTotalItems,
@@ -44,8 +46,9 @@ export function CartProvider({ children, menuItems, slotId, alias, tableCode }: 
     calculateItemPrice,
   } = useCart(menuItems, alias, tableNumber);
 
-  // Ahora simplemente
+  // Simplificar las funciones
   const addToCart = handleAddToCart;
+  const decrementCart = handleDecrementCart;
   const removeFromCartByItem = handleRemoveFromCartByItem;
   const removeFromCartByKey = handleRemoveFromCartByKey;
 
@@ -53,6 +56,7 @@ export function CartProvider({ children, menuItems, slotId, alias, tableCode }: 
     cart,
     cartTotal,
     addToCart,
+    decrementCart,
     removeFromCartByItem,
     removeFromCartByKey,
     getTotalItems,

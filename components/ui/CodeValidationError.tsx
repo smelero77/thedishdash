@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -6,12 +6,12 @@ import { Button } from './Button';
 import { useRouter } from 'next/navigation';
 
 interface CodeValidationErrorProps {
-  error: string;
+  message: string; // CAMBIADO de 'error' a 'message'
   onRetry?: () => void;
 }
 
 export function CodeValidationError({ 
-  error,
+  message,
   onRetry 
 }: CodeValidationErrorProps) {
   const router = useRouter();
@@ -31,7 +31,7 @@ export function CodeValidationError({
           Código no válido
         </h3>
         <p className="text-gray-600 text-center text-sm">
-          {error}
+          {message}
         </p>
         <div className="flex gap-2 pt-2 w-full">
           {onRetry && (
@@ -52,4 +52,4 @@ export function CodeValidationError({
       </div>
     </motion.div>
   );
-} 
+}

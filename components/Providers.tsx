@@ -1,5 +1,7 @@
+// components/Providers.tsx
 'use client';
 
+import '../config/whyDidYouRender';
 import React from 'react';
 import { CartProvider } from '@/context/CartContext';
 import { TableProvider } from '@/context/TableContext';

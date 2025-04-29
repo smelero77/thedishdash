@@ -23,18 +23,28 @@ interface CartModalProps {
   onClose: () => void;
   onRemoveItem: (itemId: string, modifiers: Record<string, any>) => void;
   onAddToCart: (itemId: string, modifiers: Record<string, any>) => void;
+  onDecrementCart: (itemId: string, modifiers: Record<string, any>) => void;
   currentClientAlias?: string;
 }
 
-export default function CartModal({
+// Configuración de why-did-you-render para el CartModal
+const CartModal = React.memo(function CartModal({
   items,
   menuItems,
   onClose,
   onRemoveItem,
   onAddToCart,
+  onDecrementCart,
   currentClientAlias,
 }: CartModalProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [localItems, setLocalItems] = useState(items);
+
+  // Actualizar items locales cuando cambien los props
+  useEffect(() => {
+    console.log('[CartModal] Items actualizados:', items);
+    setLocalItems(items);
+  }, [items]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -51,13 +61,12 @@ export default function CartModal({
     if (increment) {
       onAddToCart(item.id, item.modifiers);
     } else {
-      const cartKey = getCartKey(item.id, item.modifiers);
-      onRemoveItem(cartKey);
+      onDecrementCart(item.id, item.modifiers);
     }
   };
 
-  // Eliminar el estado local del carrito ya que usaremos el del padre
-  const groupedItems = Object.values(items).reduce(
+  // Usar localItems en lugar de items directamente
+  const groupedItems = Object.values(localItems).reduce(
     (acc, cartItem) => {
       const alias = cartItem.client_alias || 'Sin alias';
       if (!acc[alias]) {
@@ -78,7 +87,7 @@ export default function CartModal({
   const dinerCount = Object.keys(groupedItems).length;
 
   const getTotalPrice = () => {
-    return Object.values(items).reduce((total, item) => {
+    return Object.values(localItems).reduce((total, item) => {
       return total + getItemTotalPrice(item);
     }, 0);
   };
@@ -236,4 +245,6 @@ export default function CartModal({
       </motion.div>
     </div>
   );
-}
+});
+
+export default CartModal;
