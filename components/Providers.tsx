@@ -6,7 +6,7 @@ import React from 'react';
 // import { CartProvider } from '@/context/CartContext';
 import { TableProvider } from '@/context/TableContext';
 import { CustomerProvider } from '@/context/CustomerContext';
-import { SplitCartProvider } from '@/context/SplitCartProvider';
+import { CartProvider } from '@/context/CartProvider';
 import type { MenuItemData } from '@/types/menu';
 
 interface ProvidersProps {
@@ -18,9 +18,9 @@ export default function Providers({ children, menuItems }: ProvidersProps) {
   return (
     <TableProvider>
       <CustomerProvider>
-        <SplitCartProvider menuItems={menuItems}>
+        <CartProvider menuItems={menuItems}>
           {children}
-        </SplitCartProvider>
+        </CartProvider>
       </CustomerProvider>
     </TableProvider>
   );

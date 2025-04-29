@@ -15,20 +15,20 @@ import { useCustomer } from './CustomerContext';
 import { useTable } from './TableContext';
 
 // Define las props que necesita este provider
-interface SplitCartProviderProps {
+interface CartProviderProps {
     children: ReactNode;
     menuItems: MenuItemData[] | null; // Recibe menuItems desde Providers (originado en RootLayout)
 }
 
 // Objeto de acciones por defecto para evitar errores si se accede al contexto antes de tiempo
 const defaultCartActions: CartActions = {
-    handleAddToCart: async () => { console.warn("SplitCartProvider not ready: handleAddToCart"); },
-    handleDecrementCart: async () => { console.warn("SplitCartProvider not ready: handleDecrementCart"); },
-    getTotalItems: () => { console.warn("SplitCartProvider not ready: getTotalItems"); return 0; },
-    getItemQuantity: () => { console.warn("SplitCartProvider not ready: getItemQuantity"); return 0; },
+    handleAddToCart: async () => { console.warn("CartProvider not ready: handleAddToCart"); },
+    handleDecrementCart: async () => { console.warn("CartProvider not ready: handleDecrementCart"); },
+    getTotalItems: () => { console.warn("CartProvider not ready: getTotalItems"); return 0; },
+    getItemQuantity: () => { console.warn("CartProvider not ready: getItemQuantity"); return 0; },
 };
 
-export function SplitCartProvider({ children, menuItems }: SplitCartProviderProps) {
+export function CartProvider({ children, menuItems }: CartProviderProps) {
     // Obtener dependencias de otros contextos
     const { alias } = useCustomer();
     const { tableNumber } = useTable();
@@ -50,7 +50,7 @@ export function SplitCartProvider({ children, menuItems }: SplitCartProviderProp
     // 'actions' ya está memoizado dentro de useCart
     const safeActions: CartActions = actions ?? defaultCartActions;
 
-    console.log('[SplitCartProvider] Rendering. Cart Items:', Object.keys(safeCart).length, 'Total:', safeCartTotal);
+    console.log('[CartProvider] Rendering. Cart Items:', Object.keys(safeCart).length, 'Total:', safeCartTotal);
 
     // Renderizar los providers anidados
     return (
