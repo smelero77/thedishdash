@@ -25,7 +25,6 @@ const mappings = {
   '@/components/CategorySection': '@/components/screens/CategorySection',
   '@/components/MenuPageContent': '@/components/screens/MenuPageContent',
   '@/components/MenuItem': '@/components/screens/MenuItem',
-  '@/components/SearchOverlay': '@/components/screens/SearchOverlay',
   '@/components/SearchButton': '@/components/screens/SearchButton',
   '@/components/ModifierModal': '@/components/screens/ModifierModal',
   '@/components/TableInfo': '@/components/screens/TableInfo'

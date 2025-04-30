@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useContext, forwardRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft } from 'lucide-react';
 import MenuItem from '../MenuItem';
-import { MenuItemData, Cart } from '@/types/menu';
+import { MenuItemData } from '@/types/menu';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { getCartQuantityForItem, removeFromCart } from '@/utils/cart';
+import { CartItemsContext } from '@/context/CartItemsContext';
+import { CartActionsContext } from '@/context/CartActionsContext';
 
 interface SearchOverlayProps {
   searchQuery: string;
@@ -12,27 +13,35 @@ interface SearchOverlayProps {
   filteredItems: MenuItemData[];
   handleSearch: (query: string) => void;
   onClose: () => void;
-  onAddToCart: (itemId: string) => void;
-  onRemoveItem: (cartKey: string) => void;
-  cart: Cart;
-  resetSearch: () => void;
 }
 
-const SearchOverlay: React.FC<SearchOverlayProps> = ({
+const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(({
   searchQuery,
   searchActive,
   filteredItems,
   handleSearch,
-  onClose,
-  onAddToCart,
-  onRemoveItem,
-  cart,
-  resetSearch
-}) => {
-  // Función para manejar la eliminación de ítems del carrito
-  const handleRemoveFromCart = (itemId: string) => {
-    removeFromCart(cart, itemId, onRemoveItem, 'SearchOverlay');
-  };
+  onClose
+}, ref) => {
+  const cart = useContext(CartItemsContext);
+  const cartActions = useContext(CartActionsContext);
+
+  const handleAddToCart = useCallback((itemId: string) => {
+    if (cartActions) {
+      cartActions.handleAddToCart(itemId, {});
+    }
+  }, [cartActions]);
+
+  const handleRemoveFromCart = useCallback((itemId: string) => {
+    if (cartActions) {
+      cartActions.handleDecrementCart(itemId, {});
+    }
+  }, [cartActions]);
+
+  const getCartQuantityForItem = useCallback((itemId: string) => {
+    if (!cart) return 0;
+    const cartItem = cart[itemId];
+    return cartItem ? cartItem.quantity : 0;
+  }, [cart]);
 
   return (
     <AnimatePresence>
@@ -43,6 +52,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
           exit={{ opacity: 0, y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           className="fixed inset-0 z-40 bg-white/90 backdrop-blur-md flex flex-col overflow-hidden"
+          ref={ref}
         >
           <div className="flex flex-col h-full">
             {/* Header con input de búsqueda */}
@@ -58,7 +68,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
                   autoFocus
                 />
                 <button
-                  onClick={resetSearch}
+                  onClick={onClose}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
                   aria-label="Cerrar búsqueda"
                 >
@@ -74,7 +84,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
                   {filteredItems.length > 0 ? (
                     <div className="space-y-2">
                       {filteredItems.map((item) => {
-                        const quantity = getCartQuantityForItem(cart, item.id);
+                        const quantity = getCartQuantityForItem(item.id);
                         
                         return (
                           <MenuItem
@@ -84,7 +94,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
                               ...allergen,
                               icon_url: allergen.icon_url ?? ''
                             }))}
-                            onAddToCart={() => onAddToCart(item.id)}
+                            onAddToCart={() => handleAddToCart(item.id)}
                             onRemoveFromCart={() => handleRemoveFromCart(item.id)}
                             quantity={quantity}
                             diet_tags={[]}
@@ -102,7 +112,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
                         No se encontraron resultados para "{searchQuery}"
                       </p>
                       <button
-                        onClick={resetSearch}
+                        onClick={onClose}
                         className="flex items-center gap-2 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
                       >
                         <ArrowLeft className="h-4 w-4" />
@@ -131,6 +141,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
       )}
     </AnimatePresence>
   );
-};
+});
 
-export default SearchOverlay; 
+SearchOverlayComponent.displayName = "SearchOverlay";
+export default React.memo(SearchOverlayComponent); 

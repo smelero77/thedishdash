@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useContext, useCallback } from 'react';
+import React, { useContext, useCallback, forwardRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import MenuItem from '@/components/screens/MenuItem';
 import { CartActionsContext } from '@/context/CartActionsContext';
@@ -10,7 +10,9 @@ interface VirtualizedMenuItemsProps {
   items: MenuItemData[];
 }
 
-export default function VirtualizedMenuItems({ items }: VirtualizedMenuItemsProps) {
+const VirtualizedMenuItemsComponent = forwardRef<HTMLDivElement, VirtualizedMenuItemsProps>(({
+  items
+}, ref) => {
   const cartActions = useContext(CartActionsContext);
 
   const handleAddItem = useCallback((itemId: string, modifiers: SelectedModifiers | null = null) => {
@@ -59,4 +61,7 @@ export default function VirtualizedMenuItems({ items }: VirtualizedMenuItemsProp
       }}
     </List>
   );
-} 
+});
+
+VirtualizedMenuItemsComponent.displayName = "VirtualizedMenuItems";
+export default React.memo(VirtualizedMenuItemsComponent); 

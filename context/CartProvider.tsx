@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useMemo } from 'react';
 // Importa los 3 nuevos contextos específicos
 import { CartItemsContext } from './CartItemsContext';
 import { CartTotalContext } from './CartTotalContext';
@@ -44,11 +44,10 @@ export function CartProvider({ children, menuItems }: CartProviderProps) {
         tableNumber // Desde useTable
     );
 
-    // Preparar valores seguros para los providers (evitar pasar null/undefined si es posible)
-    const safeCart: Cart = cart ?? {};
-    const safeCartTotal: number = cartTotal ?? 0;
-    // 'actions' ya está memoizado dentro de useCart
-    const safeActions: CartActions = actions ?? defaultCartActions;
+    // Memoizar los valores del provider
+    const safeCart = useMemo(() => cart ?? {}, [cart]);
+    const safeCartTotal = useMemo(() => cartTotal ?? 0, [cartTotal]);
+    const safeActions = useMemo(() => actions ?? defaultCartActions, [actions]);
 
     console.log('[CartProvider] Rendering. Cart Items:', Object.keys(safeCart).length, 'Total:', safeCartTotal);
 

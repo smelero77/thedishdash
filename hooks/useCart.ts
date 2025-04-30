@@ -124,6 +124,11 @@ function useCart(
         return `${itemId}-${modifiersString}`;
     }, []);
 
+    // Memoizar el cálculo de cartKey
+    const memoizedGetCartKey = useCallback((itemId: string, modifiers: SelectedModifiers | null) => {
+        return useMemo(() => getCartKey(itemId, modifiers), [itemId, modifiers]);
+    }, [getCartKey]);
+
     const calculateItemPrice = useCallback((item: MenuItemData, modifiers: SelectedModifiers | null): number => {
         const basePrice = item?.price ?? 0;
         if (!modifiers) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, forwardRef } from 'react';
 
 interface Category {
   id: string;
@@ -12,12 +12,12 @@ interface CategoryTabsProps {
   menuScrollRef: React.RefObject<HTMLDivElement>;
 }
 
-const CategoryTabs: React.FC<CategoryTabsProps> = ({
+const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(({
   categories,
   activeTab,
   setActiveTab,
   menuScrollRef
-}) => {
+}, ref) => {
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
   // Efecto para mantener la pestaña activa visible en la barra de categorías
@@ -61,8 +61,7 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
       </div>
     </div>
   );
-};
+});
 
-CategoryTabs.displayName = "CategoryTabs";
-
-export default CategoryTabs; 
+CategoryTabsComponent.displayName = "CategoryTabs";
+export default React.memo(CategoryTabsComponent); 

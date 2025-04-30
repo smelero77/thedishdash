@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef } from 'react';
 import { X } from 'lucide-react';
 import { MenuItemAllergen as Allergen } from "../types/menu";
 import { MenuItemData } from "../types/menu";
@@ -39,7 +39,7 @@ const formatPrice = (price: number) => {
   return price.toFixed(2) + '€';
 };
 
-export default function ModifierModal({
+const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(({
   isOpen,
   itemName,
   itemDescription,
@@ -48,7 +48,7 @@ export default function ModifierModal({
   menuItems,
   onClose,
   onConfirm
-}: ModifierModalProps) {
+}, ref) => {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
   const [isVisible, setIsVisible] = useState(false);
 
@@ -72,7 +72,7 @@ export default function ModifierModal({
     }
   }, [isOpen, modifiers]);
 
-  const handleOptionSelect = (modifierId: string, optionId: string) => {
+  const handleOptionSelect = useCallback((modifierId: string, optionId: string) => {
     const modifier = modifiers.find(m => m.id === modifierId);
     if (!modifier) return;
 
@@ -92,9 +92,9 @@ export default function ModifierModal({
         return { ...prev, [modifierId]: newOptions };
       });
     }
-  };
+  }, [modifiers, selectedOptions, onConfirm, onClose]);
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     // Validate required modifiers
     const requiredModifiers = modifiers.filter(m => m.required);
     const hasAllRequired = requiredModifiers.every(modifier => {
@@ -107,10 +107,10 @@ export default function ModifierModal({
       return;
     }
 
-    console.log('Confirming selected options:', selectedOptions); // Log selected options before confirming
+    console.log('Confirming selected options:', selectedOptions);
     onConfirm(selectedOptions);
     onClose();
-  };
+  }, [modifiers, selectedOptions, onConfirm, onClose]);
 
   const isOptionSelected = (modifierId: string, optionId: string) => {
     return selectedOptions[modifierId]?.includes(optionId) || false;
@@ -273,4 +273,7 @@ export default function ModifierModal({
       </div>
     </div>
   );
-}
+});
+
+ModifierModalComponent.displayName = "ModifierModal";
+export default React.memo(ModifierModalComponent);

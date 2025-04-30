@@ -1,6 +1,6 @@
 // thedishdash/components/screens/StartScreen.tsx
 "use client";
-import React, { useState, useEffect, useRef, useCallback, useMemo, useReducer } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useReducer, forwardRef } from 'react';
 
 import { CodeValidationLoader } from '@/components/ui/CodeValidationLoader';
 import { CodeValidationError } from '@/components/ui/CodeValidationError';
@@ -167,7 +167,7 @@ function screenReducer(state: ReducerState, action: ReducerAction): ReducerState
 
 // --- StartScreen Component ---
 
-function StartScreen() {
+const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props, ref) => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -531,5 +531,7 @@ function StartScreen() {
       />
     </div>
   );
-}
-export default React.memo(StartScreen);
+});
+
+StartScreenComponent.displayName = "StartScreen";
+export default React.memo(StartScreenComponent);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback, forwardRef } from 'react';
 import { X, Trash2, Users, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,10 +17,10 @@ interface CartModalProps {
 
 const formatPrice = (price: number): string => price.toFixed(2).replace('.', ',') + ' €';
 
-const CartModal = React.memo(function CartModal({
+const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
   onClose,
   currentClientAlias,
-}: CartModalProps) {
+}, ref) => {
   const [isVisible, setIsVisible] = useState(false);
 
   const cart = useContext(CartItemsContext);
@@ -32,10 +32,10 @@ const CartModal = React.memo(function CartModal({
     return () => clearTimeout(timer);
   }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsVisible(false);
     setTimeout(onClose, 300);
-  };
+  }, [onClose]);
 
   if (cart === null || cartTotal === null || !actions) {
     console.warn("[CartModal] Esperando contextos del carrito...");
@@ -184,4 +184,5 @@ const CartModal = React.memo(function CartModal({
   );
 });
 
-export default CartModal;
+CartModalComponent.displayName = "CartModal";
+export default React.memo(CartModalComponent);

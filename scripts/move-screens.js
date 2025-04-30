@@ -13,7 +13,6 @@ const moves = [
   ['components/CategorySection.tsx', 'components/screens/CategorySection.tsx'],
   ['components/MenuPageContent.tsx', 'components/screens/MenuPageContent.tsx'],
   ['components/MenuItem.tsx', 'components/screens/MenuItem.tsx'],
-  ['components/SearchOverlay.tsx', 'components/screens/SearchOverlay.tsx'],
   ['components/SearchButton.tsx', 'components/screens/SearchButton.tsx'],
   ['components/ModifierModal.tsx', 'components/screens/ModifierModal.tsx'],
   ['components/TableInfo.tsx', 'components/screens/TableInfo.tsx'],

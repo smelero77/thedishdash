@@ -99,6 +99,7 @@ export interface Category {
   id: string;
   name: string;
   image_url: string;
+  sort_order?: number;
 }
 
 export interface Cart {
@@ -135,11 +136,10 @@ export interface SelectedModifierOption {
 }
 
 export interface SelectedModifier {
-  name: string; // Nombre del grupo modificador (ej. "Tamaño", "Extras")
-  options: SelectedModifierOption[]; // Opciones seleccionadas para ese grupo
+  name: string;
+  options: SelectedModifierOption[];
 }
 
-// Usamos un Record donde la clave es el ID del *grupo* modificador
 export type SelectedModifiers = Record<string, SelectedModifier>;
 
 export interface ModifierOption {

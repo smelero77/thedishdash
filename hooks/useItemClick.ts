@@ -1,5 +1,6 @@
 import { MenuItemData } from '@/types/menu';
 import { Modifier } from '@/types/modifiers';
+import { useCallback } from 'react';
 
 export const useItemClick = ({
   menuItems,
@@ -14,7 +15,7 @@ export const useItemClick = ({
   setShowModifierModal: React.Dispatch<React.SetStateAction<boolean>>;
   handleAddToCart: (itemId: string) => void;
 }) => {
-  return async (itemId: string) => {
+  return useCallback(async (itemId: string) => {
     const item = menuItems.find((i: MenuItemData) => i.id === itemId);
     if (!item) return;
 
@@ -31,5 +32,5 @@ export const useItemClick = ({
     } else {
       handleAddToCart(itemId);
     }
-  };
+  }, [menuItems, fetchModifiers, setSelectedItem, setShowModifierModal, handleAddToCart]);
 }; 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { UserCircle } from 'lucide-react';
 import SearchButton from '../SearchButton';
@@ -19,14 +19,14 @@ interface MenuHeaderProps {
   setSearchActive: (active: boolean) => void;
 }
 
-const MenuHeader: React.FC<MenuHeaderProps> = ({
+const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(({
   alias,
   tableNumber,
   currentSlot,
   slots,
   onAliasClick,
   setSearchActive
-}) => {
+}, ref) => {
   return (
     <div className="fixed top-0 left-0 right-0 z-10 bg-[#f8fbfb]" style={{ height: '120px' }}>
       <div className="flex items-center justify-between p-4">
@@ -86,6 +86,7 @@ const MenuHeader: React.FC<MenuHeaderProps> = ({
       )}
     </div>
   );
-};
+});
 
-export default MenuHeader; 
+MenuHeaderComponent.displayName = "MenuHeader";
+export default React.memo(MenuHeaderComponent); 

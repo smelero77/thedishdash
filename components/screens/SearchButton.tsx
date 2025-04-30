@@ -5,7 +5,7 @@ interface SearchButtonProps {
   onClick: () => void;
 }
 
-export default function SearchButton({ onClick }: SearchButtonProps) {
+const SearchButtonComponent = ({ onClick }: SearchButtonProps) => {
   return (
     <button
       onClick={onClick}
@@ -15,4 +15,8 @@ export default function SearchButton({ onClick }: SearchButtonProps) {
       <Search className="h-5 w-5 text-[#4f968f]" />
     </button>
   );
-} 
+};
+
+SearchButtonComponent.displayName = "SearchButton";
+
+export default React.memo(SearchButtonComponent); 

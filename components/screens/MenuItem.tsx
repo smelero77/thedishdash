@@ -1,7 +1,7 @@
 // thedishdash/components/screens/MenuItem.tsx
 "use client";
 
-import React, { HTMLAttributes } from "react"; // Importación explícita de React
+import React, { HTMLAttributes, forwardRef } from "react"; // Importación explícita de React
 import { Plus, Minus } from "lucide-react";
 import { MenuItemAllergen as Allergen } from "../../types/menu"; // Asegúrate que la ruta sea correcta
 import Image from "next/image";
@@ -25,8 +25,7 @@ interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   is_available: boolean;
 }
 
-// Definición del componente funcional MenuItem (sin export default aquí)
-function MenuItem({
+const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
   id,
   name,
   description,
@@ -44,7 +43,7 @@ function MenuItem({
   quantity,
   is_available, // Mantenemos la prop pero no la usamos en el JSX
   ...rest
-}: MenuItemProps) {
+}, ref) => {
 
   const formatPrice = (price: number) => {
     // Considerar usar Intl.NumberFormat para un formateo más robusto y localizado
@@ -56,7 +55,7 @@ function MenuItem({
   // Podrías añadir lógica para deshabilitar botones si !is_available
 
   return (
-    <div className="w-full px-4 py-2" {...rest}>
+    <div className="w-full px-4 py-2" {...rest} ref={ref}>
       {/* Image with badge */}
       <div className="relative w-full overflow-hidden aspect-[4/3] bg-gray-200 bg-cover bg-center rounded-lg"> {/* Añadido bg-gray-200 para fallback */}
         {image_url ? (
@@ -167,7 +166,7 @@ function MenuItem({
       </div>
     </div>
   );
-}
+});
 
-// Exportar la versión memoizada del componente
-export default React.memo(MenuItem);
+MenuItemComponent.displayName = "MenuItem";
+export default React.memo(MenuItemComponent);

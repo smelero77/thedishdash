@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useContext, forwardRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ShoppingCart, Search, X, ArrowLeft, UserCircle } from 'lucide-react';
 import MenuItem from './MenuItem';
@@ -10,7 +10,7 @@ import SearchOverlay from './MenuScreen/SearchOverlay';
 import LoadingScreen from './MenuScreen/LoadingScreen';
 import ErrorScreen from './MenuScreen/ErrorScreen';
 import CategoryTabs from './MenuScreen/CategoryTabs';
-import { CategorySection } from './MenuScreen/CategorySection';
+import CategorySection from './MenuScreen/CategorySection';
 import { MenuItemData, Category, Slot, CartItem, Cart, SelectedModifiers, Modifier, MenuItemAllergen } from '@/types/menu';
 
 import { CartItemsContext } from '@/context/CartItemsContext';
@@ -53,12 +53,12 @@ interface MenuScreenProps {
   initialCurrentSlot: Slot | null;
 }
 
-export default function MenuScreen({
+const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
   initialSlots,
   initialCategories,
   initialMenuItems,
-  initialCurrentSlot,
-}: MenuScreenProps) {
+  initialCurrentSlot
+}, ref) => {
   const { slots, currentSlot, categories, loading, error } = useMenuData();
   const [activeTab, setActiveTab] = useState<string>('');
   const menuScrollRef = useRef<HTMLDivElement | null>(null);
@@ -81,14 +81,27 @@ export default function MenuScreen({
 
   const { modifiers, fetchModifiers } = useModifiers();
 
+  const memoizedCartActions = useMemo(() => cartActions, [cartActions]);
+  const memoizedInitialMenuItems = useMemo(() => initialMenuItems, [initialMenuItems]);
+  const memoizedModifiers = useMemo(() => modifiers, [modifiers]);
+
+  const itemQuantities = useMemo(() => {
+    if (!cart) return {};
+    const quantities: Record<string, number> = {};
+    Object.entries(cart).forEach(([id, item]) => {
+      quantities[id] = item.quantity;
+    });
+    return quantities;
+  }, [cart]);
+
   const handleItemClick = useCallback(
     async (itemId: string) => {
-      const item = initialMenuItems?.find((i) => i.id === itemId);
+      const item = memoizedInitialMenuItems?.find((i) => i.id === itemId);
       if (!item) {
         console.error(`[MenuScreen] Item con ID ${itemId} no encontrado en initialMenuItems.`);
         return;
       }
-      if (!cartActions) {
+      if (!memoizedCartActions) {
         console.error("[MenuScreen] Cart actions no están disponibles.");
         return;
       }
@@ -107,19 +120,19 @@ export default function MenuScreen({
       }
 
       console.log(`[MenuScreen] Añadiendo item ${itemId} sin modificadores.`);
-      cartActions.handleAddToCart(itemId, {});
+      memoizedCartActions.handleAddToCart(itemId, {});
     },
-    [initialMenuItems, fetchModifiers, cartActions],
+    [memoizedInitialMenuItems, fetchModifiers, memoizedCartActions],
   );
 
   const onModifierSubmit = useCallback(
     (options: Record<string, string[]>) => {
-      if (selectedItem && cartActions) {
+      if (selectedItem && memoizedCartActions) {
         handleModifierSubmit(
           selectedItem,
           options,
-          modifiers,
-          cartActions.handleAddToCart,
+          memoizedModifiers,
+          memoizedCartActions.handleAddToCart,
           () => {
             setShowModifierModal(false);
             setSelectedItem(null);
@@ -129,19 +142,19 @@ export default function MenuScreen({
         console.error("[MenuScreen] No se pudo procesar modificadores: falta selectedItem o cartActions.");
       }
     },
-    [selectedItem, modifiers, cartActions],
+    [selectedItem, memoizedModifiers, memoizedCartActions],
   );
 
   const handleDecrementItem = useCallback(
     (itemId: string, itemModifiers: SelectedModifiers | null = null) => {
-      if (!cartActions) {
+      if (!memoizedCartActions) {
         console.error("[MenuScreen] Cart actions no están disponibles para decrementar.");
         return;
       }
       console.log(`[MenuScreen] Decrementando item ${itemId}. Modifiers:`, itemModifiers);
-      cartActions.handleDecrementCart(itemId, itemModifiers ?? {});
+      memoizedCartActions.handleDecrementCart(itemId, itemModifiers ?? {});
     },
-    [cartActions]
+    [memoizedCartActions]
   );
 
   const handleCategoryClick = useCallback((categoryId: string) => {
@@ -158,14 +171,27 @@ export default function MenuScreen({
   }, []);
 
   const debouncedSearch = useDebounce((query: string) => {
-    const results = searchMenuItems(query, initialMenuItems);
+    const results = searchMenuItems(query, memoizedInitialMenuItems);
     setFilteredItems(results);
   }, 300);
 
-  const handleSearch = (query: string) => {
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     debouncedSearch(query);
-  };
+  }, [debouncedSearch]);
+
+  const handleResetSearch = useCallback(() => {
+    resetSearch(setSearchQuery, setFilteredItems, setSearchActive);
+  }, []);
+
+  const handleAliasConfirm = useCallback(async (newAlias: string) => {
+    console.log('[MenuScreen] Guardando alias:', newAlias);
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
+    }
+    setShowAliasModal(false);
+    return true;
+  }, []);
 
   useEffect(() => {
     if (!searchActive) {
@@ -194,14 +220,35 @@ export default function MenuScreen({
     };
   }, [searchActive]);
 
-  const handleAliasConfirm = async (newAlias: string) => {
-    console.log('[MenuScreen] Guardando alias:', newAlias);
-    if (scrollTimeout.current) {
-      clearTimeout(scrollTimeout.current);
-    }
-    setShowAliasModal(false);
-    return true;
-  };
+  const menuHeaderProps = useMemo(() => ({
+    alias,
+    tableNumber,
+    currentSlot,
+    slots,
+    onAliasClick: () => setShowAliasModal(true),
+    setSearchActive,
+  }), [alias, tableNumber, currentSlot, slots]);
+
+  const categoryTabsProps = useMemo(() => ({
+    categories,
+    activeTab,
+    setActiveTab: handleCategoryClick,
+    menuScrollRef: menuScrollRef as React.RefObject<HTMLDivElement>,
+  }), [categories, activeTab, handleCategoryClick]);
+
+  const floatingCartButtonProps = useMemo(() => ({
+    onClick: () => setShowCartModal(true),
+    getTotalItems: memoizedCartActions?.getTotalItems,
+    cartTotal,
+  }), [memoizedCartActions, cartTotal]);
+
+  const searchOverlayProps = useMemo(() => ({
+    searchQuery,
+    searchActive,
+    filteredItems,
+    handleSearch,
+    onClose: handleResetSearch,
+  }), [searchQuery, searchActive, filteredItems, handleSearch, handleResetSearch]);
 
   if (loading && categories.length === 0) {
     return <LoadingScreen />;
@@ -218,68 +265,42 @@ export default function MenuScreen({
 
   return (
     <div className="relative min-h-screen bg-gray-50 overflow-hidden">
-      <MenuHeader
-        alias={alias}
-        tableNumber={tableNumber}
-        currentSlot={currentSlot}
-        slots={slots}
-        onAliasClick={() => setShowAliasModal(true)}
-        setSearchActive={setSearchActive}
-      />
+      <MenuHeader {...menuHeaderProps} />
 
       <div
         ref={menuScrollRef}
         className="fixed top-[120px] bottom-0 left-0 right-0 overflow-y-auto no-scrollbar pb-20"
       >
-        <CategoryTabs
-          categories={categories}
-          activeTab={activeTab}
-          setActiveTab={handleCategoryClick}
-          menuScrollRef={menuScrollRef as React.RefObject<HTMLDivElement>}
-        />
+        <CategoryTabs {...categoryTabsProps} />
 
         {categories.map((category: CategoryWithItems) => (
           <CategorySection
             key={category.id}
             category={category}
-            onAddToCart={(item: MenuItemData) => handleItemClick(item.id)}
-            onRemoveFromCart={(item: MenuItemData) => handleDecrementItem(item.id)}
+            itemQuantities={itemQuantities}
+            onAddToCart={handleItemClick}
+            onRemoveFromCart={handleDecrementItem}
           />
         ))}
       </div>
 
-      <FloatingCartButton
-        onClick={() => setShowCartModal(true)}
-        getTotalItems={cartActions?.getTotalItems}
-        cartTotal={cartTotal}
-      />
+      <FloatingCartButton {...floatingCartButtonProps} />
 
       <SearchButton onClick={() => setSearchActive(true)} />
 
-      <SearchOverlay
-        searchQuery={searchQuery}
-        searchActive={searchActive}
-        filteredItems={filteredItems}
-        handleSearch={handleSearch}
-        onClose={() => resetSearch(setSearchQuery, setFilteredItems, setSearchActive)}
-        onAddToCart={handleItemClick}
-        onRemoveItem={handleDecrementItem}
-        cart={cart}
-        resetSearch={() => resetSearch(setSearchQuery, setFilteredItems, setSearchActive)}
-      />
+      <SearchOverlay {...searchOverlayProps} />
 
-      {showModifierModal && selectedItem && modifiers?.length > 0 && ReactDOM.createPortal(
+      {showModifierModal && selectedItem && (
         <ModifierModal
           isOpen={showModifierModal}
           itemName={selectedItem.name}
           itemDescription={selectedItem.description}
           itemAllergens={selectedItem.allergens}
-          modifiers={modifiers}
-          menuItems={initialMenuItems ?? []}
+          modifiers={memoizedModifiers}
+          menuItems={memoizedInitialMenuItems ?? []}
           onConfirm={onModifierSubmit}
           onClose={() => { setShowModifierModal(false); setSelectedItem(null); }}
-        />,
-        document.body
+        />
       )}
 
       {showCartModal && (
@@ -298,4 +319,7 @@ export default function MenuScreen({
       )}
     </div>
   );
-}
+});
+
+MenuScreenComponent.displayName = "MenuScreen";
+export default React.memo(MenuScreenComponent);
