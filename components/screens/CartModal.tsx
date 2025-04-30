@@ -34,7 +34,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
 
   const handleClose = useCallback(() => {
     setIsVisible(false);
-    setTimeout(onClose, 300);
+    setTimeout(onClose, 500);
   }, [onClose]);
 
   if (cart === null || cartTotal === null || !actions) {
@@ -79,10 +79,9 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
     <div className="fixed inset-0 z-50">
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: isVisible ? 1 : 0 }}
+        animate={{ opacity: isVisible ? 0.5 : 0 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="fixed inset-0 bg-black bg-opacity-50"
+        className="fixed inset-0 bg-black"
         onClick={handleClose}
       />
 
@@ -90,23 +89,47 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
         initial={{ x: '100%' }}
         animate={{ x: isVisible ? 0 : '100%' }}
         exit={{ x: '100%' }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-xl overflow-hidden"
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="fixed inset-0 bg-white overflow-hidden"
       >
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-[#d0e6e4]">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#0e1b19]">Carrito</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-[#0e1b19] text-xl font-bold leading-tight tracking-[-0.015em]">Tu pedido</h2>
               <button
                 onClick={handleClose}
-                className="p-2 rounded-full hover:bg-gray-100"
+                className="text-[#4f968f] transition-colors"
               >
-                <X className="h-5 w-5 text-[#0e1b19]" />
+                <X className="h-6 w-6" />
               </button>
             </div>
-            <div className="mt-2 flex items-center gap-2 text-sm text-[#4f968f]">
-              <Users className="h-4 w-4" />
-              <span>{dinerCount} comensal{dinerCount !== 1 ? 'es' : ''}</span>
+            
+            <div className="flex items-center gap-2 p-3 bg-[#f8fbfb] rounded-lg">
+              <Users className="h-5 w-5 text-[#4f968f]" />
+              <span className="text-[#0e1b19] text-sm font-medium">
+                {dinerCount} {dinerCount === 1 ? 'comensal' : 'comensales'}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-3">
+              {Object.entries(groupedItems).map(([alias, { itemCount, total }]) => (
+                <div
+                  key={alias}
+                  className="flex items-center gap-2 p-2 bg-white border border-[#d0e6e4] rounded-lg"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 bg-[#f8fbfb] rounded-full">
+                    <span className="text-[#4f968f] text-sm font-semibold">
+                      {alias.slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[#0e1b19] text-sm font-medium">{alias}</span>
+                    <span className="text-[#4f968f] text-xs">
+                      {itemCount} {itemCount === 1 ? 'item' : 'items'} · {formatPrice(total)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -114,7 +137,10 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
             {Object.entries(groupedItems).map(([alias, { items: aliasItems }]) => (
               <div key={alias} className="mb-6">
                 <h3 className="text-[#0e1b19] text-base font-bold mb-3 flex items-center gap-2">
-                  {alias === currentClientAlias ? 'Tú' : alias}
+                  {alias === currentClientAlias ? 'Tu pedido' : `Pedido de ${alias}`}
+                  <span className="text-[#4f968f] text-sm font-normal">
+                    ({aliasItems.reduce((acc, item) => acc + item.quantity, 0)} items)
+                  </span>
                 </h3>
                 {aliasItems.map((item) => (
                   <div key={item.id + JSON.stringify(item.modifiers)} className="mb-4">
@@ -125,6 +151,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                             src={item.item.image_url}
                             alt={item.item.name}
                             fill
+                            sizes="(max-width: 768px) 64px, 64px"
                             className="object-cover"
                           />
                         </div>
@@ -132,8 +159,8 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                       <div className="flex-1">
                         <p className="font-semibold text-[#0e1b19]">{item.item.name}</p>
                         {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
-                          <p key={modifierId} className="text-sm text-gray-500">
-                            {modifier.name}: {modifier.options.map(opt => opt.name).join(', ')}
+                          <p key={modifierId} className="text-sm text-[#4f968f]">
+                            EXTRA: {modifier.options.map(opt => `${opt.name} (+${opt.extra_price.toFixed(2)}€)`).join(', ')}
                           </p>
                         ))}
                         <p className="text-sm text-[#4f968f] mt-1">
@@ -143,7 +170,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                       <div className="flex items-center border border-[#d0e6e4] rounded-full bg-[#4f968f]/10">
                         <button
                           onClick={() => handleQuantityChange(item, false)}
-                          className="p-2 hover:bg-[#4f968f]/20 rounded-l-full"
+                          className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
                         >
                           {item.quantity === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
                         </button>
@@ -152,7 +179,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                         </div>
                         <button
                           onClick={() => handleQuantityChange(item, true)}
-                          className="p-2 hover:bg-[#4f968f]/20 rounded-r-full"
+                          className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -162,22 +189,19 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                 ))}
               </div>
             ))}
-            {Object.keys(cart).length === 0 && (
-              <p className="text-gray-500 text-center mt-8">Tu carrito está vacío.</p>
-            )}
           </div>
 
-          {Object.keys(cart).length > 0 && (
-            <div className="fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-[#d0e6e4] p-4 w-full max-w-md ml-auto">
-              <div className="flex justify-between items-center font-bold text-lg mb-4">
-                <span>Total ({totalQuantity} items)</span>
-                <span>{formatPrice(cartTotal)}</span>
-              </div>
-              <button className="w-full h-12 bg-[#1ce3cf] text-[#0e1b19] text-base font-bold rounded-full shadow-lg hover:opacity-90">
-                Confirmar pedido
+          <div className="fixed bottom-4 left-0 right-0 z-50 px-4">
+            <div className="max-w-2xl mx-auto">
+              <button className="w-full h-12 bg-[#1ce3cf] text-[#0e1b19] text-base font-bold leading-normal tracking-[0.015em] rounded-full shadow-lg hover:bg-[#1ce3cf] hover:text-[#0e1b19]">
+                <span className="flex items-center justify-center gap-3">
+                  <span>Confirmar pedido</span>
+                  <span className="text-[#0e1b19] text-2xl font-extrabold">•</span>
+                  <span>{formatPrice(cartTotal)}</span>
+                </span>
               </button>
             </div>
-          )}
+          </div>
         </div>
       </motion.div>
     </div>
@@ -186,3 +210,4 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
 
 CartModalComponent.displayName = "CartModal";
 export default React.memo(CartModalComponent);
+
