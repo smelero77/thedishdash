@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { Category, MenuItemData, Slot, SupabaseMenuItem } from '@/types/menu';
 import { supabase } from '@/lib/supabase';
+import { useCurrentSlot } from './useCurrentSlot';
+import { getCurrentSlot } from '@/lib/utils';
 
 /**
  * Transforma un registro crudo de Supabase a la forma interna MenuItemData
@@ -61,35 +63,44 @@ interface UseMenuDataResult {
   error: Error | null;
 }
 
-export default function useMenuData(): UseMenuDataResult {
+export const useMenuData = (): UseMenuDataResult => {
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [currentSlot, setCurrentSlot] = useState<Slot | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [rawMenuItems, setRawMenuItems] = useState<SupabaseMenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
+        // Fetch slots
         const { data: slotsData, error: slotsError } = await supabase
           .from('slots')
           .select('*')
-          .order('start_time', { ascending: true });
+          .order('start_time');
 
         if (slotsError) throw slotsError;
         setSlots(slotsData || []);
 
+        // Fetch categories with slot relationships
         const { data: categoriesData, error: categoriesError } = await supabase
           .from('categories')
-          .select('*')
-          .order('sort_order', { ascending: true });
+          .select(`
+            *,
+            slot_categories (
+              slot_id
+            )
+          `)
+          .order('sort_order');
 
         if (categoriesError) throw categoriesError;
         setCategories(categoriesData || []);
 
+        // Fetch menu items
         const { data: menuItemsData, error: menuItemsError } = await supabase
           .from('menu_items')
           .select(`
@@ -113,12 +124,18 @@ export default function useMenuData(): UseMenuDataResult {
 
         if (menuItemsError) throw menuItemsError;
         setRawMenuItems(menuItemsData || []);
+
+        // Set current slot
+        const activeSlot = getCurrentSlot(slotsData || []);
+        setCurrentSlot(activeSlot);
+
       } catch (err) {
-        setError(err instanceof Error ? err : new Error('Error al cargar los datos'));
+        console.error('Error fetching menu data:', err);
+        setError(err instanceof Error ? err : new Error('An error occurred'));
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     fetchData();
   }, []);
@@ -138,10 +155,10 @@ export default function useMenuData(): UseMenuDataResult {
 
   return {
     slots,
-    currentSlot: slots[0] ?? null,
+    currentSlot,
     categories: categoriesWithItems,
     menuItems,
     loading,
     error
   };
-}
+};

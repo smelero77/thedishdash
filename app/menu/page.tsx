@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import MenuScreen from '@/components/screens/MenuScreen';
+import { MenuScreenWrapper } from '@/components/screens/MenuScreenWrapper';
 import LoadingScreen from '@/components/screens/MenuScreen/LoadingScreen';
 import { getSlots, getCategoriesWithSlots, getMenuItems } from '@/lib/data';
 import { processMenuItem, CategoryWithItems, getCurrentSlot } from '@/lib/utils';
@@ -95,7 +95,7 @@ export default async function MenuPage() {
     // 6. Pasar Datos Procesados y Ordenados al Componente Cliente MenuScreen
     return (
         <Suspense fallback={<LoadingScreen />}>
-            <MenuScreen
+            <MenuScreenWrapper
                 initialSlots={slots}
                 initialCategories={categoriesWithItems}
                 initialMenuItems={processedMenuItems}

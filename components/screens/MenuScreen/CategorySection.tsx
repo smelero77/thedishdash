@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef } from 'react';
+import { forwardRef, useMemo } from 'react';
 import { Category, MenuItemData } from '@/types/menu';
 import MenuItem from '@/components/screens/MenuItem';
 import Image from "next/image";
@@ -22,16 +22,42 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
   onAddToCart,
   onRemoveFromCart
 }, ref) => {
+  // Calcular la cantidad total para cada item
+  const getItemQuantity = (itemId: string) => {
+    return Object.entries(itemQuantities).reduce((total, [key, quantity]) => {
+      if (key.startsWith(itemId)) {
+        return total + quantity;
+      }
+      return total;
+    }, 0);
+  };
+
   return (
-    <div ref={ref} id={`category-${category.id}`} className="divide-y divide-gray-200/10 px-4">
-      <div className="py-6">
-        <h2 className="text-2xl font-bold text-white">{category.name}</h2>
-        {category.description && (
-          <p className="mt-2 text-gray-400">{category.description}</p>
-        )}
-      </div>
+    <div ref={ref} id={`category-${category.id}`} className="divide-y divide-gray-200/10">
+      {category.image_url && (
+        <div className="relative w-full h-64">
+          <Image
+            src={category.image_url}
+            alt={category.name}
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+            <h2 className="text-4xl md:text-5xl font-bold text-white/90">{category.name}</h2>
+          </div>
+        </div>
+      )}
+      {!category.image_url && (
+        <div className="px-4 py-6">
+          <h2 className="text-2xl font-bold text-white">{category.name}</h2>
+          {category.description && (
+            <p className="mt-2 text-gray-400">{category.description}</p>
+          )}
+        </div>
+      )}
       {category.items.map((item) => (
-        <div key={item.id} className="py-6">
+        <div key={item.id} className="px-4 py-6">
           <MenuItem
             id={item.id}
             name={item.name}
@@ -46,7 +72,7 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
             chef_notes={item.chef_notes}
             is_recommended={item.is_recommended}
             is_available={item.is_available}
-            quantity={itemQuantities[item.id] || 0}
+            quantity={getItemQuantity(item.id)}
             onAddToCart={() => onAddToCart(item.id)}
             onRemoveFromCart={() => onRemoveFromCart(item.id)}
           />

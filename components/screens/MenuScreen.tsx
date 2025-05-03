@@ -27,8 +27,9 @@ import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useDebounce from '@/hooks/useDebounce';
 import Image from 'next/image';
-import useMenuData, { CategoryWithItems } from '@/hooks/useMenuData';
+import { useMenuData, CategoryWithItems } from '@/hooks/useMenuData';
 import SearchButton from './SearchButton';
+import { useCategoryOrder } from '@/hooks/useCategoryOrder';
 
 // Load heavy libraries dynamically
 const ModifierModal = dynamic(() => import('./ModifierModal'), { ssr: false });
@@ -60,6 +61,11 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
   initialCurrentSlot
 }, ref) => {
   const { slots, currentSlot, categories, loading, error } = useMenuData();
+  const orderedCategories = useCategoryOrder({
+    categories,
+    slots,
+    currentSlot
+  });
   const [activeTab, setActiveTab] = useState<string>('');
   const menuScrollRef = useRef<HTMLDivElement | null>(null);
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
@@ -220,6 +226,13 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
     };
   }, [searchActive]);
 
+  // Set first category as active when orderedCategories changes
+  useEffect(() => {
+    if (orderedCategories.length > 0 && !activeTab) {
+      setActiveTab(orderedCategories[0].id);
+    }
+  }, [orderedCategories, activeTab]);
+
   const menuHeaderProps = useMemo(() => ({
     alias,
     tableNumber,
@@ -230,11 +243,11 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
   }), [alias, tableNumber, currentSlot, slots]);
 
   const categoryTabsProps = useMemo(() => ({
-    categories,
+    categories: orderedCategories,
     activeTab,
     setActiveTab: handleCategoryClick,
     menuScrollRef: menuScrollRef as React.RefObject<HTMLDivElement>,
-  }), [categories, activeTab, handleCategoryClick]);
+  }), [orderedCategories, activeTab, handleCategoryClick]);
 
   const floatingCartButtonProps = useMemo(() => ({
     onClick: () => setShowCartModal(true),
@@ -273,7 +286,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
       >
         <CategoryTabs {...categoryTabsProps} />
 
-        {categories.map((category: CategoryWithItems) => (
+        {orderedCategories.map((category: CategoryWithItems) => (
           <CategorySection
             key={category.id}
             category={category}

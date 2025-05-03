@@ -48,16 +48,8 @@ export interface MenuItemData {
   description: string;
   price: number;
   image_url: string;
-  category_ids: string[];
-  allergens: MenuItemAllergen[];
-  modifiers: Modifier[];
-  is_recommended: boolean;
-  profit_margin: number;
-  diet_tags: string[];
-  food_info: string;
-  origin: string;
-  pairing_suggestion: string;
-  chef_notes: string;
+  category_id: string;
+  sort_order?: number;
   is_available: boolean;
 }
 
@@ -87,7 +79,6 @@ export interface Slot {
   name: string;
   start_time: string;
   end_time: string;
-  is_active: boolean;
 }
 
 export interface SlotCategory {
@@ -100,6 +91,10 @@ export interface Category {
   name: string;
   image_url: string;
   sort_order?: number;
+  is_complementary?: boolean;
+  slot_categories?: Array<{
+    slot_id: string;
+  }>;
 }
 
 export interface Cart {
