@@ -9,6 +9,7 @@ import { CartItem, MenuItemData as CartMenuItemData, SelectedModifiers } from '@
 import { CartItemsContext } from '@/context/CartItemsContext';
 import { CartTotalContext } from '@/context/CartTotalContext';
 import { CartActionsContext } from '@/context/CartActionsContext';
+import { getCartKey, normalizeModifiers } from '@/utils/cartTransformers';
 
 interface CartModalProps {
   onClose: () => void;
@@ -67,11 +68,11 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
 
   const handleQuantityChange = useCallback((item: CartItem, increment: boolean) => {
     if (!actions) return;
-    const modifiersToPass = item.modifiers;
+    const normalizedModifiers = normalizeModifiers(item.modifiers);
     if (increment) {
-      actions.handleAddToCart(item.id, modifiersToPass);
+      actions.handleAddToCart(item.id, normalizedModifiers);
     } else {
-      actions.handleDecrementCart(item.id, modifiersToPass);
+      actions.handleDecrementCart(item.id, normalizedModifiers);
     }
   }, [actions]);
 
@@ -143,7 +144,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                   </span>
                 </h3>
                 {aliasItems.map((item) => (
-                  <div key={item.id + JSON.stringify(item.modifiers)} className="mb-4">
+                  <div key={getCartKey(item.id, item.modifiers)} className="mb-4">
                     <div className="flex items-start gap-3">
                       {item.item.image_url && (
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden">

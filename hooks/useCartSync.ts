@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { normalizeModifiers } from '@/utils/cartTransformers';
+import { normalizeModifiers, getCartKey } from '@/utils/cartTransformers';
 
 interface RealtimePayload {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
@@ -33,20 +33,24 @@ export const useCartSync = (
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const { data: item } = payload.new!;
               const normalizedModifiers = normalizeModifiers(item.modifiers_data);
+              const cartKey = getCartKey(item.menu_item_id, normalizedModifiers);
               onCartUpdate((prevCart: any) => ({
                 ...prevCart,
-                [`${item.menu_item_id}-${JSON.stringify(normalizedModifiers)}`]: {
+                [cartKey]: {
+                  id: item.menu_item_id,
                   item: item.menu_item,
                   modifiers: normalizedModifiers,
-                  quantity: item.quantity
+                  quantity: item.quantity,
+                  client_alias: item.alias
                 }
               }));
             } else if (payload.eventType === 'DELETE') {
               const { data: item } = payload.old!;
               const normalizedModifiers = normalizeModifiers(item.modifiers_data);
+              const cartKey = getCartKey(item.menu_item_id, normalizedModifiers);
               onCartUpdate((prevCart: any) => {
                 const newCart = { ...prevCart };
-                delete newCart[`${item.menu_item_id}-${JSON.stringify(normalizedModifiers)}`];
+                delete newCart[cartKey];
                 return newCart;
               });
             }

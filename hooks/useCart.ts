@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { MenuItemData, Cart, CartItem, CartActions } from '@/types/menu';
 import { supabase } from '@/lib/supabase';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { getCartKey as getCartKeyFromUtils, normalizeModifiers } from '@/utils/cartTransformers';
 
 // --- Tipos más estrictos ---
 export interface SelectedModifierOption {
@@ -96,38 +97,8 @@ function useCart(
 
     // --- Funciones Internas con Tipos Más Estrictos ---
     const getCartKey = useCallback((itemId: string, modifiers: SelectedModifiers | null = null): string => {
-        if (!modifiers || Object.keys(modifiers).length === 0) {
-            return `${itemId}-{}`;
-        }
-
-        const orderedModifiers: SelectedModifiers = {};
-        const sortedModifierGroupIds = Object.keys(modifiers).sort();
-
-        sortedModifierGroupIds.forEach((modifierGroupId) => {
-            const modifierGroup = modifiers[modifierGroupId];
-
-            if (modifierGroup && modifierGroup.options && Array.isArray(modifierGroup.options)) {
-                const sortedOptions = [...modifierGroup.options].sort((a, b) =>
-                    a.id && b.id ? a.id.localeCompare(b.id) : 0
-                );
-
-                orderedModifiers[modifierGroupId] = {
-                    ...modifierGroup,
-                    options: sortedOptions,
-                };
-            } else {
-                console.warn(`[getCartKey] Invalid modifier group structure for ID: ${modifierGroupId}`);
-            }
-        });
-
-        const modifiersString = JSON.stringify(orderedModifiers);
-        return `${itemId}-${modifiersString}`;
+        return getCartKeyFromUtils(itemId, modifiers);
     }, []);
-
-    // Memoizar el cálculo de cartKey
-    const memoizedGetCartKey = useCallback((itemId: string, modifiers: SelectedModifiers | null) => {
-        return useMemo(() => getCartKey(itemId, modifiers), [itemId, modifiers]);
-    }, [getCartKey]);
 
     const calculateItemPrice = useCallback((item: MenuItemData, modifiers: SelectedModifiers | null): number => {
         const basePrice = item?.price ?? 0;
