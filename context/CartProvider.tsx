@@ -49,6 +49,11 @@ export function CartProvider({ children, menuItems }: CartProviderProps) {
     const safeCartTotal = useMemo(() => cartTotal ?? 0, [cartTotal]);
     const safeActions = useMemo(() => actions ?? defaultCartActions, [actions]);
 
+    // Forzar la actualización cuando cambia el contenido del carrito
+    React.useEffect(() => {
+        console.log('[CartProvider] Cart updated:', Object.keys(cart).length, 'items');
+    }, [cart]);
+
     console.log('[CartProvider] Rendering. Cart Items:', Object.keys(safeCart).length, 'Total:', safeCartTotal);
 
     // Renderizar los providers anidados

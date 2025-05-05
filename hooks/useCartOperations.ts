@@ -10,7 +10,7 @@ export const useCartOperations = () => {
 
   const addItem = useCallback((item: MenuItemData, modifiers: Record<string, any> | null) => {
     const normalizedModifiers = normalizeModifiers(modifiers);
-    const cartKey = getCartKey(item.id, normalizedModifiers);
+    const cartKey = getCartKey(item.id, normalizedModifiers, item.client_alias || '');
     
     // Actualización optimista
     setCart(prevCart => {
@@ -45,7 +45,7 @@ export const useCartOperations = () => {
 
   const removeItem = useCallback((item: MenuItemData, modifiers: Record<string, any> | null) => {
     const normalizedModifiers = normalizeModifiers(modifiers);
-    const cartKey = getCartKey(item.id, normalizedModifiers);
+    const cartKey = getCartKey(item.id, normalizedModifiers, item.client_alias || '');
     
     // Actualización optimista
     setCart(prevCart => {
@@ -79,7 +79,7 @@ export const useCartOperations = () => {
   }, []);
 
   const getItemQuantity = useCallback((itemId: string, modifiers: Record<string, any> | null) => {
-    const cartKey = getCartKey(itemId, modifiers);
+    const cartKey = getCartKey(itemId, modifiers, currentClientAlias || '');
     return cart[cartKey]?.quantity || 0;
   }, [cart]);
 

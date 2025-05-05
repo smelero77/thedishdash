@@ -96,8 +96,8 @@ function useCart(
     const [temporaryOrderId, setTemporaryOrderId] = useState<string>('');
 
     // --- Funciones Internas con Tipos Más Estrictos ---
-    const getCartKey = useCallback((itemId: string, modifiers: SelectedModifiers | null = null): string => {
-        return getCartKeyFromUtils(itemId, modifiers);
+    const getCartKey = useCallback((itemId: string, modifiers: SelectedModifiers | null = null, alias: string = ''): string => {
+        return getCartKeyFromUtils(itemId, modifiers, alias);
     }, []);
 
     const calculateItemPrice = useCallback((item: MenuItemData, modifiers: SelectedModifiers | null): number => {
@@ -174,7 +174,7 @@ function useCart(
                     items?.forEach((item) => {
                         const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
                         if (menuItem) {
-                            const cartKey = getCartKey(item.menu_item_id, item.modifiers_data as SelectedModifiers | null);
+                            const cartKey = getCartKey(item.menu_item_id, item.modifiers_data as SelectedModifiers | null, item.alias);
                             initialCartState[cartKey] = {
                                 id: item.menu_item_id,
                                 quantity: item.quantity,
@@ -227,7 +227,7 @@ function useCart(
             }
             console.log('[useCart: RealtimeEffect] Filtro de orden pasado.');
 
-            const cartKey = getCartKey(item.menu_item_id, item.modifiers_data);
+            const cartKey = getCartKey(item.menu_item_id, item.modifiers_data, item.alias);
             console.log('[useCart: RealtimeEffect] Procesando cambio para cartKey:', cartKey, 'Evento:', payload.eventType);
             console.log('[useCart: RealtimeEffect] Datos relevantes:', {
                 menu_item_id: item.menu_item_id,
@@ -238,7 +238,6 @@ function useCart(
 
             setCart(prevCart => {
                 const newCart = { ...prevCart };
-                let itemModified = false;
 
                 if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
                     const newItem = payload.new as TemporaryOrderItem;
@@ -249,6 +248,8 @@ function useCart(
                         return prevCart;
                     }
 
+                    // Siempre actualizamos el item, incluso si ya existe
+                    const cartKey = getCartKey(newItem.menu_item_id, newItem.modifiers_data, newItem.alias);
                     newCart[cartKey] = {
                         id: newItem.menu_item_id,
                         quantity: newItem.quantity,
@@ -256,19 +257,19 @@ function useCart(
                         item: menuItem,
                         client_alias: newItem.alias,
                     };
-                    itemModified = true;
+                    console.log('[useCart: RealtimeEffect] Item actualizado:', cartKey, 'Nueva cantidad:', newItem.quantity);
                 } else if (payload.eventType === 'DELETE') {
+                    const oldItem = payload.old as TemporaryOrderItem;
+                    const cartKey = getCartKey(oldItem.menu_item_id, oldItem.modifiers_data, oldItem.alias);
                     if (newCart[cartKey]) {
                         delete newCart[cartKey];
-                        itemModified = true;
+                        console.log('[useCart: RealtimeEffect] Item eliminado:', cartKey);
                     }
                 }
 
-                if (itemModified) {
-                    updateCartTotal(newCart, menuItems);
-                }
-
-                return newCart;
+                // Siempre actualizamos el total y devolvemos un nuevo objeto
+                updateCartTotal(newCart, menuItems);
+                return { ...newCart };
             });
         };
 
@@ -313,13 +314,59 @@ function useCart(
         }
         const aliasToUse = currentClientAlias || 'guest';
         console.log('[handleAddToCart] Calling addOrIncrementCartItem:', { itemId, modifiers, temporaryOrderId, alias: aliasToUse });
+        
+        // Actualización optimista
+        setCart(prevCart => {
+            const newCart = { ...prevCart };
+            const cartKey = getCartKey(itemId, modifiers, aliasToUse);
+            const menuItem = menuItems?.find(m => m.id === itemId);
+            
+            if (!menuItem) {
+                console.warn('[handleAddToCart] MenuItem no encontrado para actualización optimista');
+                return prevCart;
+            }
+
+            if (newCart[cartKey]) {
+                newCart[cartKey] = {
+                    ...newCart[cartKey],
+                    quantity: newCart[cartKey].quantity + 1
+                };
+            } else {
+                newCart[cartKey] = {
+                    id: itemId,
+                    quantity: 1,
+                    modifiers: modifiers ?? {},
+                    item: menuItem,
+                    client_alias: aliasToUse
+                };
+            }
+            
+            // Actualizar el total inmediatamente
+            updateCartTotal(newCart, menuItems);
+            return newCart;
+        });
+
         try {
             await addOrIncrementCartItem(temporaryOrderId, itemId, modifiers, aliasToUse);
             console.log('[handleAddToCart] addOrIncrementCartItem success. Awaiting realtime update.');
         } catch (error) {
             console.error('[handleAddToCart] Error calling addOrIncrementCartItem:', error);
+            // Revertir la actualización optimista en caso de error
+            setCart(prevCart => {
+                const newCart = { ...prevCart };
+                const cartKey = getCartKey(itemId, modifiers, aliasToUse);
+                if (newCart[cartKey]) {
+                    if (newCart[cartKey].quantity > 1) {
+                        newCart[cartKey].quantity -= 1;
+                    } else {
+                        delete newCart[cartKey];
+                    }
+                }
+                updateCartTotal(newCart, menuItems);
+                return newCart;
+            });
         }
-    }, [temporaryOrderId, currentClientAlias]);
+    }, [temporaryOrderId, currentClientAlias, menuItems, updateCartTotal]);
 
     const handleDecrementCart = useCallback(async (itemId: string, modifiers: SelectedModifiers | null = null) => {
         if (!temporaryOrderId) {
@@ -328,13 +375,64 @@ function useCart(
         }
         const aliasToUse = currentClientAlias || 'guest';
         console.log('[handleDecrementCart] Calling decrementOrDeleteCartItem:', { itemId, modifiers, temporaryOrderId, alias: aliasToUse });
+        
+        // Actualización optimista
+        setCart(prevCart => {
+            const newCart = { ...prevCart };
+            const cartKey = getCartKey(itemId, modifiers, aliasToUse);
+            
+            if (newCart[cartKey]) {
+                if (newCart[cartKey].quantity > 1) {
+                    newCart[cartKey] = {
+                        ...newCart[cartKey],
+                        quantity: newCart[cartKey].quantity - 1
+                    };
+                } else {
+                    // Si la cantidad es 1, eliminamos el item
+                    delete newCart[cartKey];
+                }
+                
+                // Actualizar el total inmediatamente
+                updateCartTotal(newCart, menuItems);
+            }
+            
+            return newCart;
+        });
+
         try {
             await decrementOrDeleteCartItem(temporaryOrderId, itemId, modifiers, aliasToUse);
             console.log('[handleDecrementCart] decrementOrDeleteCartItem success. Awaiting realtime update.');
         } catch (error) {
             console.error('[handleDecrementCart] Error calling decrementOrDeleteCartItem:', error);
+            // Revertir la actualización optimista en caso de error
+            setCart(prevCart => {
+                const newCart = { ...prevCart };
+                const cartKey = getCartKey(itemId, modifiers, aliasToUse);
+                const menuItem = menuItems?.find(m => m.id === itemId);
+                
+                if (!menuItem) {
+                    console.warn('[handleDecrementCart] MenuItem no encontrado para revertir actualización');
+                    return prevCart;
+                }
+
+                // Restaurar el item a su estado anterior
+                if (newCart[cartKey]) {
+                    newCart[cartKey].quantity += 1;
+                } else {
+                    newCart[cartKey] = {
+                        id: itemId,
+                        quantity: 1,
+                        modifiers: modifiers ?? {},
+                        item: menuItem,
+                        client_alias: aliasToUse
+                    };
+                }
+                
+                updateCartTotal(newCart, menuItems);
+                return newCart;
+            });
         }
-    }, [temporaryOrderId, currentClientAlias]);
+    }, [temporaryOrderId, currentClientAlias, menuItems, updateCartTotal]);
 
     // === Objeto de Acciones Memoizado ===
     const actions: CartActions = useMemo(() => ({

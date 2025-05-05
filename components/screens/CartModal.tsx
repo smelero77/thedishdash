@@ -23,6 +23,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
   currentClientAlias,
 }, ref) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [cartVersion, setCartVersion] = useState(0);
 
   const cart = useContext(CartItemsContext);
   const cartTotal = useContext(CartTotalContext);
@@ -32,6 +33,12 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
     const timer = setTimeout(() => { setIsVisible(true); }, 50);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (cart) {
+      setCartVersion(prev => prev + 1);
+    }
+  }, [cart]);
 
   const handleClose = useCallback(() => {
     setIsVisible(false);
@@ -48,7 +55,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
   }
 
   const groupedItems = useMemo(() => {
-    console.log('[CartModal] Recalculando groupedItems');
+    console.log('[CartModal] Recalculando groupedItems, versión:', cartVersion);
     return Object.values(cart).reduce(
       (acc, cartItem) => {
         const alias = cartItem.client_alias || 'Sin alias';
@@ -61,7 +68,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
       },
       {} as Record<string, { items: CartItem[]; total: number; itemCount: number }>,
     );
-  }, [cart]);
+  }, [cart, cartVersion]);
 
   const dinerCount = Object.keys(groupedItems).length;
   const totalQuantity = actions.getTotalItems();
@@ -144,7 +151,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                   </span>
                 </h3>
                 {aliasItems.map((item) => (
-                  <div key={getCartKey(item.id, item.modifiers)} className="mb-4">
+                  <div key={getCartKey(item.id, item.modifiers, item.client_alias || '')} className="mb-4">
                     <div className="flex items-start gap-3">
                       {item.item.image_url && (
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden">
@@ -169,21 +176,29 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                         </p>
                       </div>
                       <div className="flex items-center border border-[#d0e6e4] rounded-full bg-[#4f968f]/10">
-                        <button
-                          onClick={() => handleQuantityChange(item, false)}
-                          className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
-                        >
-                          {item.quantity === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
-                        </button>
-                        <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
-                          {item.quantity}
-                        </div>
-                        <button
-                          onClick={() => handleQuantityChange(item, true)}
-                          className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
+                        {alias === currentClientAlias ? (
+                          <>
+                            <button
+                              onClick={() => handleQuantityChange(item, false)}
+                              className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                            >
+                              {item.quantity === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                            </button>
+                            <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
+                              {item.quantity}
+                            </div>
+                            <button
+                              onClick={() => handleQuantityChange(item, true)}
+                              className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
+                            {item.quantity}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -33,7 +33,7 @@ export const useCartSync = (
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const { data: item } = payload.new!;
               const normalizedModifiers = normalizeModifiers(item.modifiers_data);
-              const cartKey = getCartKey(item.menu_item_id, normalizedModifiers);
+              const cartKey = getCartKey(item.menu_item_id, normalizedModifiers, item.alias);
               onCartUpdate((prevCart: any) => ({
                 ...prevCart,
                 [cartKey]: {
@@ -47,7 +47,7 @@ export const useCartSync = (
             } else if (payload.eventType === 'DELETE') {
               const { data: item } = payload.old!;
               const normalizedModifiers = normalizeModifiers(item.modifiers_data);
-              const cartKey = getCartKey(item.menu_item_id, normalizedModifiers);
+              const cartKey = getCartKey(item.menu_item_id, normalizedModifiers, item.alias);
               onCartUpdate((prevCart: any) => {
                 const newCart = { ...prevCart };
                 delete newCart[cartKey];
