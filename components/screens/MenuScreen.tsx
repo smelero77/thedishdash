@@ -92,13 +92,15 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
   const memoizedModifiers = useMemo(() => modifiers, [modifiers]);
 
   const itemQuantities = useMemo(() => {
-    if (!cart) return {};
+    if (!cart || !alias) return {};
     const quantities: Record<string, number> = {};
     Object.entries(cart).forEach(([id, item]) => {
-      quantities[id] = item.quantity;
+      if (item.client_alias === alias) {
+        quantities[id] = item.quantity;
+      }
     });
     return quantities;
-  }, [cart]);
+  }, [cart, alias]);
 
   const handleItemClick = useCallback(
     async (itemId: string) => {

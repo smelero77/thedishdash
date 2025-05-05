@@ -6,6 +6,7 @@ import { MenuItemData } from '@/types/menu';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { CartItemsContext } from '@/context/CartItemsContext';
 import { CartActionsContext } from '@/context/CartActionsContext';
+import { useCustomer } from '@/context/CustomerContext';
 
 interface SearchOverlayProps {
   searchQuery: string;
@@ -24,6 +25,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(({
 }, ref) => {
   const cart = useContext(CartItemsContext);
   const cartActions = useContext(CartActionsContext);
+  const { alias } = useCustomer();
 
   const handleAddToCart = useCallback((itemId: string) => {
     if (cartActions) {
@@ -38,10 +40,15 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(({
   }, [cartActions]);
 
   const getCartQuantityForItem = useCallback((itemId: string) => {
-    if (!cart) return 0;
-    const cartItem = cart[itemId];
-    return cartItem ? cartItem.quantity : 0;
-  }, [cart]);
+    if (!cart || !alias) return 0;
+    let totalQuantity = 0;
+    Object.values(cart).forEach(item => {
+      if (item.id === itemId && item.client_alias === alias) {
+        totalQuantity += item.quantity;
+      }
+    });
+    return totalQuantity;
+  }, [cart, alias]);
 
   return (
     <AnimatePresence>
