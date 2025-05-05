@@ -142,13 +142,16 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
           </div>
 
           <div className="flex-1 overflow-y-auto no-scrollbar p-4 pb-24">
-            {Object.entries(groupedItems).map(([alias, { items: aliasItems }]) => (
+            {Object.entries(groupedItems)
+              .sort(([aliasA], [aliasB]) => {
+                if (aliasA === currentClientAlias) return -1;
+                if (aliasB === currentClientAlias) return 1;
+                return aliasA.localeCompare(aliasB);
+              })
+              .map(([alias, { items: aliasItems }]) => (
               <div key={alias} className="mb-6">
                 <h3 className="text-[#0e1b19] text-base font-bold mb-3 flex items-center gap-2">
                   {alias === currentClientAlias ? 'Tu pedido' : `Pedido de ${alias}`}
-                  <span className="text-[#4f968f] text-sm font-normal">
-                    ({aliasItems.reduce((acc, item) => acc + item.quantity, 0)} items)
-                  </span>
                 </h3>
                 {aliasItems.map((item) => (
                   <div key={getCartKey(item.id, item.modifiers, item.client_alias || '')} className="mb-4">
