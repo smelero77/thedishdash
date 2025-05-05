@@ -2,7 +2,7 @@
 "use client";
 
 import React, { HTMLAttributes, forwardRef } from "react"; // Importación explícita de React
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, ShoppingCart } from "lucide-react";
 import { MenuItemAllergen as Allergen } from "../../types/menu"; // Asegúrate que la ruta sea correcta
 import Image from "next/image";
 
@@ -23,6 +23,8 @@ interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   onRemoveFromCart: () => void; // Función para decrementar/eliminar el ítem
   quantity: number; // Cantidad actual del ítem en el carrito
   is_available: boolean;
+  hasModifiers?: boolean; // Nueva prop
+  onOpenCart?: () => void; // Nueva prop para abrir el carrito
 }
 
 const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
@@ -42,6 +44,8 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
   onRemoveFromCart,
   quantity,
   is_available, // Mantenemos la prop pero no la usamos en el JSX
+  hasModifiers = false, // Valor por defecto
+  onOpenCart,
   ...rest
 }, ref) => {
 
@@ -110,19 +114,30 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
           </div>
 
           {/* Price and buttons */}
-          <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
+          <div className="flex items-center justify-between w-[8.5rem]">
             {quantity > 0 ? (
-              // Si hay cantidad en el carrito, mostrar botones +/-
+              // Si hay cantidad en el carrito, mostrar botones +/- o carrito
               <div className="flex items-center justify-between w-[8.5rem]">
-                <button
-                  onClick={onRemoveFromCart}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
-                  aria-label="Remove one from cart"
-                  type="button"
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <p className="text-[#0e1b19] text-sm font-normal text-center min-w-[4ch]"> {/* Ancho mínimo para el precio */}
+                {hasModifiers ? (
+                  <button
+                    onClick={onOpenCart}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
+                    aria-label="Open cart"
+                    type="button"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={onRemoveFromCart}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
+                    aria-label="Remove one from cart"
+                    type="button"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                )}
+                <p className="text-[#0e1b19] text-sm font-normal text-center min-w-[4ch]">
                   {formatPrice(price)}
                 </p>
                 <button
@@ -137,8 +152,8 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
             ) : (
               // Si no hay cantidad, mostrar solo el botón +
               <div className="flex items-center justify-between w-[8.5rem]">
-                <div className="w-8" /> {/* Espaciador para alinear */}
-                 <p className="text-[#0e1b19] text-sm font-normal text-center min-w-[4ch]"> {/* Ancho mínimo para el precio */}
+                <div className="w-8" />
+                <p className="text-[#0e1b19] text-sm font-normal text-center min-w-[4ch]">
                   {formatPrice(price)}
                 </p>
                 <button

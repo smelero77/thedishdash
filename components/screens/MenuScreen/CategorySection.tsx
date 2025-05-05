@@ -14,13 +14,15 @@ interface CategorySectionProps {
   itemQuantities: Record<string, number>;
   onAddToCart: (itemId: string) => void;
   onRemoveFromCart: (itemId: string) => void;
+  onOpenCart?: () => void;
 }
 
 const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps>(({
   category,
   itemQuantities,
   onAddToCart,
-  onRemoveFromCart
+  onRemoveFromCart,
+  onOpenCart
 }, ref) => {
   // Calcular la cantidad total para cada item
   const getItemQuantity = (itemId: string) => {
@@ -75,6 +77,8 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
             quantity={getItemQuantity(item.id)}
             onAddToCart={() => onAddToCart(item.id)}
             onRemoveFromCart={() => onRemoveFromCart(item.id)}
+            hasModifiers={item.modifiers?.length > 0}
+            onOpenCart={onOpenCart}
           />
         </div>
       ))}

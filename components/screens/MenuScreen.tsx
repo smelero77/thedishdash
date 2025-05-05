@@ -295,6 +295,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
             itemQuantities={itemQuantities}
             onAddToCart={handleItemClick}
             onRemoveFromCart={handleDecrementItem}
+            onOpenCart={() => setShowCartModal(true)}
           />
         ))}
       </div>

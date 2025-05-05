@@ -81,8 +81,13 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(({
 
     if (!isMulti) {
       const newSelectedOptions = { ...selectedOptions, [modifierId]: [optionId] };
-      onConfirm(newSelectedOptions);
-      onClose(); // ✅ Solo cerrar si es mono-selección
+      // Si es multi-selección o hay más de un modificador, no cerrar automáticamente
+      if (isMulti || modifiers.length > 1) {
+        setSelectedOptions(newSelectedOptions);
+      } else {
+        onConfirm(newSelectedOptions);
+        onClose();
+      }
     } else {
       setSelectedOptions(prev => {
         const current = prev[modifierId] || [];
@@ -116,8 +121,8 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(({
     return selectedOptions[modifierId]?.includes(optionId) || false;
   };
 
-  // Solo mostrar el botón si hay al menos un modificador multi-select con opciones
-  const showConfirmButton = modifiers.some(
+  // Solo mostrar el botón si hay más de un modificador o si hay modificadores multi-select
+  const showConfirmButton = modifiers.length > 1 || modifiers.some(
     (m) => m.multi_select && m.options.length > 0
   );
 

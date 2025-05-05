@@ -168,11 +168,20 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                         <p className="font-semibold text-[#0e1b19]">{item.item.name}</p>
                         {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
                           <p key={modifierId} className="text-sm text-[#4f968f]">
-                            EXTRA: {modifier.options.map(opt => `${opt.name} (+${opt.extra_price.toFixed(2)}€)`).join(', ')}
+                            {modifier.options.map(opt => 
+                              opt.extra_price > 0 
+                                ? `+${opt.name} (+${opt.extra_price.toFixed(2)}€)`
+                                : `• ${opt.name}`
+                            ).join(', ')}
                           </p>
                         ))}
                         <p className="text-sm text-[#4f968f] mt-1">
-                          {formatPrice(item.item.price)} c/u
+                          {formatPrice(
+                            item.item.price + 
+                            Object.values(item.modifiers || {}).reduce((total, modifier) => 
+                              total + modifier.options.reduce((optTotal, opt) => optTotal + opt.extra_price, 0)
+                            , 0)
+                          )} c/u
                         </p>
                       </div>
                       <div className="flex items-center border border-[#d0e6e4] rounded-full bg-[#4f968f]/10">
