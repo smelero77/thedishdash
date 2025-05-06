@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useContext, useMemo, useCallback, forwardRef } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback, forwardRef, useRef } from 'react';
 import { X, Trash2, Users, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CartItem, MenuItemData as CartMenuItemData, SelectedModifiers } from '@/types/menu';
 import { OrderStories } from './OrderStories';
+import { ScrollProgressBar } from '@/components/ScrollProgressBar';
 
 import { CartItemsContext } from '@/context/CartItemsContext';
 import { CartTotalContext } from '@/context/CartTotalContext';
@@ -25,6 +26,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
 }, ref) => {
   const [isVisible, setIsVisible] = useState(false);
   const [cartVersion, setCartVersion] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const cart = useContext(CartItemsContext);
   const cartTotal = useContext(CartTotalContext);
@@ -119,7 +121,15 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto no-scrollbar p-4 pb-24">
+          <ScrollProgressBar 
+            containerRef={contentRef}
+            className="sticky top-0 z-10"
+          />
+
+          <div 
+            ref={contentRef}
+            className="flex-1 overflow-y-auto no-scrollbar p-4 pb-24"
+          >
             {Object.entries(groupedItems)
               .sort(([aliasA], [aliasB]) => {
                 if (aliasA === currentClientAlias) return -1;

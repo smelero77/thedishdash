@@ -23,7 +23,7 @@ export const StoryBubble = ({ alias, itemCount, onSelect }: StoryBubbleProps) =>
         <span className="text-[#4f968f] text-xs font-medium">{itemCount}</span>
       </div>
     </div>
-    <span className="text-[#0e1b19] text-sm font-medium truncate max-w-[64px]">
+    <span className="text-[#0e1b19] text-xs font-medium truncate max-w-[64px]">
       {alias}
     </span>
   </div>
