@@ -5,6 +5,7 @@ import { X, Trash2, Users, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CartItem, MenuItemData as CartMenuItemData, SelectedModifiers } from '@/types/menu';
+import { OrderStories } from './OrderStories';
 
 import { CartItemsContext } from '@/context/CartItemsContext';
 import { CartTotalContext } from '@/context/CartTotalContext';
@@ -112,33 +113,10 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
               </button>
             </div>
             
-            <div className="flex items-center gap-2 p-3 bg-[#f8fbfb] rounded-lg">
-              <Users className="h-5 w-5 text-[#4f968f]" />
-              <span className="text-[#0e1b19] text-sm font-medium">
-                {dinerCount} {dinerCount === 1 ? 'comensal' : 'comensales'}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-3">
-              {Object.entries(groupedItems).map(([alias, { itemCount, total }]) => (
-                <div
-                  key={alias}
-                  className="flex items-center gap-2 p-2 bg-white border border-[#d0e6e4] rounded-lg"
-                >
-                  <div className="flex items-center justify-center w-8 h-8 bg-[#f8fbfb] rounded-full">
-                    <span className="text-[#4f968f] text-sm font-semibold">
-                      {alias.slice(0, 2).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[#0e1b19] text-sm font-medium">{alias}</span>
-                    <span className="text-[#4f968f] text-xs">
-                      {itemCount} {itemCount === 1 ? 'item' : 'items'} · {formatPrice(total)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <OrderStories 
+              groupedItems={groupedItems} 
+              currentClientAlias={currentClientAlias}
+            />
           </div>
 
           <div className="flex-1 overflow-y-auto no-scrollbar p-4 pb-24">
@@ -149,74 +127,74 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                 return aliasA.localeCompare(aliasB);
               })
               .map(([alias, { items: aliasItems }]) => (
-              <div key={alias} className="mb-6">
-                <h3 className="text-[#0e1b19] text-base font-bold mb-3 flex items-center gap-2">
-                  {alias === currentClientAlias ? 'Tu pedido' : `Pedido de ${alias}`}
-                </h3>
-                {aliasItems.map((item) => (
-                  <div key={getCartKey(item.id, item.modifiers, item.client_alias || '')} className="mb-4">
-                    <div className="flex items-start gap-3">
-                      {item.item.image_url && (
-                        <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                          <Image
-                            src={item.item.image_url}
-                            alt={item.item.name}
-                            fill
-                            sizes="(max-width: 768px) 64px, 64px"
-                            className="object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="font-semibold text-[#0e1b19]">{item.item.name}</p>
-                        {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
-                          <p key={modifierId} className="text-sm text-[#4f968f]">
-                            {modifier.options.map(opt => 
-                              opt.extra_price > 0 
-                                ? `+${opt.name} (+${opt.extra_price.toFixed(2)}€)`
-                                : `• ${opt.name}`
-                            ).join(', ')}
+                <div key={alias} className="mb-6">
+                  <h3 className="text-[#0e1b19] text-base font-bold mb-3 flex items-center gap-2">
+                    {alias === currentClientAlias ? 'Tu pedido' : `Pedido de ${alias}`}
+                  </h3>
+                  {aliasItems.map((item) => (
+                    <div key={getCartKey(item.id, item.modifiers, item.client_alias || '')} className="mb-4">
+                      <div className="flex items-start gap-3">
+                        {item.item.image_url && (
+                          <div className="relative w-16 h-16 rounded-lg overflow-hidden">
+                            <Image
+                              src={item.item.image_url}
+                              alt={item.item.name}
+                              fill
+                              sizes="(max-width: 768px) 64px, 64px"
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-semibold text-[#0e1b19]">{item.item.name}</p>
+                          {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
+                            <p key={modifierId} className="text-sm text-[#4f968f]">
+                              {modifier.options.map(opt => 
+                                opt.extra_price > 0 
+                                  ? `+${opt.name} (+${opt.extra_price.toFixed(2)}€)`
+                                  : `• ${opt.name}`
+                              ).join(', ')}
+                            </p>
+                          ))}
+                          <p className="text-sm text-[#4f968f] mt-1">
+                            {formatPrice(
+                              item.item.price + 
+                              Object.values(item.modifiers || {}).reduce((total, modifier) => 
+                                total + modifier.options.reduce((optTotal, opt) => optTotal + opt.extra_price, 0)
+                              , 0)
+                            )} c/u
                           </p>
-                        ))}
-                        <p className="text-sm text-[#4f968f] mt-1">
-                          {formatPrice(
-                            item.item.price + 
-                            Object.values(item.modifiers || {}).reduce((total, modifier) => 
-                              total + modifier.options.reduce((optTotal, opt) => optTotal + opt.extra_price, 0)
-                            , 0)
-                          )} c/u
-                        </p>
-                      </div>
-                      <div className="flex items-center border border-[#d0e6e4] rounded-full bg-[#4f968f]/10">
-                        {alias === currentClientAlias ? (
-                          <>
-                            <button
-                              onClick={() => handleQuantityChange(item, false)}
-                              className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
-                            >
-                              {item.quantity === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
-                            </button>
+                        </div>
+                        <div className="flex items-center border border-[#d0e6e4] rounded-full bg-[#4f968f]/10">
+                          {alias === currentClientAlias ? (
+                            <>
+                              <button
+                                onClick={() => handleQuantityChange(item, false)}
+                                className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                              >
+                                {item.quantity === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                              </button>
+                              <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
+                                {item.quantity}
+                              </div>
+                              <button
+                                onClick={() => handleQuantityChange(item, true)}
+                                className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
                             <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
                               {item.quantity}
                             </div>
-                            <button
-                              onClick={() => handleQuantityChange(item, true)}
-                              className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
-                            {item.quantity}
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ))}
+                  ))}
+                </div>
+              ))}
           </div>
 
           <div className="fixed bottom-4 left-0 right-0 z-50 px-4">
