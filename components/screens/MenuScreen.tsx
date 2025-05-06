@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, useContext, forwardRef } from 'react';
 import { Button } from '@/components/ui/Button';
-import { ShoppingCart, Search, X, ArrowLeft, UserCircle } from 'lucide-react';
+import { ShoppingCart, Search, X, ArrowLeft, UserCircle, ChefHat } from 'lucide-react';
 import MenuItem from './MenuItem';
 import MenuHeader from './MenuScreen/MenuHeader';
 import FloatingCartButton from './MenuScreen/FloatingCartButton';
@@ -30,6 +30,8 @@ import Image from 'next/image';
 import { useMenuData, CategoryWithItems } from '@/hooks/useMenuData';
 import SearchButton from './SearchButton';
 import { useCategoryOrder } from '@/hooks/useCategoryOrder';
+import { ChatIA } from './ChatIA';
+import ChatButton from '@/components/chat/ChatButton';
 
 // Load heavy libraries dynamically
 const ModifierModal = dynamic(() => import('./ModifierModal'), { ssr: false });
@@ -77,6 +79,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
   const [showAliasModal, setShowAliasModal] = useState(false);
   const isScrollingProgrammatically = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [showChatModal, setShowChatModal] = useState(false);
 
   const cart = useContext(CartItemsContext);
   const cartTotal = useContext(CartTotalContext);
@@ -300,7 +303,10 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
         ))}
       </div>
 
-      <FloatingCartButton {...floatingCartButtonProps} />
+      <div className="fixed bottom-4 left-4 right-4 flex items-center gap-4">
+        <FloatingCartButton {...floatingCartButtonProps} />
+        <ChatButton onClick={() => setShowChatModal(true)} />
+      </div>
 
       <SearchButton onClick={() => setSearchActive(true)} />
 
@@ -333,6 +339,29 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
           onConfirm={handleAliasConfirm}
         />
       )}
+
+      <ChatIA
+        isOpen={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        alias={alias ?? 'Cliente'}
+      />
+
+      <style jsx global>{`
+        @keyframes shine {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes colorChange {
+          0% { color: #ffffff; }
+          16.6% { color: #fef3c7; }
+          33.3% { color: #fbbf24; }
+          50% { color: #f59e0b; }
+          66.6% { color: #d97706; }
+          83.3% { color: #b45309; }
+          100% { color: #ffffff; }
+        }
+      `}</style>
     </div>
   );
 });

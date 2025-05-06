@@ -137,74 +137,74 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                 return aliasA.localeCompare(aliasB);
               })
               .map(([alias, { items: aliasItems }]) => (
-                <div key={alias} className="mb-6">
-                  <h3 className="text-[#0e1b19] text-base font-bold mb-3 flex items-center gap-2">
-                    {alias === currentClientAlias ? 'Tu pedido' : `Pedido de ${alias}`}
-                  </h3>
-                  {aliasItems.map((item) => (
+              <div key={alias} className="mb-6">
+                <h3 className="text-[#0e1b19] text-base font-bold mb-3 flex items-center gap-2">
+                  {alias === currentClientAlias ? 'Tu pedido' : `Pedido de ${alias}`}
+                </h3>
+                {aliasItems.map((item) => (
                     <div key={getCartKey(item.id, item.modifiers, item.client_alias || '')} className="mb-4">
-                      <div className="flex items-start gap-3">
-                        {item.item.image_url && (
-                          <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                            <Image
-                              src={item.item.image_url}
-                              alt={item.item.name}
-                              fill
-                              sizes="(max-width: 768px) 64px, 64px"
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <p className="font-semibold text-[#0e1b19]">{item.item.name}</p>
-                          {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
-                            <p key={modifierId} className="text-sm text-[#4f968f]">
+                    <div className="flex items-start gap-3">
+                      {item.item.image_url && (
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden">
+                          <Image
+                            src={item.item.image_url}
+                            alt={item.item.name}
+                            fill
+                            sizes="(max-width: 768px) 64px, 64px"
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="font-semibold text-[#0e1b19]">{item.item.name}</p>
+                        {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
+                          <p key={modifierId} className="text-sm text-[#4f968f]">
                               {modifier.options.map(opt => 
                                 opt.extra_price > 0 
                                   ? `+${opt.name} (+${opt.extra_price.toFixed(2)}€)`
                                   : `• ${opt.name}`
                               ).join(', ')}
-                            </p>
-                          ))}
-                          <p className="text-sm text-[#4f968f] mt-1">
+                          </p>
+                        ))}
+                        <p className="text-sm text-[#4f968f] mt-1">
                             {formatPrice(
                               item.item.price + 
                               Object.values(item.modifiers || {}).reduce((total, modifier) => 
                                 total + modifier.options.reduce((optTotal, opt) => optTotal + opt.extra_price, 0)
                               , 0)
                             )} c/u
-                          </p>
-                        </div>
-                        <div className="flex items-center border border-[#d0e6e4] rounded-full bg-[#4f968f]/10">
+                        </p>
+                      </div>
+                      <div className="flex items-center border border-[#d0e6e4] rounded-full bg-[#4f968f]/10">
                           {alias === currentClientAlias ? (
                             <>
-                              <button
-                                onClick={() => handleQuantityChange(item, false)}
-                                className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
-                              >
-                                {item.quantity === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
-                              </button>
-                              <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
-                                {item.quantity}
-                              </div>
-                              <button
-                                onClick={() => handleQuantityChange(item, true)}
-                                className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
+                        <button
+                          onClick={() => handleQuantityChange(item, false)}
+                          className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                        >
+                          {item.quantity === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                        </button>
+                        <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
+                          {item.quantity}
+                        </div>
+                        <button
+                          onClick={() => handleQuantityChange(item, true)}
+                          className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
                             </>
                           ) : (
                             <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
                               {item.quantity}
                             </div>
                           )}
-                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
 
           <div className="fixed bottom-4 left-0 right-0 z-50 px-4">
