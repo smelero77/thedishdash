@@ -1,13 +1,21 @@
 interface StoryProgressProps {
-  currentIndex: number;
   totalItems: number;
+  currentIndex: number;
 }
 
-export const StoryProgress = ({ currentIndex, totalItems }: StoryProgressProps) => (
-  <div className="absolute top-0 left-0 right-0 h-1 bg-[#d0e6e4]">
-    <div 
-      className="h-full bg-[#4f968f] transition-all duration-300"
-      style={{ width: `${((currentIndex + 1) / totalItems) * 100}%` }}
-    />
-  </div>
-); 
+export const StoryProgress = ({ totalItems, currentIndex }: StoryProgressProps) => {
+  const progress = Math.min(((currentIndex + 1) / totalItems) * 100, 100);
+
+  return (
+    <div className="w-full h-1 bg-[#d0e6e4]/20">
+      <div 
+        className="h-full bg-[#4f968f] transition-all duration-300 ease-out"
+        style={{ 
+          width: `${progress}%`,
+          transform: 'translateZ(0)',
+          willChange: 'width'
+        }}
+      />
+    </div>
+  );
+}; 

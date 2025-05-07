@@ -1,9 +1,9 @@
 import { X } from 'lucide-react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CartItem } from '@/types/menu';
-import { StoryProgress } from './StoryProgress';
+import { ScrollProgressBar } from '../../../components/ScrollProgressBar';
 import { StoryItem } from './StoryItem';
 import { OrderTotal } from './OrderTotal';
 import { ItemQuantity } from './ItemQuantity';
@@ -15,10 +15,11 @@ interface StoryModalProps {
   onClose: () => void;
 }
 
-export const StoryModal = ({ alias, items, currentIndex, onClose }: StoryModalProps) => {
+export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }: StoryModalProps) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(currentIndex);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [visibleItems, setVisibleItems] = useState<CartItem[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => { setIsVisible(true); }, 50);
@@ -35,30 +36,12 @@ export const StoryModal = ({ alias, items, currentIndex, onClose }: StoryModalPr
       };
       loadItems();
     }
-  }, [isVisible, items.length]);
-
-  useEffect(() => {
-    setVisibleItems(items.slice(0, activeIndex + 1));
-  }, [activeIndex, items]);
+  }, [isVisible, items]);
 
   const handleClose = () => {
     setIsVisible(false);
     setTimeout(onClose, 500);
   };
-
-  const handleNext = useCallback(() => {
-    if (activeIndex < items.length - 1) {
-      setActiveIndex(prev => prev + 1);
-    } else {
-      onClose();
-    }
-  }, [activeIndex, items.length, onClose]);
-
-  const handlePrevious = useCallback(() => {
-    if (activeIndex > 0) {
-      setActiveIndex(prev => prev - 1);
-    }
-  }, [activeIndex]);
 
   return (
     <AnimatePresence>
@@ -78,7 +61,6 @@ export const StoryModal = ({ alias, items, currentIndex, onClose }: StoryModalPr
           onClick={e => e.stopPropagation()}
         >
           <div className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl">
-            {/* Header con efecto de cristal */}
             <div className="absolute top-0 left-0 right-0 z-10 bg-white/80 backdrop-blur-md border-b border-white/20">
               <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
@@ -104,17 +86,20 @@ export const StoryModal = ({ alias, items, currentIndex, onClose }: StoryModalPr
                   </button>
                 </div>
               </div>
-              <StoryProgress
-                totalItems={items.length}
-                currentIndex={activeIndex}
-                onClose={onClose}
+              <ScrollProgressBar 
+                containerRef={contentRef}
+                className="sticky top-0 z-10"
+                barClassName="bg-[#4f968f]"
+                trackClassName="bg-[#d0e6e4]/20"
               />
             </div>
 
-            {/* Lista de items con animación suave */}
-            <div className="h-[calc(100vh-200px)] overflow-y-auto no-scrollbar pt-24 pb-8 px-4">
+            <div 
+              ref={contentRef}
+              className="h-[calc(100vh-200px)] overflow-y-auto no-scrollbar pt-24 pb-8 px-4"
+            >
               <div className="space-y-4">
-                {items.slice(0, visibleItems.length).map((item, index) => (
+                {items.map((item, index) => (
                   <motion.div
                     key={index}
                     initial={{ opacity: 0, y: 10 }}
