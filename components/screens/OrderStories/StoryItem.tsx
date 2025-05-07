@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { CartItem } from '@/types/menu';
+import { ItemQuantity } from './ItemQuantity';
 
 interface StoryItemProps {
   item: CartItem;
@@ -21,15 +22,20 @@ export const StoryItem = ({ item }: StoryItemProps) => (
         </div>
       )}
       <div className="flex-1">
-        <h3 className="text-[#0e1b19] font-medium">{item.item.name}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-[#0e1b19] font-medium">{item.item.name}</h3>
+          <ItemQuantity quantity={item.quantity} />
+        </div>
         {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
-          <p key={modifierId} className="text-sm text-[#4f968f]">
-            {modifier.options.map(opt => 
-              opt.extra_price > 0 
-                ? `+${opt.name} (+${opt.extra_price.toFixed(2)}€)`
-                : `• ${opt.name}`
-            ).join(', ')}
-          </p>
+          <div key={modifierId} className="mt-1">
+            {modifier.options.map(opt => (
+              <p key={opt.id} className="text-sm text-[#4f968f]">
+                {opt.extra_price > 0 
+                  ? `+${opt.name} (+${opt.extra_price.toFixed(2)}€)`
+                  : `• ${opt.name}`}
+              </p>
+            ))}
+          </div>
         ))}
         <p className="text-[#4f968f] text-sm mt-1">
           {formatPrice(

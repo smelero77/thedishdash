@@ -1,10 +1,12 @@
 import { X } from 'lucide-react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CartItem } from '@/types/menu';
 import { StoryProgress } from './StoryProgress';
 import { StoryItem } from './StoryItem';
+import { OrderTotal } from './OrderTotal';
+import { ItemQuantity } from './ItemQuantity';
 
 interface StoryModalProps {
   alias: string;
@@ -14,118 +16,124 @@ interface StoryModalProps {
 }
 
 export const StoryModal = ({ alias, items, currentIndex, onClose }: StoryModalProps) => {
-  const [isClosing, setIsClosing] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(currentIndex);
+  const [visibleItems, setVisibleItems] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { setIsVisible(true); }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (isVisible) {
+      const loadItems = async () => {
+        for (let i = 1; i <= items.length; i++) {
+          await new Promise(resolve => setTimeout(resolve, 150));
+          setVisibleItems(items.slice(0, i));
+        }
+      };
+      loadItems();
+    }
+  }, [isVisible, items.length]);
+
+  useEffect(() => {
+    setVisibleItems(items.slice(0, activeIndex + 1));
+  }, [activeIndex, items]);
 
   const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-    }, 300);
+    setIsVisible(false);
+    setTimeout(onClose, 500);
   };
 
-  if (isClosing) {
-    return (
+  const handleNext = useCallback(() => {
+    if (activeIndex < items.length - 1) {
+      setActiveIndex(prev => prev + 1);
+    } else {
+      onClose();
+    }
+  }, [activeIndex, items.length, onClose]);
+
+  const handlePrevious = useCallback(() => {
+    if (activeIndex > 0) {
+      setActiveIndex(prev => prev - 1);
+    }
+  }, [activeIndex]);
+
+  return (
+    <AnimatePresence>
       <motion.div 
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isVisible ? 1 : 0 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-gradient-to-b from-black/80 to-black/60 backdrop-blur-sm"
+        onClick={handleClose}
       >
         <motion.div 
-          initial={{ scale: 1, opacity: 1, y: 0 }}
-          animate={{ scale: 0.9, opacity: 0, y: 20 }}
-          transition={{ 
-            type: "spring",
-            damping: 20,
-            stiffness: 200,
-            duration: 0.3
-          }}
-          className="w-full max-w-md bg-white rounded-2xl overflow-hidden"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ type: "spring", damping: 20, stiffness: 200 }}
+          className="fixed inset-0 flex items-center justify-center p-4"
+          onClick={e => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-[#d0e6e4]">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-[#4f968f] to-[#1ce3cf] p-[2px]">
-                <div className="w-full h-full rounded-full bg-white p-[2px]">
-                  <div className="w-full h-full rounded-full bg-[#f8fbfb] flex items-center justify-center">
-                    <span className="text-[#4f968f] text-sm sm:text-base font-semibold">
-                      {alias.slice(0, 2).toUpperCase()}
-                    </span>
+          <div className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl">
+            {/* Header con efecto de cristal */}
+            <div className="absolute top-0 left-0 right-0 z-10 bg-white/80 backdrop-blur-md border-b border-white/20">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#4f968f] to-[#1ce3cf] p-[2px]">
+                    <div className="w-full h-full rounded-full bg-white p-[2px]">
+                      <div className="w-full h-full rounded-full bg-[#f8fbfb] flex items-center justify-center">
+                        <span className="text-[#4f968f] text-base font-semibold">
+                          {alias.slice(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+                  <span className="text-[#0e1b19] text-lg font-medium">{alias}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <OrderTotal items={items} visibleItems={visibleItems} />
+                  <button 
+                    onClick={handleClose} 
+                    className="p-2 -m-2 text-[#4f968f] hover:bg-[#4f968f]/10 rounded-full transition-colors"
+                    aria-label="Cerrar"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
-              <span className="text-[#0e1b19] text-sm sm:text-base font-medium">{alias}</span>
+              <StoryProgress
+                totalItems={items.length}
+                currentIndex={activeIndex}
+                onClose={onClose}
+              />
             </div>
-            <button 
-              onClick={handleClose} 
-              className="p-2 -m-2 text-[#4f968f] hover:bg-[#4f968f]/10 rounded-full transition-colors"
-              aria-label="Cerrar"
-            >
-              <X className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          </div>
 
-          {/* Content */}
-          <div className="relative h-[50vh] sm:h-[60vh]">
-            <StoryProgress currentIndex={currentIndex} totalItems={items.length} />
-            <div className="h-full">
-              <StoryItem item={items[currentIndex]} />
+            {/* Lista de items con animación suave */}
+            <div className="h-[calc(100vh-200px)] overflow-y-auto no-scrollbar pt-24 pb-8 px-4">
+              <div className="space-y-4">
+                {items.slice(0, visibleItems.length).map((item, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                      type: "spring",
+                      damping: 25,
+                      stiffness: 150,
+                      delay: index * 0.05
+                    }}
+                  >
+                    <StoryItem item={item} />
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
         </motion.div>
       </motion.div>
-    );
-  }
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-    >
-      <motion.div 
-        initial={{ scale: 0.95, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ 
-          type: "spring",
-          damping: 20,
-          stiffness: 200,
-          duration: 0.3
-        }}
-        className="w-full max-w-md bg-white rounded-2xl overflow-hidden"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-[#d0e6e4]">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-[#4f968f] to-[#1ce3cf] p-[2px]">
-              <div className="w-full h-full rounded-full bg-white p-[2px]">
-                <div className="w-full h-full rounded-full bg-[#f8fbfb] flex items-center justify-center">
-                  <span className="text-[#4f968f] text-sm sm:text-base font-semibold">
-                    {alias.slice(0, 2).toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <span className="text-[#0e1b19] text-sm sm:text-base font-medium">{alias}</span>
-          </div>
-          <button 
-            onClick={handleClose} 
-            className="p-2 -m-2 text-[#4f968f] hover:bg-[#4f968f]/10 rounded-full transition-colors"
-            aria-label="Cerrar"
-          >
-            <X className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="relative h-[50vh] sm:h-[60vh]">
-          <StoryProgress currentIndex={currentIndex} totalItems={items.length} />
-          <div className="h-full">
-            <StoryItem item={items[currentIndex]} />
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
+    </AnimatePresence>
   );
 }; 
