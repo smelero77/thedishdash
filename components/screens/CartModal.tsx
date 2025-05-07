@@ -109,7 +109,8 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
               <h2 className="text-[#0e1b19] text-xl font-bold leading-tight tracking-[-0.015em]">Tu pedido</h2>
               <button
                 onClick={handleClose}
-                className="text-[#4f968f] transition-colors"
+                className="p-2 -m-2 text-[#4f968f] transition-colors"
+                aria-label="Cerrar"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -138,27 +139,27 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
               })
               .map(([alias, { items: aliasItems }]) => (
               <div key={alias} className="mb-6">
-                <h3 className="text-[#0e1b19] text-base font-bold mb-3 flex items-center gap-2">
+                <h3 className="text-[#0e1b19] text-base font-bold mb-4 flex items-center gap-2">
                   {alias === currentClientAlias ? 'Tu pedido' : `Pedido de ${alias}`}
                 </h3>
                 {aliasItems.map((item) => (
                     <div key={getCartKey(item.id, item.modifiers, item.client_alias || '')} className="mb-4">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-4">
                       {item.item.image_url && (
-                        <div className="relative w-16 h-16 rounded-lg overflow-hidden">
+                        <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
                           <Image
                             src={item.item.image_url}
                             alt={item.item.name}
                             fill
-                            sizes="(max-width: 768px) 64px, 64px"
+                            sizes="(max-width: 768px) 80px, 80px"
                             className="object-cover"
                           />
                         </div>
                       )}
-                      <div className="flex-1">
-                        <p className="font-semibold text-[#0e1b19]">{item.item.name}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-[#0e1b19] text-base">{item.item.name}</p>
                         {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
-                          <p key={modifierId} className="text-sm text-[#4f968f]">
+                          <p key={modifierId} className="text-sm text-[#4f968f] mt-1">
                               {modifier.options.map(opt => 
                                 opt.extra_price > 0 
                                   ? `+${opt.name} (+${opt.extra_price.toFixed(2)}€)`
@@ -166,7 +167,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                               ).join(', ')}
                           </p>
                         ))}
-                        <p className="text-sm text-[#4f968f] mt-1">
+                        <p className="text-sm text-[#4f968f] mt-2">
                             {formatPrice(
                               item.item.price + 
                               Object.values(item.modifiers || {}).reduce((total, modifier) => 
@@ -180,22 +181,24 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                             <>
                         <button
                           onClick={() => handleQuantityChange(item, false)}
-                          className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                          className="w-10 h-10 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                          aria-label={item.quantity === 1 ? "Eliminar" : "Quitar uno"}
                         >
-                          {item.quantity === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                          {item.quantity === 1 ? <Trash2 className="h-5 w-5" /> : <Minus className="h-5 w-5" />}
                         </button>
-                        <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
+                        <div className="w-10 h-10 flex items-center justify-center text-[#0e1b19] font-medium text-base">
                           {item.quantity}
                         </div>
                         <button
                           onClick={() => handleQuantityChange(item, true)}
-                          className="w-8 h-8 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                          className="w-10 h-10 flex items-center justify-center text-[#4f968f] hover:bg-[#4f968f]/20 transition-colors"
+                          aria-label="Añadir uno más"
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-5 w-5" />
                         </button>
                             </>
                           ) : (
-                            <div className="w-8 h-8 flex items-center justify-center text-[#0e1b19] font-medium">
+                            <div className="w-10 h-10 flex items-center justify-center text-[#0e1b19] font-medium text-base">
                               {item.quantity}
                             </div>
                           )}

@@ -36,9 +36,9 @@ export const OrderStories = ({ groupedItems, currentClientAlias }: OrderStoriesP
   }, [updatedGroupedItems, currentClientAlias]);
 
   return (
-    <div className="relative h-32">
+    <div className="relative h-28 sm:h-32">
       <div className="absolute inset-0 overflow-x-auto no-scrollbar">
-        <div className="flex gap-3 px-4 min-w-full">
+        <div className="flex gap-2 sm:gap-3 px-2 sm:px-4 min-w-full">
           {sortedEntries.map(([alias, { items, itemCount }]) => (
             <StoryBubble
               key={alias}
@@ -50,8 +50,8 @@ export const OrderStories = ({ groupedItems, currentClientAlias }: OrderStoriesP
         </div>
       </div>
       {/* Scroll indicator gradient */}
-      <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none bg-gradient-to-l from-white to-transparent" />
-      <div className="absolute left-0 top-0 bottom-0 w-8 pointer-events-none bg-gradient-to-r from-white to-transparent" />
+      <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-8 pointer-events-none bg-gradient-to-l from-white dark:from-[#0f1b1a] to-transparent" />
+      <div className="absolute left-0 top-0 bottom-0 w-6 sm:w-8 pointer-events-none bg-gradient-to-r from-white dark:from-[#0f1b1a] to-transparent" />
 
       {selectedAlias && (
         <StoryModal

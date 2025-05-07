@@ -12,9 +12,9 @@ interface CategorySectionProps {
     items: MenuItemData[];
   };
   itemQuantities: Record<string, number>;
-  onAddToCart: (itemId: string) => void;
-  onRemoveFromCart: (itemId: string) => void;
-  onOpenCart?: () => void;
+  onAddToCart: (item: MenuItemData) => void;
+  onRemoveFromCart: (itemId: string, modifiers?: SelectedModifiers | null) => void;
+  onOpenCart: () => void;
 }
 
 const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps>(({
@@ -75,7 +75,7 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
             is_recommended={item.is_recommended}
             is_available={item.is_available}
             quantity={getItemQuantity(item.id)}
-            onAddToCart={() => onAddToCart(item.id)}
+            onAddToCart={() => onAddToCart(item)}
             onRemoveFromCart={() => onRemoveFromCart(item.id)}
             hasModifiers={item.modifiers?.length > 0}
             onOpenCart={onOpenCart}

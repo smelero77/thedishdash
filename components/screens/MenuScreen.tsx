@@ -80,6 +80,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
   const isScrollingProgrammatically = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
   const [showChatModal, setShowChatModal] = useState(false);
+  const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const cart = useContext(CartItemsContext);
   const cartTotal = useContext(CartTotalContext);
@@ -167,6 +168,66 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
     },
     [memoizedCartActions]
   );
+
+  // Función para detectar la categoría visible
+  const handleScroll = useCallback(() => {
+    if (!menuScrollRef.current || isScrollingProgrammatically.current) return;
+
+    const scrollTop = menuScrollRef.current.scrollTop;
+    const viewportHeight = menuScrollRef.current.clientHeight;
+    const scrollBottom = scrollTop + viewportHeight;
+    const tolerance = 50; // Margen de tolerancia para la detección
+
+    // Encontrar la categoría más visible
+    let mostVisibleCategory: string | null = null;
+    let maxVisibility = 0;
+
+    Object.entries(categoryRefs.current).forEach(([id, element]) => {
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        const elementTop = rect.top + scrollTop;
+        const elementBottom = elementTop + rect.height;
+        
+        // Calcular cuánto del elemento es visible
+        const visibleTop = Math.max(elementTop, scrollTop);
+        const visibleBottom = Math.min(elementBottom, scrollBottom);
+        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+        
+        // Añadir bonus de visibilidad si el elemento está cerca del centro del viewport
+        const elementCenter = elementTop + (rect.height / 2);
+        const viewportCenter = scrollTop + (viewportHeight / 2);
+        const distanceFromCenter = Math.abs(elementCenter - viewportCenter);
+        const centerBonus = Math.max(0, 1 - (distanceFromCenter / (viewportHeight / 2)));
+        
+        // Añadir bonus si es el último elemento y estamos cerca del final
+        const isLastElement = id === orderedCategories[orderedCategories.length - 1].id;
+        const isNearBottom = scrollBottom >= menuScrollRef.current.scrollHeight - tolerance;
+        const lastElementBonus = isLastElement && isNearBottom ? 1 : 0;
+        
+        const totalVisibility = visibleHeight + (centerBonus * 100) + (lastElementBonus * 200);
+        
+        if (totalVisibility > maxVisibility) {
+          maxVisibility = totalVisibility;
+          mostVisibleCategory = id;
+        }
+      }
+    });
+
+    if (mostVisibleCategory && mostVisibleCategory !== activeTab) {
+      setActiveTab(mostVisibleCategory);
+    }
+  }, [orderedCategories, activeTab]);
+
+  // Añadir y remover el event listener de scroll
+  useEffect(() => {
+    const menuScroll = menuScrollRef.current;
+    if (menuScroll) {
+      menuScroll.addEventListener('scroll', handleScroll);
+      // Ejecutar una vez al montar para establecer la categoría inicial
+      handleScroll();
+      return () => menuScroll.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
 
   const handleCategoryClick = useCallback((categoryId: string) => {
     setActiveTab(categoryId);
@@ -299,6 +360,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
             onAddToCart={handleItemClick}
             onRemoveFromCart={handleDecrementItem}
             onOpenCart={() => setShowCartModal(true)}
+            ref={(el) => categoryRefs.current[category.id] = el}
           />
         ))}
       </div>
