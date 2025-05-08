@@ -99,7 +99,7 @@ export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }
               className="h-[calc(100vh-200px)] overflow-y-auto no-scrollbar pt-24 pb-8 px-4"
             >
               <div className="space-y-4">
-                {items.map((item, index) => (
+                {visibleItems.map((item, index) => (
                   <motion.div
                     key={index}
                     initial={{ opacity: 0, y: 10 }}
