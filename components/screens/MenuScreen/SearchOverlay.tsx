@@ -1,4 +1,4 @@
-import React, { useContext, forwardRef, useCallback } from 'react';
+import React, { useContext, forwardRef, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft } from 'lucide-react';
 import MenuItem from '../MenuItem';
@@ -7,6 +7,10 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { CartItemsContext } from '@/context/CartItemsContext';
 import { CartActionsContext } from '@/context/CartActionsContext';
 import { useCustomer } from '@/context/CustomerContext';
+import FloatingCartButton from './FloatingCartButton';
+import { CartTotalContext } from '@/context/CartTotalContext';
+import { Button } from '@/components/ui/button';
+import ChatButton from '@/components/chat/ChatButton';
 
 interface SearchOverlayProps {
   searchQuery: string;
@@ -25,17 +29,20 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(({
 }, ref) => {
   const cart = useContext(CartItemsContext);
   const cartActions = useContext(CartActionsContext);
+  const cartTotal = useContext(CartTotalContext);
   const { alias } = useCustomer();
+  const [showCartModal, setShowCartModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
 
   const handleAddToCart = useCallback((itemId: string) => {
-    if (cartActions) {
-      cartActions.handleAddToCart(itemId, {});
+    if (cartActions && typeof cartActions === 'object' && 'handleAddToCart' in cartActions) {
+      (cartActions as any).handleAddToCart(itemId, {});
     }
   }, [cartActions]);
 
   const handleRemoveFromCart = useCallback((itemId: string) => {
-    if (cartActions) {
-      cartActions.handleDecrementCart(itemId, {});
+    if (cartActions && typeof cartActions === 'object' && 'handleDecrementCart' in cartActions) {
+      (cartActions as any).handleDecrementCart(itemId, {});
     }
   }, [cartActions]);
 
@@ -143,6 +150,14 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(({
                 </div>
               )}
             </div>
+          </div>
+          <div className="fixed bottom-4 left-4 right-4 flex items-center gap-4">
+            <FloatingCartButton
+              onClick={() => setShowCartModal(true)}
+              getTotalItems={cartActions && typeof cartActions === 'object' && 'getTotalItems' in cartActions ? (cartActions as any).getTotalItems : () => 0}
+              cartTotal={cartTotal as number}
+            />
+            <ChatButton onClick={() => setShowChatModal(true)} />
           </div>
         </motion.div>
       )}

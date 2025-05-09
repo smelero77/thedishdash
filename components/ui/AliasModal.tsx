@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { useTable } from '@/context/TableContext';
+import { useWeather } from '@/hooks/useWeather';
 
 // Opcionales: loader y error genéricos si quieres mostrarlos dentro del modal
 import { CodeValidationLoader } from '@/components/ui/CodeValidationLoader';
@@ -36,6 +37,7 @@ function AliasModalComponent({
 }: AliasModalProps) {
   const { tableNumber } = useTable();
   const tableNumberString = tableNumber?.toString() || '0';
+  const { current, loading: weatherLoading } = useWeather("Pozuelo de Alarcón");
 
   // Alias inicial memoizado para no regenerar cada render
   const initialGeneratedAlias = useMemo(
@@ -126,6 +128,20 @@ function AliasModalComponent({
             >
               Añade tu nombre o alias para que el staff sepa a quién servir 😋
             </motion.p>
+
+            {!weatherLoading && current && (
+              <motion.div
+                className="text-white text-sm mb-4 bg-white/10 rounded-lg p-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <p>Clima en Pozuelo:</p>
+                <p>Temperatura: {current.temp_c}°C (se siente {current.feelslike_c}°C)</p>
+                <p>Humedad: {current.humidity}%</p>
+                <p>Condición: {current.condition}</p>
+              </motion.div>
+            )}
 
             {error && (
               <CodeValidationError
