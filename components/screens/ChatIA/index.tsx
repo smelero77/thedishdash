@@ -14,6 +14,7 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef(uuidv4());
+  const [isTyping, setIsTyping] = useState(false);
 
   // Add welcome message from Don Gourmetón when chat opens and there are no messages
   useEffect(() => {
@@ -69,15 +70,16 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
   const handleSend = async (message: string) => {
     if (!message.trim()) return;
 
-    const userMessage: Message = {
+    const newMessage: Message = {
       id: Date.now().toString(),
       content: message,
       role: 'guest',
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, newMessage]);
     setIsLoading(true);
+    setIsTyping(true);
 
     try {
       const response = await fetch('/api/chat', {
@@ -88,38 +90,38 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
         body: JSON.stringify({
           message,
           sessionId: sessionId.current,
-          alias: alias
+          alias,
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Error al procesar el mensaje');
+        throw new Error('Error en la respuesta del servidor');
       }
 
-      const { response: assistantResponse, menuItems } = data;
-      
+      const data = await response.json();
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: assistantResponse,
+        id: Date.now().toString(),
+        content: data.response,
         role: 'assistant',
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error al enviar mensaje:', error);
-      // Mostrar mensaje de error al usuario
+      console.error('Error:', error);
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: error instanceof Error ? error.message : 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo.',
+        id: Date.now().toString(),
+        content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.',
         role: 'assistant',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      setIsTyping(false);
     }
   };
 
@@ -192,10 +194,23 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
             custom-scrollbar
             ${isOpen ? 'slide-in' : ''}
           `}
+          onScroll={handleScroll}
         >
           {messages.map((message) => (
             <ChatMessage key={message.id} message={message} alias={alias} />
           ))}
+          {isTyping && (
+            <div className="flex items-center space-x-3">
+              <span className="w-10 h-10 flex items-center justify-center rounded-full bg-[#1ce3cf] text-white text-xl">
+                👨‍🍳
+              </span>
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-[#1ce3cf] rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-[#1ce3cf] rounded-full animate-bounce delay-100" />
+                <div className="w-2 h-2 bg-[#1ce3cf] rounded-full animate-bounce delay-200" />
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 

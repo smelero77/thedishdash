@@ -10,6 +10,8 @@ import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 export class ChatMessageService {
   private supabase: SupabaseClient;
   private openai: OpenAI;
+  private isTyping: boolean = false;
+  private typingInterval: NodeJS.Timeout | null = null;
 
   constructor(
     supabaseUrl: string,
@@ -21,190 +23,275 @@ export class ChatMessageService {
     this.openai = new OpenAI({ apiKey: openaiApiKey });
   }
 
+  private startTyping(): void {
+    this.isTyping = true;
+    this.typingInterval = setInterval(() => {
+      if (this.isTyping) {
+        console.log('⌨️ El asistente está escribiendo...');
+      }
+    }, 1000);
+  }
+
+  private stopTyping(): void {
+    this.isTyping = false;
+    if (this.typingInterval) {
+      clearInterval(this.typingInterval);
+      this.typingInterval = null;
+    }
+  }
+
   async processMessage(
     sessionId: string,
     userAlias: string,
     userMessage: string,
     categoryId?: string
   ): Promise<AssistantResponse> {
-    // 3.1 Validación mínima
-    if (userMessage.trim().length < 3) {
-      throw new Error("Escribe algo más descriptivo, por favor.");
-    }
-
-    // 3.2 Contexto breve del carrito
-    console.log('👤 User alias:', userAlias);
-    const { data: cartItems, error: cartError } = await this.supabase
-      .from("temporary_order_items")
-      .select(`
-        menu_item_id,
-        quantity,
-        menu_items!inner (
-          name
-        )
-      `)
-      .eq("alias", userAlias);
+    this.startTyping();
     
-    if (cartError) {
-      console.error('❌ Error obteniendo items del carrito:', cartError);
-    }
-    console.log('🛒 Items en carrito:', cartItems);
+    try {
+      // 3.1 Validación mínima
+      if (userMessage.trim().length < 3) {
+        throw new Error("Escribe algo más descriptivo, por favor.");
+      }
 
-    const cartContext = (!cartItems || cartItems.length === 0)
-      ? "Tu carrito está vacío."
-      : "En tu carrito tienes:\n" +
-        cartItems.map((i: any) => 
-          `- ${i.menu_items.name} x${i.quantity}`
-        ).join("\n");
-
-    console.log('📦 Contexto del carrito:', cartContext);
-
-    // 3.3 Búsqueda semántica
-    console.log('\n🔍 Iniciando búsqueda semántica para:', userMessage);
-    const msgEmbedding = await this.embeddingService.getEmbedding(userMessage);
-    console.log('📊 Embedding generado:', msgEmbedding.length, 'dimensiones');
-
-    // 1) Intento vectorial
-    let { data: similarItems, error: vecErr } = await this.supabase
-      .rpc('match_menu_items', {
-        query_embedding: msgEmbedding,
-        match_threshold: 0.3,
-        match_count: 10
-      })
-      .eq('is_available', true);
-
-    console.log('🍽️ Items similares encontrados:', similarItems?.length || 0);
-
-    // 2) Fallback por keywords si no hay resultados
-    if ((!similarItems || similarItems.length === 0) && userMessage.trim()) {
-      console.log('⚠️ No hay resultados vectoriales, intentando fallback por texto...');
-      const keyword = userMessage.toLowerCase();
-      const { data: fallback } = await this.supabase
-        .from('menu_item_embeddings')
+      // 3.2 Contexto breve del carrito
+      console.log('👤 User alias:', userAlias);
+      const { data: cartItems, error: cartError } = await this.supabase
+        .from("temporary_order_items")
         .select(`
+          menu_item_id,
+          quantity,
           menu_items!inner (
-            id,
-            name,
-            description,
-            price,
-            image_url,
-            category_ids
+            name
           )
         `)
-        .ilike('text', `%${keyword}%`)
-        .eq('menu_items.is_available', true)
-        .limit(10);
-
-      console.log('🔄 Results fallback:', fallback?.length || 0);
-      similarItems = fallback?.map(f => f.menu_items) || [];
-    }
-
-    // Si aún no hay resultados, devolver mensaje al usuario
-    if (!similarItems || similarItems.length === 0) {
-      return {
-        type: "assistant_text",
-        content: "Lo siento, no he encontrado platos que coincidan con tu búsqueda. ¿Podrías intentar con otras palabras o ser más específico?"
-      };
-    }
-
-    // 3.3.1 Obtener información de categorías
-    const categoryMap: Record<string, string> = {};
-    const catIds = Array.from(new Set(similarItems?.flatMap((i: MenuItem) => i.category_ids || []) || []));
-    console.log('📑 IDs de categorías encontrados:', catIds);
-    
-    if (catIds.length) {
-      const { data: cats } = await this.supabase
-        .from('categories')
-        .select('id, name')
-        .in('id', catIds);
+        .eq("alias", userAlias);
       
-      cats?.forEach((c: { id: string; name: string }) => { categoryMap[c.id] = c.name; });
-      console.log('🏷️ Mapa de categorías:', categoryMap);
-    }
+      if (cartError) {
+        console.error('❌ Error obteniendo items del carrito:', cartError);
+      }
+      console.log('🛒 Items en carrito:', cartItems);
 
-    // 3.3.2 Enriquecer items con información de categorías
-    const enrichedItems = similarItems?.map((i: MenuItem) => ({
-      ...i,
-      category_info: (i.category_ids || []).map((cid: string) => ({
-        id: cid,
-        name: categoryMap[cid] || '—'
-      }))
-    })) || [];
+      const cartContext = (!cartItems || cartItems.length === 0)
+        ? "Tu carrito está vacío."
+        : "En tu carrito tienes:\n" +
+          cartItems.map((i: any) => 
+            `- ${i.menu_items.name} x${i.quantity}`
+          ).join("\n");
 
-    console.log('✨ Items enriquecidos:', JSON.stringify(enrichedItems, null, 2));
+      console.log('📦 Contexto del carrito:', cartContext);
 
-    // Filtrar por categoría si se especifica
-    const filteredItems = categoryId 
-      ? enrichedItems.filter((i: MenuItem) => i.category_ids?.includes(categoryId))
-      : enrichedItems;
+      // 3.3 Búsqueda semántica
+      console.log('\n🔍 Iniciando búsqueda semántica para:', userMessage);
+      const msgEmbedding = await this.embeddingService.getEmbedding(userMessage);
+      console.log('📊 Embedding generado:', msgEmbedding.length, 'dimensiones');
 
-    console.log('🔍 Items después de filtrar por categoría:', filteredItems.length);
-    if (categoryId) {
-      console.log('📑 Filtrando por categoría ID:', categoryId);
-    }
+      // 1) Intento vectorial
+      let { data: similarItems, error: vecErr } = await this.supabase
+        .rpc('match_menu_items', {
+          query_embedding: msgEmbedding,
+          match_threshold: 0.3,
+          match_count: 10
+        })
+        .eq('is_available', true);
 
-    // Excluir items ya en carrito
-    const cartIds = new Set(cartItems?.map((i: any) => i.menu_item_id));
-    console.log('🛒 IDs en carrito:', Array.from(cartIds));
-    console.log('🔍 Items antes de filtrar carrito:', filteredItems.map((i: MenuItem) => ({ id: i.id, name: i.name })));
-    
-    const candidates = filteredItems.filter((i: MenuItem) => !cartIds.has(i.id));
-    console.log('🎯 Candidatos finales:', candidates.map((i: MenuItem) => ({ id: i.id, name: i.name })));
+      console.log('🍽️ Items similares encontrados:', similarItems?.length || 0);
+      console.log('🔍 Semántica:', similarItems?.map((i: { name: string; similarity?: number; distance?: number }) => ({
+        name: i.name,
+        distance: i.similarity || i.distance
+      })));
 
-    // 3.4 Construcción de bloque con IDs
-    const candidatesBlock = this.buildCandidatesBlock(candidates);
-    console.log('\n📝 Bloque de candidatos construido:');
-    console.log(candidatesBlock);
+      // 2) Fallback por keywords si no hay resultados
+      if ((!similarItems || similarItems.length === 0) && userMessage.trim()) {
+        console.log('⚠️ No hay resultados vectoriales, intentando fallback por texto...');
+        const keyword = userMessage.toLowerCase();
+        const { data: fallback } = await this.supabase
+          .from('menu_item_embeddings')
+          .select(`
+            menu_items!inner (
+              id,
+              name,
+              description,
+              price,
+              image_url,
+              category_ids
+            )
+          `)
+          .ilike('text', `%${keyword}%`)
+          .eq('menu_items.is_available', true)
+          .limit(10);
 
-    // 3.5 Montaje de mensajes
-    const messages: ChatCompletionMessageParam[] = [
-      { 
-        role: "system", 
-        content: "Eres un asistente de restaurante especializado en recomendar platos y proporcionar información detallada sobre el menú. IMPORTANTE: Asegúrate de que las URLs de las imágenes estén completas y no truncadas. Si una URL es muy larga, usa una versión más corta pero completa."
-      },
-      { 
-        role: "system", 
-        content: cartContext 
-      },
-      { 
-        role: "system", 
-        content: `Estos son los platos disponibles (excluyendo lo ya en tu carrito).  
+        console.log('🔄 Results fallback:', fallback?.length || 0);
+        similarItems = fallback?.map(f => f.menu_items) || [];
+      }
+
+      // 3.3.1 Obtener información de categorías
+      const categoryMap: Record<string, string> = {};
+      const catIds = Array.from(new Set(similarItems?.flatMap((i: MenuItem) => i.category_ids || []) || []));
+      console.log('📑 IDs de categorías encontrados:', catIds);
+      
+      if (catIds.length) {
+        const { data: cats } = await this.supabase
+          .from('categories')
+          .select('id, name')
+          .in('id', catIds);
+        
+        cats?.forEach((c: { id: string; name: string }) => { categoryMap[c.id] = c.name; });
+        console.log('🏷️ Mapa de categorías:', categoryMap);
+      }
+
+      // 3.3.2 Enriquecer items con información de categorías
+      const enrichedItems = similarItems?.map((i: MenuItem) => ({
+        ...i,
+        category_info: (i.category_ids || []).map((cid: string) => ({
+          id: cid,
+          name: categoryMap[cid] || '—'
+        }))
+      })) || [];
+
+      console.log('✨ Items enriquecidos:', JSON.stringify(enrichedItems, null, 2));
+
+      // Filtrar por categoría si se especifica
+      const filteredItems = categoryId 
+        ? enrichedItems.filter((i: MenuItem) => i.category_ids?.includes(categoryId))
+        : enrichedItems;
+
+      console.log('🔍 Items después de filtrar por categoría:', filteredItems.length);
+      if (categoryId) {
+        console.log('📑 Filtrando por categoría ID:', categoryId);
+      }
+
+      // Excluir items ya en carrito
+      const cartIds = new Set(cartItems?.map((i: any) => i.menu_item_id));
+      console.log('🛒 IDs en carrito:', Array.from(cartIds));
+      console.log('🔍 Items antes de filtrar carrito:', filteredItems.map((i: MenuItem) => ({ id: i.id, name: i.name })));
+      
+      let candidates = filteredItems.filter((i: MenuItem) => !cartIds.has(i.id));
+      console.log('🎯 Candidatos finales:', candidates.map((i: MenuItem) => ({ id: i.id, name: i.name })));
+
+      // Fallback explícito por categoría si no hay candidatos
+      if (candidates.length === 0) {
+        console.log('⚠️ No hay candidatos, intentando fallback por categoría...');
+        const { data: cat } = await this.supabase
+          .from('categories')
+          .select('id')
+          .ilike('name', '%desayuno%')
+          .single();
+
+        if (cat) {
+          console.log('📑 Categoría Desayuno encontrada:', cat.id);
+          const { data: catItems } = await this.supabase
+            .from('menu_items')
+            .select(`
+              id,
+              name,
+              description,
+              price,
+              image_url,
+              profit_margin,
+              category_ids,
+              food_info,
+              origin,
+              pairing_suggestion,
+              chef_notes,
+              is_recommended
+            `)
+            .contains('category_ids', [cat.id])
+            .eq('is_available', true)
+            .order('profit_margin', { ascending: false })
+            .limit(5);
+
+          if (catItems && catItems.length > 0) {
+            console.log('🍽️ Items de desayuno encontrados:', catItems.length);
+            console.log('📋 Items de desayuno:', catItems.map(i => ({ id: i.id, name: i.name, profit_margin: i.profit_margin })));
+            
+            // Enriquecer los items con la información de categorías
+            const enrichedCatItems = catItems.map(item => ({
+              ...item,
+              category_info: [{
+                id: cat.id,
+                name: 'Desayuno'
+              }]
+            }));
+            
+            candidates = enrichedCatItems;
+          } else {
+            console.log('❌ No se encontraron items en la categoría Desayuno');
+          }
+        } else {
+          console.log('❌ No se encontró la categoría Desayuno');
+        }
+      }
+
+      // Si aún no hay candidatos después de todos los fallbacks, devolver mensaje al usuario
+      if (candidates.length === 0) {
+        console.log('⚠️ No hay resultados después de todos los fallbacks');
+        return {
+          type: "assistant_text",
+          content: "Lo siento, no he encontrado platos que coincidan con tu búsqueda. ¿Podrías intentar con otras palabras o ser más específico?"
+        };
+      }
+
+      // 3.4 Construcción de bloque con IDs
+      const candidatesBlock = this.buildCandidatesBlock(candidates);
+      console.log('\n📝 Bloque de candidatos construido:');
+      console.log(candidatesBlock);
+
+      // 3.5 Montaje de mensajes
+      const messages: ChatCompletionMessageParam[] = [
+        { 
+          role: "system", 
+          content: "Eres un asistente de restaurante especializado en recomendar platos y proporcionar información detallada sobre el menú. IMPORTANTE: Asegúrate de que las URLs de las imágenes estén completas y no truncadas. Si una URL es muy larga, usa una versión más corta pero completa."
+        },
+        { 
+          role: "system", 
+          content: cartContext 
+        },
+        { 
+          role: "system", 
+          content: `Estos son los platos disponibles (excluyendo lo ya en tu carrito).  
 Selecciona 2–3 y devuélveme un JSON con { id, name, price, reason, image_url, category_info }.
 IMPORTANTE: Asegúrate de que el JSON sea válido y que las URLs de las imágenes estén completas.
 
 ${candidatesBlock}` 
-      },
-      { 
-        role: "user", 
-        content: userMessage 
-      }
-    ];
+        },
+        { 
+          role: "user", 
+          content: userMessage 
+        }
+      ];
 
-    console.log('🤖 Mensajes enviados a GPT:', JSON.stringify(messages, null, 2));
+      console.log('🤖 Mensajes enviados a GPT:', JSON.stringify(messages, null, 2));
 
-    // 3.6 Llamada a GPT con function_call auto y DOS funciones
-    const resp = await this.openai.chat.completions.create({
-      model: CHAT_CONFIG.model,
-      messages,
-      functions: [recommendDishesFn, getProductDetailsFn],
-      function_call: "auto",
-      temperature: CHAT_CONFIG.temperature,
-      max_tokens: 1000,
-      top_p: CHAT_CONFIG.topP,
-      presence_penalty: CHAT_CONFIG.presencePenalty
-    });
+      // 3.6 Llamada a GPT con function_call auto y DOS funciones
+      const resp = await this.openai.chat.completions.create({
+        model: CHAT_CONFIG.model,
+        messages,
+        functions: [recommendDishesFn, getProductDetailsFn],
+        function_call: "auto",
+        temperature: CHAT_CONFIG.temperature,
+        max_tokens: 1000,
+        top_p: CHAT_CONFIG.topP,
+        presence_penalty: CHAT_CONFIG.presencePenalty
+      });
 
-    console.log('📝 Respuesta de GPT:', JSON.stringify(resp.choices[0].message, null, 2));
+      console.log('📝 Respuesta de GPT:', JSON.stringify(resp.choices[0].message, null, 2));
 
-    // 3.7 Guardar mensaje assistant
-    await this.supabase.from("messages").insert({
-      session_id: sessionId,
-      sender: resp.choices[0].message.role,
-      content: JSON.stringify(resp.choices[0].message)
-    });
+      // 3.7 Guardar mensaje assistant
+      await this.supabase.from("messages").insert({
+        session_id: sessionId,
+        sender: resp.choices[0].message.role,
+        content: JSON.stringify(resp.choices[0].message)
+      });
 
-    // 3.8 Manejar función invocada
-    return await this.handleAssistantMessage(resp.choices[0].message);
+      // 3.8 Manejar función invocada
+      const response = await this.handleAssistantMessage(resp.choices[0].message);
+      this.stopTyping();
+      return response;
+    } catch (error) {
+      this.stopTyping();
+      throw error;
+    }
   }
 
   // Construye bloque textual de candidatos
