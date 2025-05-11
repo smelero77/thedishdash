@@ -33,14 +33,29 @@ export class ChatMessageService {
     }
 
     // 3.2 Contexto breve del carrito
-    const { data: cartItems } = await this.supabase
-      .from("cart_items")
-      .select("product_id, quantity, name")
-      .eq("user_alias", userAlias);
+    console.log('👤 User alias:', userAlias);
+    const { data: cartItems, error: cartError } = await this.supabase
+      .from("temporary_order_items")
+      .select(`
+        menu_item_id,
+        quantity,
+        menu_items!inner (
+          name
+        )
+      `)
+      .eq("alias", userAlias);
+    
+    if (cartError) {
+      console.error('❌ Error obteniendo items del carrito:', cartError);
+    }
+    console.log('🛒 Items en carrito:', cartItems);
+
     const cartContext = (!cartItems || cartItems.length === 0)
       ? "Tu carrito está vacío."
       : "En tu carrito tienes:\n" +
-        cartItems.map((i: { name: string; quantity: number }) => `- ${i.name} x${i.quantity}`).join("\n");
+        cartItems.map((i: any) => 
+          `- ${i.menu_items.name} x${i.quantity}`
+        ).join("\n");
 
     console.log('📦 Contexto del carrito:', cartContext);
 
@@ -129,11 +144,12 @@ export class ChatMessageService {
     }
 
     // Excluir items ya en carrito
-    const cartIds = new Set(cartItems?.map((i: { product_id: string }) => i.product_id));
+    const cartIds = new Set(cartItems?.map((i: any) => i.menu_item_id));
     console.log('🛒 IDs en carrito:', Array.from(cartIds));
+    console.log('🔍 Items antes de filtrar carrito:', filteredItems.map((i: MenuItem) => ({ id: i.id, name: i.name })));
     
     const candidates = filteredItems.filter((i: MenuItem) => !cartIds.has(i.id));
-    console.log('🎯 Candidatos finales:', candidates.length);
+    console.log('🎯 Candidatos finales:', candidates.map((i: MenuItem) => ({ id: i.id, name: i.name })));
 
     // 3.4 Construcción de bloque con IDs
     const candidatesBlock = this.buildCandidatesBlock(candidates);
