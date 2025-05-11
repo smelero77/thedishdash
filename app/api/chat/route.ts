@@ -1,34 +1,93 @@
 import { NextResponse } from 'next/server';
-import { ChatService } from '@/lib/chat/service';
+import { ChatService } from '@/lib/chat';
+import { EMBEDDING_CONFIG } from '@/lib/embeddings/constants/config';
+import { v4 as uuidv4 } from 'uuid';
+
+// Validar variables de entorno
+const requiredEnvVars = {
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+};
+
+// Verificar que todas las variables de entorno necesarias estén definidas
+const missingEnvVars = Object.entries(requiredEnvVars)
+  .filter(([_, value]) => !value)
+  .map(([key]) => key);
+
+if (missingEnvVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+}
 
 const chatService = new ChatService(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   process.env.OPENAI_API_KEY!,
-  {
-    model: 'text-embedding-3-small',
-    dimensions: 1536,
-    encodingFormat: 'float'
-  }
+  EMBEDDING_CONFIG
 );
+
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
 
 export async function POST(request: Request) {
   try {
-    const { message, sessionId } = await request.json();
+    const { message: userMessage, sessionId, alias, categoryId } = await request.json();
+    console.log('Mensaje recibido:', { userMessage, sessionId, alias, categoryId });
     
-    if (!message) {
+    if (!userMessage || !alias) {
+      console.log('Error: Faltan mensaje o alias');
       return NextResponse.json(
-        { error: 'Message is required' },
+        { error: 'Faltan mensaje o alias' },
         { status: 400 }
       );
     }
 
-    const result = await chatService.processMessage(message, sessionId);
-    return NextResponse.json(result);
+    // 1) Si no hay sessionId válido, crea nueva
+    let sid = isValidUUID(sessionId) ? sessionId : uuidv4();
+    if (sid !== sessionId) {
+      console.log('Usando nueva sesión:', sid);
+    }
+
+    // 2) Procesa el mensaje
+    console.log('Procesando mensaje...');
+    try {
+      const result = await chatService.processMessage(sid, alias, userMessage, categoryId);
+      console.log('Resultado del procesamiento:', result);
+      
+      // 3) Devuelve respuesta estructurada + sessionId
+      return NextResponse.json({
+        response: result.response,
+        sessionId: result.sessionId
+      });
+    } catch (error) {
+      console.error('Error detallado en chatService.processMessage:', error);
+      
+      // Manejar errores específicos de OpenAI
+      if (error instanceof Error && error.message.includes('OpenAI')) {
+        console.error('Error de OpenAI:', error);
+        return NextResponse.json(
+          { error: 'Error al conectar con el servicio de IA' },
+          { status: 503 }
+        );
+      }
+
+      // Manejar errores de Supabase
+      if (error instanceof Error && error.message.includes('Supabase')) {
+        console.error('Error de Supabase:', error);
+        return NextResponse.json(
+          { error: 'Error al conectar con la base de datos' },
+          { status: 503 }
+        );
+      }
+
+      throw error; // Re-lanzar otros errores para el manejo general
+    }
   } catch (error) {
-    console.error('Error processing chat message:', error);
+    console.error('Error detallado en el procesamiento del mensaje:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     );
   }

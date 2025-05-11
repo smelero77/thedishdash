@@ -100,44 +100,40 @@ interface SupabaseCategory {
   };
 }
 
-// Cargar variables de entorno de .env.local
-const envPath = resolve(__dirname, '../.env.local');
-console.log('Loading environment variables from:', envPath);
+// Cargar variables de entorno
+config({ path: resolve(__dirname, '../.env') });
 
-// Forzar la carga de variables de entorno
-const result = config({ path: envPath });
-if (result.error) {
-  console.error('Error loading .env.local:', result.error);
-  process.exit(1);
-}
+// Validar variables de entorno
+const requiredEnvVars = {
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+};
 
-// Verificar variables de entorno
-console.log('\nEnvironment variables loaded:');
-console.log('NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '✓ Present' : '✗ Missing');
-console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✓ Present' : '✗ Missing');
-console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '✓ Present' : '✗ Missing');
+// Verificar que todas las variables de entorno necesarias estén definidas
+const missingEnvVars = Object.entries(requiredEnvVars)
+  .filter(([_, value]) => !value)
+  .map(([key]) => key);
 
-// Verificar que las variables existen antes de continuar
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || !process.env.OPENAI_API_KEY) {
-  console.error('Error: Missing required environment variables');
-  process.exit(1);
+if (missingEnvVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
 // Inicializar clientes
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 async function generateEmbedding(text: string): Promise<number[]> {
   const response = await openai.embeddings.create({
     model: "text-embedding-3-small",
     input: text,
-    encoding_format: "float",
+    encoding_format: "float"
   });
   return response.data[0].embedding;
 }
@@ -210,72 +206,55 @@ async function getItemDetails(itemId: string): Promise<ItemDetails> {
 
 async function main() {
   try {
-    console.log('1. Obteniendo items del menú...');
-    const { data: menuItems, error: fetchError } = await supabase
+    console.log('Obteniendo items del menú...');
+    const { data: menuItems, error: menuError } = await supabase
       .from('menu_items')
       .select('*');
 
-    if (fetchError) throw fetchError;
-    if (!menuItems) throw new Error('No menu items found');
+    if (menuError) {
+      throw menuError;
+    }
 
-    console.log(`2. Procesando ${menuItems.length} items...`);
-    
+    console.log(`Encontrados ${menuItems.length} items del menú`);
+
+    // Procesar cada item
     for (const item of menuItems) {
-      console.log(`\nProcesando: ${item.name}`);
-      
-      // Obtener detalles relacionados
-      const details = await getItemDetails(item.id);
-      
-      // Construir texto para el embedding
-      const textForEmbedding = [
-        // Información básica del item
-        `Nombre: ${item.name}`,
-        `Descripción: ${item.description || ''}`,
-        `Notas del chef: ${item.chef_notes || ''}`,
-        `Origen: ${item.origin || ''}`,
-        `Sugerencia de maridaje: ${item.pairing_suggestion || ''}`,
-        `Información nutricional: ${item.food_info || ''}`,
-        
-        // Alérgenos
-        'Alérgenos:',
-        ...details.allergens.map(a => `- ${a.name}`),
-        
-        // Etiquetas dietéticas
-        'Etiquetas dietéticas:',
-        ...details.dietTags.map(d => `- ${d.name}`),
-        
-        // Categorías
-        'Categorías:',
-        ...details.categories.map(c => `- ${c.name}`),
-        
-        // Modificadores
-        'Modificadores:',
-        ...details.modifiers.map(m => {
-          const options = m.options?.map(o => 
-            `  * ${o.name}${o.extra_price ? ` (+${o.extra_price}€)` : ''}`
-          ).join('\n') || '';
-          return `- ${m.name}${m.description ? `: ${m.description}` : ''}${m.required ? ' (requerido)' : ''}\n${options}`;
-        })
-      ].filter(Boolean).join('\n');
+      console.log(`Procesando item: ${item.name}`);
 
-      console.log('3. Generando embedding...');
+      // Crear texto para el embedding
+      const textForEmbedding = [
+        item.name,
+        item.description,
+        item.food_info,
+        item.origin,
+        item.pairing_suggestion,
+        item.chef_notes
+      ].filter(Boolean).join(' ');
+
+      // Generar embedding
       const embedding = await generateEmbedding(textForEmbedding);
 
-      // Upsert en menu_item_embeddings
-      const { error: upsertError } = await supabase
+      // Guardar embedding
+      const { error: embeddingError } = await supabase
         .from('menu_item_embeddings')
         .upsert({
           item_id: item.id,
           embedding: embedding
+        }, {
+          onConflict: 'item_id'
         });
 
-      if (upsertError) throw upsertError;
-      console.log('✓ Embedding guardado');
+      if (embeddingError) {
+        console.error(`Error guardando embedding para ${item.name}:`, embeddingError);
+        continue;
+      }
+
+      console.log(`Embedding guardado para ${item.name}`);
     }
 
-    console.log('\n¡Proceso completado con éxito!');
+    console.log('Proceso completado');
   } catch (error) {
-    console.error('Error en el proceso:', error);
+    console.error('Error:', error);
     process.exit(1);
   }
 }

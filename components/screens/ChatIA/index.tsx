@@ -72,7 +72,7 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       content: message,
-      role: 'user',
+      role: 'guest',
       timestamp: new Date(),
     };
 
@@ -88,14 +88,17 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
         body: JSON.stringify({
           message,
           sessionId: sessionId.current,
+          alias: alias
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Error al procesar el mensaje');
+        throw new Error(data.error || 'Error al procesar el mensaje');
       }
 
-      const { response: assistantResponse, menuItems } = await response.json();
+      const { response: assistantResponse, menuItems } = data;
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -105,23 +108,12 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-
-      // Si hay items del menú, mostrarlos como mensajes adicionales
-      if (menuItems.length > 0) {
-        const menuItemsMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          content: menuItems.map(item => `- ${item.name}: ${item.description || 'Sin descripción'} (${item.price}€)`).join('\n'),
-          role: 'assistant',
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, menuItemsMessage]);
-      }
     } catch (error) {
       console.error('Error al enviar mensaje:', error);
       // Mostrar mensaje de error al usuario
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo.',
+        content: error instanceof Error ? error.message : 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo.',
         role: 'assistant',
         timestamp: new Date(),
       };
