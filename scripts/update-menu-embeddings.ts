@@ -3,105 +3,37 @@ import { resolve } from 'path';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
-// Interfaces basadas en el esquema real
+// ----- Debug logs -----
+console.log('📂 Directorio actual:', process.cwd());
+const envPath = resolve(process.cwd(), '.env.local');
+console.log('🔍 Buscando .env.local en:', envPath);
+
+// ----- Load environment -----
+const result = config({ path: envPath });
+console.log('📝 Resultado de carga .env.local:', result);
+
+// ----- Interfaces -----
 interface MenuItem {
   id: string;
   name: string;
   description?: string;
-  price: number;
-  image_url?: string;
   food_info?: string;
   origin?: string;
-  pairing_suggestion?: string;
-  chef_notes?: string;
-  is_recommended?: boolean;
+  price: number;
   profit_margin?: number;
   category_ids?: string[];
 }
-
-interface Allergen {
-  id: string;
-  name: string;
-  icon_url?: string;
-}
-
-interface DietTag {
-  id: string;
-  name: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  sort_order?: number;
-  is_complementary?: boolean;
-  image_url?: string;
-}
-
-interface Modifier {
-  id: string;
-  name: string;
-  description?: string;
-  required?: boolean;
-  multi_select?: boolean;
-  options?: ModifierOption[];
-}
-
-interface ModifierOption {
-  id: string;
-  name: string;
-  extra_price?: number;
-  is_default?: boolean;
-  icon_url?: string;
-}
-
-interface ItemDetails {
-  allergens: Allergen[];
-  dietTags: DietTag[];
-  categories: Category[];
-  modifiers: Modifier[];
-}
-
-// Interfaces para los datos de Supabase
-interface SupabaseAllergenResponse {
-  allergen: Allergen;
-}
-
-interface SupabaseDietTagResponse {
-  diet_tag: DietTag;
-}
-
-interface SupabaseModifier {
-  modifier: {
-    name: string;
-    description?: string;
-    price_adjustment?: number;
-  };
-}
-
-interface SupabaseAllergen {
+interface AllergenRow {
   allergen: {
     name: string;
-    description?: string;
   };
 }
-
-interface SupabaseDietaryInfo {
-  dietary_info: {
+interface DietTagRow {
+  diet_tag: {
     name: string;
-    description?: string;
   };
 }
-
-interface SupabaseCategory {
-  category: {
-    name: string;
-    description?: string;
-  };
-}
-
-// Cargar variables de entorno
-config({ path: resolve(__dirname, '../.env') });
+interface CategoryRow { name: string }
 
 // Validar variables de entorno
 const requiredEnvVars = {
@@ -116,147 +48,166 @@ const missingEnvVars = Object.entries(requiredEnvVars)
   .map(([key]) => key);
 
 if (missingEnvVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+  console.error('❌ Faltan las siguientes variables de entorno:');
+  missingEnvVars.forEach(key => console.error(`   - ${key}`));
+  console.error('\nPor favor, crea un archivo .env.local en la raíz del proyecto con estas variables.');
+  process.exit(1);
 }
 
-// Inicializar clientes
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const SUPABASE_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const OPENAI_API_KEY    = process.env.OPENAI_API_KEY!;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const openai   = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+// ----- System Prompt for enrichment -----
+const enrichmentPrompt = `
+Eres un chef narrador. Cuando te proporcione la información completa de un plato, genera:
+1) Una descripción atractiva combinando todos los elementos.
+2) Una sugerencia de maridaje.
+
+IMPORTANTE: Debes devolver SOLO un objeto JSON válido con exactamente estas dos propiedades:
+{
+  "full_description": "tu descripción aquí",
+  "pairing_suggestion": "tu sugerencia de maridaje aquí"
+}
+
+No incluyas ningún otro texto, solo el JSON.`;
+
+// ----- Embedding model -----
+const EMBEDDING_MODEL = 'text-embedding-ada-002';
 
 async function generateEmbedding(text: string): Promise<number[]> {
-  const response = await openai.embeddings.create({
-    model: "text-embedding-3-small",
-    input: text,
-    encoding_format: "float"
-  });
-  return response.data[0].embedding;
-}
-
-async function getItemDetails(itemId: string): Promise<ItemDetails> {
-  // Obtener alérgenos
-  const { data: allergens } = await supabase
-    .from('menu_item_allergens')
-    .select(`
-      allergen:allergens (
-        id,
-        name,
-        icon_url
-      )
-    `)
-    .eq('menu_item_id', itemId);
-
-  // Obtener etiquetas dietéticas
-  const { data: dietTags } = await supabase
-    .from('menu_item_diet_tags')
-    .select(`
-      diet_tag:diet_tags (
-        id,
-        name
-      )
-    `)
-    .eq('menu_item_id', itemId);
-
-  // Obtener categorías
-  const { data: categories } = await supabase
-    .from('menu_items')
-    .select('category_ids')
-    .eq('id', itemId)
-    .single();
-
-  const categoryData = categories?.category_ids ? await supabase
-    .from('categories')
-    .select('id, name, sort_order, is_complementary, image_url')
-    .in('id', categories.category_ids) : { data: [] };
-
-  // Obtener modificadores
-  const { data: modifiers } = await supabase
-    .from('modifiers')
-    .select(`
-      id,
-      name,
-      description,
-      required,
-      multi_select,
-      options:modifier_options (
-        id,
-        name,
-        extra_price,
-        is_default,
-        icon_url
-      )
-    `)
-    .eq('menu_item_id', itemId);
-
-  return {
-    allergens: ((allergens || []) as unknown as SupabaseAllergenResponse[]).map(a => a.allergen),
-    dietTags: ((dietTags || []) as unknown as SupabaseDietTagResponse[]).map(d => d.diet_tag),
-    categories: (categoryData.data || []) as Category[],
-    modifiers: (modifiers || []).map(m => ({
-      ...m,
-      options: m.options || []
-    })) as Modifier[]
-  };
+  const resp = await openai.embeddings.create({ model: EMBEDDING_MODEL, input: text });
+  return resp.data[0].embedding;
 }
 
 async function main() {
-  try {
-    console.log('Obteniendo items del menú...');
-    const { data: menuItems, error: menuError } = await supabase
-      .from('menu_items')
-      .select('*');
+  console.log('🔄 Starting enrichment + embedding process...');
 
-    if (menuError) {
-      throw menuError;
+  // 1) Fetch all menu items
+  const { data: items, error: menuErr } = await supabase
+    .from('menu_items')
+    .select('id, name, description, food_info, origin, price, profit_margin, category_ids')
+    .returns<MenuItem[]>();
+  if (menuErr) throw menuErr;
+
+  for (const item of items || []) {
+    console.log(`\n🛠 Processing item: ${item.name}`);
+
+    // 2) Fetch allergens and diet tags
+    const { data: allergenRows } = await supabase
+      .from('menu_item_allergens')
+      .select(`
+        allergen:allergens (
+          name
+        )
+      `)
+      .eq('menu_item_id', item.id)
+      .returns<AllergenRow[]>();
+    const allergenNames = allergenRows?.map(r => r.allergen.name) || [];
+
+    const { data: dietRows } = await supabase
+      .from('menu_item_diet_tags')
+      .select(`
+        diet_tag:diet_tags (
+          name
+        )
+      `)
+      .eq('menu_item_id', item.id)
+      .returns<DietTagRow[]>();
+    const dietNames = dietRows?.map(r => r.diet_tag.name) || [];
+
+    // 3) Fetch category names
+    const categoryIds = item.category_ids || [];
+    let categoryNames: string[] = [];
+    if (categoryIds.length) {
+      const { data: catData } = await supabase
+        .from('categories')
+        .select('name')
+        .in('id', categoryIds)
+        .returns<CategoryRow[]>();
+      categoryNames = catData?.map(c => c.name) || [];
     }
 
-    console.log(`Encontrados ${menuItems.length} items del menú`);
+    // 4) Build full context for GPT
+    const fullContext = {
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      profit_margin: item.profit_margin ?? 0,
+      description: item.description ?? '',
+      food_info: item.food_info ?? '',
+      origin: item.origin ?? '',
+      allergens: allergenNames,
+      dietTags: dietNames,
+      categories: categoryNames
+    };
 
-    // Procesar cada item
-    for (const item of menuItems) {
-      console.log(`Procesando item: ${item.name}`);
+    console.log('\n📋 Contexto completo para GPT:');
+    console.log(JSON.stringify(fullContext, null, 2));
 
-      // Crear texto para el embedding
-      const textForEmbedding = [
-        item.name,
-        item.description,
-        item.food_info,
-        item.origin,
-        item.pairing_suggestion,
-        item.chef_notes
-      ].filter(Boolean).join(' ');
-
-      // Generar embedding
-      const embedding = await generateEmbedding(textForEmbedding);
-
-      // Guardar embedding
-      const { error: embeddingError } = await supabase
-        .from('menu_item_embeddings')
-        .upsert({
-          item_id: item.id,
-          embedding: embedding
-        }, {
-          onConflict: 'item_id'
-        });
-
-      if (embeddingError) {
-        console.error(`Error guardando embedding para ${item.name}:`, embeddingError);
-        continue;
-      }
-
-      console.log(`Embedding guardado para ${item.name}`);
+    console.log('\n🤖 Enriching with GPT...');
+    const chatResp = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: enrichmentPrompt },
+        { role: 'user', content: JSON.stringify(fullContext) }
+      ],
+      temperature: 0.5,
+      max_tokens: 200
+    });
+    
+    // Log raw response for debugging
+    console.log('\n📝 Raw GPT response:');
+    console.log(chatResp.choices[0].message?.content);
+    
+    let enriched;
+    try {
+      enriched = JSON.parse(chatResp.choices[0].message!.content!);
+    } catch (error) {
+      console.error('❌ Error parsing GPT response:', error);
+      console.error('Raw content:', chatResp.choices[0].message?.content);
+      // Fallback to basic description if JSON parsing fails
+      enriched = {
+        full_description: item.description || `Deliciosa ${item.name} elaborada con ingredientes de calidad.`,
+        pairing_suggestion: 'Perfecta para acompañar con tu bebida favorita.'
+      };
     }
+    
+    console.log('🔍 Enriched output:', enriched);
+    const { full_description, pairing_suggestion } = enriched;
 
-    console.log('Proceso completado');
-  } catch (error) {
-    console.error('Error:', error);
-    process.exit(1);
+    // 5) Prepare text for embedding (include all relevant data)
+    const embeddingText = [
+      `Nombre: ${item.name}`,
+      `Descripción: ${item.description ?? full_description}`,
+      `Precio: ${item.price}€`,
+      `Margen: ${item.profit_margin ?? 0}`,
+      `Origen: ${item.origin}`,
+      `Maridaje: ${pairing_suggestion}`,
+      allergenNames.length ? `Alérgenos: ${allergenNames.join(', ')}` : '',
+      dietNames.length    ? `DietTags: ${dietNames.join(', ')}` : '',
+      categoryNames.length? `Categorías: ${categoryNames.join(', ')}` : ''
+    ].filter(Boolean).join('. ');
+
+    console.log('📦 Generating embedding...');
+    const embedding = await generateEmbedding(embeddingText);
+
+    // 6) Upsert embedding into menu_item_embeddings
+    console.log('💾 Saving embedding...');
+    const { error: embErr } = await supabase
+      .from('menu_item_embeddings')
+      .upsert({ item_id: item.id, embedding, text: embeddingText }, { onConflict: 'item_id' });
+    if (embErr) console.error('❌ Failed to upsert embedding:', embErr.message);
+    else console.log('✅ Embedding saved.');
   }
+
+  console.log('\n🎉 All items processed!');
 }
 
-main(); 
+main().catch(err => {
+  console.error('Fatal error:', err.message);
+  process.exit(1);
+}); 
