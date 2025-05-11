@@ -131,6 +131,32 @@ async function main() {
       categoryNames = catData?.map(c => c.name) || [];
     }
 
+    // — Detectar slots según las categorías del ítem —
+    const slots: string[] = [];
+    if (categoryNames.some(c => ["Desayunos","Panes","Cafés"].includes(c))) {
+      slots.push("Desayuno");
+    }
+    if (categoryNames.some(c => ["Brunch","Infusiones","Bocadillos"].includes(c))) {
+      slots.push("Brunch");
+    }
+    if (categoryNames.some(c => ["Meriendas","Postres"].includes(c))) {
+      slots.push("Merienda");
+    }
+    if (categoryNames.includes("Vermut")) {
+      slots.push("Vermut");
+    }
+    if (categoryNames.some(c => ["Hamburguesas","Raciones","Vinos"].includes(c))) {
+      slots.push("Tardeo");
+    }
+
+    // — Construir tags semánticos —
+    const tags = [
+      ...allergenNames.map(a => `alérgeno_${a}`),
+      ...dietNames.map(d => `diet_${d}`),
+      ...categoryNames.map(c => `cat_${c}`),
+      ...slots.map(s => `slot_${s}`)
+    ];
+
     // 4) Build full context for GPT
     const fullContext = {
       id: item.id,
@@ -142,7 +168,9 @@ async function main() {
       origin: item.origin ?? '',
       allergens: allergenNames,
       dietTags: dietNames,
-      categories: categoryNames
+      categories: categoryNames,
+      slots: slots,
+      tags: tags
     };
 
     console.log('\n📋 Contexto completo para GPT:');
@@ -179,18 +207,22 @@ async function main() {
     console.log('🔍 Enriched output:', enriched);
     const { full_description, pairing_suggestion } = enriched;
 
-    // 5) Prepare text for embedding (include all relevant data)
+    // 5) Generate embedding text
     const embeddingText = [
       `Nombre: ${item.name}`,
-      `Descripción: ${item.description ?? full_description}`,
+      `Descripción: ${item.description ?? fullContext.description}`,
       `Precio: ${item.price}€`,
-      `Margen: ${item.profit_margin ?? 0}`,
       `Origen: ${item.origin}`,
       `Maridaje: ${pairing_suggestion}`,
-      allergenNames.length ? `Alérgenos: ${allergenNames.join(', ')}` : '',
-      dietNames.length    ? `DietTags: ${dietNames.join(', ')}` : '',
-      categoryNames.length? `Categorías: ${categoryNames.join(', ')}` : ''
+      allergenNames.length   ? `Alérgenos: ${allergenNames.join(', ')}` : '',
+      dietNames.length       ? `DietTags: ${dietNames.join(', ')}` : '',
+      categoryNames.length   ? `Categorías: ${categoryNames.join(', ')}` : '',
+      slots.length           ? `Slots: ${slots.join(', ')}` : '',
+      tags.length            ? `Tags: ${tags.join(', ')}` : ''
     ].filter(Boolean).join('. ');
+
+    console.log('\n📝 Texto para embedding:');
+    console.log(embeddingText);
 
     console.log('📦 Generating embedding...');
     const embedding = await generateEmbedding(embeddingText);

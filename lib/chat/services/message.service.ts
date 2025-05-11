@@ -44,18 +44,58 @@ export class ChatMessageService {
 
     console.log('📦 Contexto del carrito:', cartContext);
 
-    // 3.3 Búsqueda semántica previa
+    // 3.3 Búsqueda semántica
+    console.log('\n🔍 Iniciando búsqueda semántica para:', userMessage);
     const msgEmbedding = await this.embeddingService.getEmbedding(userMessage);
-    const { data: similarItems } = await this.supabase.rpc("match_menu_items", {
-      query_embedding: msgEmbedding,
-      match_threshold: 0.5,
-      match_count: 10
-    })
-    .eq("is_available", true);
+    console.log('📊 Embedding generado:', msgEmbedding.length, 'dimensiones');
+
+    // 1) Intento vectorial
+    let { data: similarItems, error: vecErr } = await this.supabase
+      .rpc('match_menu_items', {
+        query_embedding: msgEmbedding,
+        match_threshold: 0.3,
+        match_count: 10
+      })
+      .eq('is_available', true);
+
+    console.log('🍽️ Items similares encontrados:', similarItems?.length || 0);
+
+    // 2) Fallback por keywords si no hay resultados
+    if ((!similarItems || similarItems.length === 0) && userMessage.trim()) {
+      console.log('⚠️ No hay resultados vectoriales, intentando fallback por texto...');
+      const keyword = userMessage.toLowerCase();
+      const { data: fallback } = await this.supabase
+        .from('menu_item_embeddings')
+        .select(`
+          menu_items!inner (
+            id,
+            name,
+            description,
+            price,
+            image_url,
+            category_ids
+          )
+        `)
+        .ilike('text', `%${keyword}%`)
+        .eq('menu_items.is_available', true)
+        .limit(10);
+
+      console.log('🔄 Results fallback:', fallback?.length || 0);
+      similarItems = fallback?.map(f => f.menu_items) || [];
+    }
+
+    // Si aún no hay resultados, devolver mensaje al usuario
+    if (!similarItems || similarItems.length === 0) {
+      return {
+        type: "assistant_text",
+        content: "Lo siento, no he encontrado platos que coincidan con tu búsqueda. ¿Podrías intentar con otras palabras o ser más específico?"
+      };
+    }
 
     // 3.3.1 Obtener información de categorías
     const categoryMap: Record<string, string> = {};
     const catIds = Array.from(new Set(similarItems?.flatMap((i: MenuItem) => i.category_ids || []) || []));
+    console.log('📑 IDs de categorías encontrados:', catIds);
     
     if (catIds.length) {
       const { data: cats } = await this.supabase
@@ -64,6 +104,7 @@ export class ChatMessageService {
         .in('id', catIds);
       
       cats?.forEach((c: { id: string; name: string }) => { categoryMap[c.id] = c.name; });
+      console.log('🏷️ Mapa de categorías:', categoryMap);
     }
 
     // 3.3.2 Enriquecer items con información de categorías
@@ -75,24 +116,35 @@ export class ChatMessageService {
       }))
     })) || [];
 
+    console.log('✨ Items enriquecidos:', JSON.stringify(enrichedItems, null, 2));
+
     // Filtrar por categoría si se especifica
     const filteredItems = categoryId 
       ? enrichedItems.filter((i: MenuItem) => i.category_ids?.includes(categoryId))
       : enrichedItems;
 
+    console.log('🔍 Items después de filtrar por categoría:', filteredItems.length);
+    if (categoryId) {
+      console.log('📑 Filtrando por categoría ID:', categoryId);
+    }
+
     // Excluir items ya en carrito
     const cartIds = new Set(cartItems?.map((i: { product_id: string }) => i.product_id));
+    console.log('🛒 IDs en carrito:', Array.from(cartIds));
+    
     const candidates = filteredItems.filter((i: MenuItem) => !cartIds.has(i.id));
+    console.log('🎯 Candidatos finales:', candidates.length);
 
     // 3.4 Construcción de bloque con IDs
     const candidatesBlock = this.buildCandidatesBlock(candidates);
-    console.log('🍽️ Candidatos disponibles:', candidatesBlock);
+    console.log('\n📝 Bloque de candidatos construido:');
+    console.log(candidatesBlock);
 
     // 3.5 Montaje de mensajes
     const messages: ChatCompletionMessageParam[] = [
       { 
         role: "system", 
-        content: "Eres un asistente de restaurante especializado en recomendar platos y proporcionar información detallada sobre el menú." 
+        content: "Eres un asistente de restaurante especializado en recomendar platos y proporcionar información detallada sobre el menú. IMPORTANTE: Asegúrate de que las URLs de las imágenes estén completas y no truncadas. Si una URL es muy larga, usa una versión más corta pero completa."
       },
       { 
         role: "system", 
@@ -101,7 +153,8 @@ export class ChatMessageService {
       { 
         role: "system", 
         content: `Estos son los platos disponibles (excluyendo lo ya en tu carrito).  
-Selecciona 2–3 y devuélveme un JSON con { id, name, price, reason, image_url, category_info }:
+Selecciona 2–3 y devuélveme un JSON con { id, name, price, reason, image_url, category_info }.
+IMPORTANTE: Asegúrate de que el JSON sea válido y que las URLs de las imágenes estén completas.
 
 ${candidatesBlock}` 
       },
@@ -120,7 +173,7 @@ ${candidatesBlock}`
       functions: [recommendDishesFn, getProductDetailsFn],
       function_call: "auto",
       temperature: CHAT_CONFIG.temperature,
-      max_tokens: CHAT_CONFIG.maxTokens,
+      max_tokens: 1000,
       top_p: CHAT_CONFIG.topP,
       presence_penalty: CHAT_CONFIG.presencePenalty
     });
@@ -146,19 +199,19 @@ ${candidatesBlock}`
       score: (i.profit_margin || 0) * 1.2 + (i.is_recommended ? 1 : 0)
     }));
 
-    // Ordenar por score y tomar los top 5
-    const top5 = scored
+    // Ordenar por score y tomar los top 3
+    const top3 = scored
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+      .slice(0, 3);
 
     // Generar texto formateado con IDs
-    return top5
+    return top3
       .map(i => 
         `- id: **${i.id}**
   name: **${i.name}**
   price: **${i.price} €**
   description: ${i.description || '—'}
-  image_url: ${i.image_url || '—'}
+  image_url: ${i.image_url ? i.image_url.split('/').pop() || '—' : '—'}
   categories:
     ${i.category_info.map(ci => `- id: ${ci.id}, name: ${ci.name}`).join('\n    ')}`
       )
@@ -178,27 +231,49 @@ ${candidatesBlock}`
 
       switch (msg.function_call.name) {
         case "recommend_dishes": {
-          const { recommendations } = JSON.parse(msg.function_call.arguments) as {
-            recommendations: Array<{
-              id: string;
-              name: string;
-              price: number;
-              reason: string;
-              image_url: string;
-              category_info: { id: string; name: string }[];
-            }>;
-          };
+          let recommendations;
+          try {
+            const parsedArgs = JSON.parse(msg.function_call.arguments);
+            recommendations = parsedArgs.recommendations;
 
-          console.log('🍽️ Recomendaciones:', JSON.stringify(recommendations, null, 2));
+            // Validar estructura de cada recomendación
+            if (!Array.isArray(recommendations)) {
+              throw new Error('Las recomendaciones deben ser un array');
+            }
 
-          if (!recommendations || !Array.isArray(recommendations)) {
+            // Validar y limpiar cada recomendación
+            recommendations = recommendations.map(rec => ({
+              id: rec.id,
+              name: rec.name,
+              price: Number(rec.price),
+              reason: rec.reason,
+              image_url: rec.image_url?.trim() || null,
+              category_info: Array.isArray(rec.category_info) 
+                ? rec.category_info.map((cat: any) => ({
+                    id: cat.id,
+                    name: cat.name
+                  }))
+                : []
+            }));
+
+            console.log('🍽️ Recomendaciones procesadas:', JSON.stringify(recommendations, null, 2));
+
+            if (!recommendations.length) {
+              return {
+                type: "assistant_text",
+                content: "Lo siento, no pude generar recomendaciones adecuadas. ¿Podrías ser más específico?"
+              };
+            }
+
+            return { type: "recommendations", data: recommendations };
+          } catch (error) {
+            console.error('❌ Error procesando recomendaciones:', error);
+            console.error('📦 Argumentos recibidos:', msg.function_call.arguments);
             return {
               type: "assistant_text",
-              content: "Lo siento, no pude generar recomendaciones adecuadas. ¿Podrías ser más específico?"
+              content: "Lo siento, hubo un error al procesar las recomendaciones. ¿Podrías intentarlo de nuevo?"
             };
           }
-
-          return { type: "recommendations", data: recommendations };
         }
 
         case "get_product_details": {

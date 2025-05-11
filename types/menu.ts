@@ -48,9 +48,17 @@ export interface MenuItemData {
   description: string;
   price: number;
   image_url: string;
-  category_id: string;
-  sort_order?: number;
+  category_ids: string[];
+  allergens: Allergen[];
+  diet_tags: string[];
+  food_info: string;
+  origin: string;
+  pairing_suggestion: string;
+  chef_notes: string;
   is_available: boolean;
+  is_recommended: boolean;
+  profit_margin: number;
+  modifiers: Modifier[];
 }
 
 export interface MenuItemAllergen {
