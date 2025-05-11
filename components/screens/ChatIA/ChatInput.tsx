@@ -1,22 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
-import { ChatInputProps } from './types';
+
+interface ChatInputProps {
+  onSend: (message: string) => void;
+  isLoading: boolean;
+  alias: string;
+}
 
 function getInitials(name: string) {
   const words = name.split(' ');
   if (words.length >= 2) {
-    // Si hay dos o más palabras, toma la primera letra de la primera y última palabra
-    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
-  } else {
-    // Si solo hay una palabra, toma las dos primeras letras
-    return (words[0].slice(0, 2)).toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
   }
+  return (name[0] + (name[1] || name[0])).toUpperCase();
 }
 
-export const ChatInput = ({ onSend, isLoading, alias = 'Cliente' }: ChatInputProps & { alias?: string }) => {
+export const ChatInput = ({ onSend, isLoading, alias }: ChatInputProps) => {
   const [message, setMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const MAX_CHARS = 500;
 
   useEffect(() => {
     // Auto-focus input when component mounts
@@ -52,15 +53,11 @@ export const ChatInput = ({ onSend, isLoading, alias = 'Cliente' }: ChatInputPro
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Escribe tu mensaje..."
+          placeholder="¡Cuéntame qué se te antoja! 🍽️"
           className="w-full rounded-2xl bg-white/80 dark:bg-[#0f1b1a]/80 backdrop-blur-sm border border-[#c7f0ec]/50 px-4 py-2.5 text-sm text-[#111111] dark:text-white placeholder-[#111111]/40 dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#1ce3cf]/50 transition-all duration-200 disabled:opacity-50"
           disabled={isLoading}
-          maxLength={MAX_CHARS}
           aria-label="Mensaje"
         />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#111111]/40 dark:text-white/40">
-          {message.length}/{MAX_CHARS}
-        </div>
       </div>
       <button
         type="submit"

@@ -16,7 +16,7 @@ postgres
 
 
 🟦 categories
-Tabla que almacena las categorías del menú, como “Entrantes”, “Platos principales”, “Bebidas”, etc.
+Tabla que almacena las categorías del menú, como "Entrantes", "Platos principales", "Bebidas", etc.
 
 Campo	Tipo	Descripción
 id	UUID (PK)	Identificador único de la categoría.

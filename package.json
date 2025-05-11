@@ -9,7 +9,6 @@
     "@radix-ui/react-slot": "^1.2.0",
     "@radix-ui/react-toast": "^1.2.11",
     "@supabase/supabase-js": "^2.49.4",
-    "@types/node": "^20.0.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@welldone-software/why-did-you-render": "^10.0.1",
@@ -19,6 +18,7 @@
     "framer-motion": "^12.9.2",
     "lucide-react": "^0.503.0",
     "next": "^15.3.1",
+    "openai": "^4.98.0",
     "postcss": "^8.4.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -38,7 +38,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "cypress:open": "cypress open --e2e",
-    "cypress:run": "cypress run --e2e"
+    "cypress:run": "cypress run --e2e",
+    "update-embeddings": "ts-node --transpile-only scripts/update-embeddings.ts"
   },
   "husky": {
     "hooks": {
@@ -67,13 +68,17 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/dotenv": "^6.1.1",
     "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.17",
     "@types/react-window": "^1.8.8",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
     "@typescript-eslint/utils": "^8.31.0",
     "babel-jest": "^29.7.0",
     "cypress": "^14.3.2",
+    "dotenv": "^16.5.0",
     "eslint": "^9.26.0",
     "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-react": "^7.37.5",
@@ -84,6 +89,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "lint-staged": "^15.5.1",
     "prettier": "^3.5.3",
-    "ts-jest": "^29.3.2"
+    "ts-jest": "^29.3.2",
+    "ts-node": "^10.9.2"
   }
 }

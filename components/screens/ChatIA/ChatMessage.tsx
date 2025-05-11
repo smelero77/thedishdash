@@ -1,11 +1,11 @@
 import { ChatMessageProps } from './types';
 
 function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
+  const words = name.split(' ');
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return (name[0] + (name[1] || name[0])).toUpperCase();
 }
 
 export const ChatMessage = ({ message, alias }: ChatMessageProps & { alias: string }) => {

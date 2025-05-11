@@ -1,15 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, ChefHat } from 'lucide-react';
+import { X, ChefHat, ArrowDown } from 'lucide-react';
 import { ChatIAProps, Message } from './types';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
+import { v4 as uuidv4 } from 'uuid';
 import './animations.css';
 
 export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const sessionId = useRef(uuidv4());
 
   // Add welcome message from Don Gourmetón when chat opens and there are no messages
   useEffect(() => {
@@ -40,6 +44,24 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
+      setShowScrollButton(!isAtBottom);
+    }
+  };
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      // Verificar la posición inicial
+      handleScroll();
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [messages]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -58,19 +80,52 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
     setIsLoading(true);
 
     try {
-      // TODO: Implementar llamada a la API de IA
-      const response = "Esta es una respuesta de prueba del asistente.";
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          sessionId: sessionId.current,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al procesar el mensaje');
+      }
+
+      const { response: assistantResponse, menuItems } = await response.json();
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: response,
+        content: assistantResponse,
         role: 'assistant',
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Si hay items del menú, mostrarlos como mensajes adicionales
+      if (menuItems.length > 0) {
+        const menuItemsMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          content: menuItems.map(item => `- ${item.name}: ${item.description || 'Sin descripción'} (${item.price}€)`).join('\n'),
+          role: 'assistant',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, menuItemsMessage]);
+      }
     } catch (error) {
       console.error('Error al enviar mensaje:', error);
+      // Mostrar mensaje de error al usuario
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo.',
+        role: 'assistant',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -137,12 +192,31 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
         </div>
 
         {/* Mensajes */}
-        <div className={`absolute top-16 bottom-20 left-0 right-0 overflow-y-auto px-4 py-4 space-y-4 ${isOpen ? 'slide-in' : ''}`}>
+        <div 
+          ref={messagesContainerRef}
+          className={`
+            absolute top-16 bottom-20 left-0 right-0 
+            overflow-y-auto px-4 py-4 space-y-4
+            custom-scrollbar
+            ${isOpen ? 'slide-in' : ''}
+          `}
+        >
           {messages.map((message) => (
             <ChatMessage key={message.id} message={message} alias={alias} />
           ))}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Botón de scroll */}
+        {showScrollButton && (
+          <button
+            onClick={scrollToBottom}
+            className="fixed bottom-24 right-4 p-4 rounded-full bg-[#11c9b7] text-white shadow-lg active:scale-95 active:bg-[#11c9b7]/90 transition-all duration-200 z-10 touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <ArrowDown className="h-6 w-6" />
+          </button>
+        )}
 
         {/* Input */}
         <div className={`absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#f5fefe] to-transparent dark:from-[#0f1b1a] dark:to-transparent ${isOpen ? 'slide-in' : ''}`}>
