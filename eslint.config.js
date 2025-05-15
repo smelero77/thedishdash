@@ -1,10 +1,19 @@
 // eslint.config.js
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
+import reactPlugin from 'eslint-plugin-react'
+import reactHooksPlugin from 'eslint-plugin-react-hooks'
+import prettierPlugin from 'eslint-plugin-prettier'
 
 export default [
   {
-    ignores: ['eslint.config.js', 'next.config.js'],
+    ignores: [
+      'node_modules/',
+      'build/',
+      '.next/',
+      'eslint.config.js',
+      'next.config.js'
+    ],
   },
   js.configs.recommended,
   {
@@ -14,14 +23,46 @@ export default [
       parserOptions: {
         project: './tsconfig.json',
         tsconfigRootDir: process.cwd(),
+        ecmaVersion: 2020,
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true
+        }
       },
     },
     plugins: {
       '@typescript-eslint': tseslint.plugin,
+      'react': reactPlugin,
+      'react-hooks': reactHooksPlugin,
+      'prettier': prettierPlugin
+    },
+    settings: {
+      react: {
+        version: 'detect'
+      }
     },
     rules: {
+      // TypeScript rules
       ...tseslint.configs.recommended.rules,
       ...tseslint.configs['recommended-type-checked'].rules,
-    },
-  },
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      
+      // React rules
+      'react/prop-types': 'off',
+      'react/react-in-jsx-scope': 'off',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+      
+      // Prettier integration
+      'prettier/prettier': ['error', {}, { usePrettierrc: true }],
+      
+      // General rules
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['warn', { 
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_'
+      }]
+    }
+  }
 ]
