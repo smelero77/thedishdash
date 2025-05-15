@@ -1,29 +1,42 @@
-import { TimeOfDay } from './TimeOfDay';
+export type MessageSender = 'user' | 'assistant' | 'staff';
+
+export interface Message {
+  id: string;
+  role: MessageSender;
+  content: string;
+  timestamp: Date;
+}
 
 export interface ChatSession {
   id: string;
-  clienteId: string;
-  aliasMesa: string;
+  customerId: string;
+  tableNumber: string;
   startedAt: Date;
   lastActive: Date;
   systemContext: string;
   timeOfDay: TimeOfDay;
+  isActive: boolean;
 }
 
-export interface Message {
-  id: string;
-  sessionId: string;
-  sender: 'user' | 'assistant' | 'system';
-  content: string;
-  createdAt: Date;
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
+
+export interface WeatherContext {
+  temperature: number;
+  condition: string;
+  icon: string;
+}
+
+export interface MessageContext {
+  weather?: WeatherContext;
+  timeOfDay?: TimeOfDay;
+  customerName?: string;
+  tableNumber?: string;
 }
 
 export interface AssistantResponse {
-  type: 'assistant_text' | 'assistant_menu' | 'assistant_error';
+  type: 'assistant_text';
   data: {
-    text?: string;
-    menuItems?: MenuItem[];
-    error?: string;
+    text: string;
   };
 }
 
@@ -52,19 +65,6 @@ export interface ModifierOption {
   name: string;
   extraPrice: number;
   isDefault: boolean;
-}
-
-export interface WeatherContext {
-  temperature: number;
-  condition: string;
-  icon: string;
-}
-
-export interface MessageContext {
-  weather?: WeatherContext;
-  timeOfDay: TimeOfDay;
-  previousMessages: Message[];
-  currentSlot?: string;
 }
 
 export interface Slot {

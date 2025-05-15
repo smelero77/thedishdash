@@ -1,114 +1,66 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { ChatRepository, MessageSender } from '../../domain/ports/ChatRepository';
-import { Message } from '../../domain/entities/Message';
-import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/lib/supabase/client';
+import { createServerClient } from '@/lib/supabase/server';
+import type { Message } from '../../domain/types';
+import { CHAT_HISTORY_LIMIT } from '../../domain/constants/chat';
 
-interface CartItemWithMenu {
-  menu_items: Array<{
-    name: string;
-  }>;
-}
-
-interface MessageData {
-  content: string;
-}
-
-export class SupabaseChatRepository implements ChatRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseChatRepository {
+  private supabase = createServerClient();
 
   async getMessageHistory(sessionId: string): Promise<Message[]> {
-    const { data, error } = await this.supabase
-      .from('messages')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching chat history:', error);
-      return [];
-    }
-
-    return (data || []).map(msg => Message.fromJSON({
-      id: msg.id,
-      sessionId: msg.session_id,
-      sender: msg.sender as MessageSender,
-      content: msg.content,
-      createdAt: msg.created_at
-    }));
-  }
-
-  async getCartItemIds(sessionId: string): Promise<string[]> {
-    const { data, error } = await this.supabase
-      .from('sessions')
-      .select('menu_items')
-      .eq('id', sessionId)
-      .single();
-
-    if (error) {
-      console.error('Error getting cart items:', error);
-      return [];
-    }
-
-    return data?.menu_items?.map((item: any) => item.id) || [];
-  }
-
-  async getCartItemNames(sessionId: string): Promise<string[]> {
-    const { data, error } = await this.supabase
-      .from('sessions')
-      .select('menu_items')
-      .eq('id', sessionId)
-      .single();
-
-    if (error) {
-      console.error('Error getting cart items:', error);
-      return [];
-    }
-
-    return data?.menu_items?.map((item: any) => item.name) || [];
-  }
-
-  async saveMessage(sessionId: string, content: string, sender: MessageSender): Promise<void> {
     try {
-      // Mapear el sender al valor correcto para la base de datos
-      const dbSender = sender === 'user' ? 'guest' : sender === 'ai' ? 'assistant' : 'staff';
-
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          id: uuidv4(),
-          session_id: sessionId,
-          sender: dbSender,
-          content: content,
-          created_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Error al guardar mensaje:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error en saveMessage:', error);
-      throw error;
-    }
-  }
-
-  async getMessages(sessionId: string): Promise<string[]> {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('content')
+      const { data, error } = await this.supabase
+        .from('chat_messages')
+        .select('*')
         .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
+        .order('timestamp', { ascending: true })
+        .limit(CHAT_HISTORY_LIMIT);
 
       if (error) {
-        console.error('Error al obtener mensajes:', error);
-        throw error;
+        console.error('Error getting message history:', error);
+        return [];
       }
 
-      return data.map((msg: MessageData) => msg.content);
+      return (data || []).map(message => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        timestamp: new Date(message.timestamp)
+      }));
     } catch (error) {
-      console.error('Error en getMessages:', error);
+      console.error('Error in getMessageHistory:', error);
+      return [];
+    }
+  }
+
+  async saveMessage(message: Message & { sessionId: string }): Promise<Message> {
+    try {
+      const { data, error } = await this.supabase
+        .from('chat_messages')
+        .insert({
+          session_id: message.sessionId,
+          role: message.role,
+          content: message.content,
+          timestamp: message.timestamp.toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving message:', error);
+        throw new Error(`Error saving message: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('No data returned after saving message');
+      }
+
+      return {
+        id: data.id,
+        role: data.role,
+        content: data.content,
+        timestamp: new Date(data.timestamp)
+      };
+    } catch (error) {
+      console.error('Error in saveMessage:', error);
       throw error;
     }
   }

@@ -2,302 +2,206 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { X, ChefHat, ArrowDown } from 'lucide-react';
-import { Message, AssistantResponse } from '@/features/chat/domain/entities';
-import React from 'react';
+import { Message } from '@/features/chat/domain/entities';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { v4 as uuidv4 } from 'uuid';
+import { useSession } from '../hooks/useSession';
+import { useCustomer } from '@/context/CustomerContext';
+import { useTable } from '@/context/TableContext';
+import { useCurrentSlot } from '@/hooks/useCurrentSlot';
+import { useCartItemsContext } from '@/context/CartItemsContext';
+import { useWeather } from '@/hooks/useWeather';
 import './animations.css';
+import type { MessageContext } from '../../domain/types';
 
-interface ChatIAProps {
-  isOpen: boolean;
-  onClose: () => void;
-  alias?: string;
-  categoryId?: string;
+interface ChatWindowProps {
+  customerId: string;
+  tableNumber: string;
+  context?: MessageContext;
 }
 
-export const ChatWindow = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
+export function ChatWindow({ customerId, tableNumber, context }: ChatWindowProps) {
+  const { alias } = useCustomer();
+  const { currentSlot } = useCurrentSlot();
+  const cartItemsContext = useCartItemsContext();
+  const { weather } = useWeather();
+
   const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const sessionId = useRef(uuidv4());
-  const [isTyping, setIsTyping] = useState(false);
-  const [inputValue, setInputValue] = useState('');
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
-  // Debug logs
-  useEffect(() => {
-    console.log('ChatWindow - isOpen:', isOpen);
-    console.log('ChatWindow - messages:', messages);
-  }, [isOpen, messages]);
+  // Usar el hook useSession actualizado
+  const { 
+    initialMessages, 
+    isLoading: isLoadingSession, 
+    error: sessionError 
+  } = useSession(customerId, tableNumber?.toString());
 
-  // Reset messages when closing
+  // Cargar mensajes iniciales cuando se obtienen de la sesión
   useEffect(() => {
-    if (!isOpen) {
-      setMessages([]);
+    if (initialMessages.length > 0) {
+      setMessages(initialMessages);
     }
-  }, [isOpen]);
+  }, [initialMessages]);
 
-  // Add welcome message when opening and empty
+  // Manejar scroll y botón de scroll
   useEffect(() => {
-    const addWelcomeMessage = () => {
-      if (isOpen && messages.length === 0) {
-        const welcomeMessage: Message = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          timestamp: new Date(),
-          content: {
-            type: 'assistant_text',
-            data: { 
-              text: `¡Hola ${alias || 'Cliente'}! Soy Don Gourmetón, ¿en qué puedo ayudarte hoy?` 
-            }
-          }
-        };
-        setMessages([welcomeMessage]);
-      }
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+      setShowScrollButton(!isAtBottom);
     };
 
-    // Pequeño delay para asegurar que el componente está montado
-    const timer = setTimeout(addWelcomeMessage, 100);
-    return () => clearTimeout(timer);
-  }, [isOpen, alias, messages.length]);
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
+  // Scroll al final cuando hay nuevos mensajes
   useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true);
-    } else {
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [isOpen]);
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleScroll = () => {
-    if (messagesContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-      const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
-      setShowScrollButton(!isAtBottom);
-    }
-  };
-
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll);
-      // Verificar la posición inicial
-      handleScroll();
-      return () => container.removeEventListener('scroll', handleScroll);
-    }
-  }, [messages]);
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async (text: string) => {
-    if (!text.trim()) return;
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
 
-    console.log('=== INICIO DEL FLUJO DE CHAT ===');
-    console.log('1. Mensaje del usuario:', text);
-    console.log('2. Session ID:', sessionId.current);
-    console.log('3. Alias:', alias);
-
-    // Crear mensaje del usuario
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: {
-        type: 'user_text',
-        data: { text }
-      },
-      timestamp: new Date()
-    };
-
-    console.log('4. Mensaje formateado para el estado:', userMessage);
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
+    const messageToSend = inputMessage.trim();
+    setInputMessage('');
     setIsLoading(true);
 
     try {
-      console.log('5. Preparando petición al API');
-      const requestBody = { 
-        message: text,
-        sessionId: sessionId.current,
-        alias: alias || 'Cliente',
-        tableNumber: 0
-      };
-      console.log('6. Payload completo:', JSON.stringify(requestBody, null, 2));
-
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          sessionId,
+          customerId,
+          tableNumber,
+          message: messageToSend,
+          context
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('7. Error en la respuesta:', errorData);
-        throw new Error(errorData.message || 'Error en la respuesta');
+        throw new Error('Failed to send message');
       }
 
-      const data = await response.json() as {
-        response: AssistantResponse;
-        sessionId: string;
-      };
+      const data = await response.json();
+      setSessionId(data.sessionId);
 
-      console.log('8. Respuesta del API:', JSON.stringify(data, null, 2));
-
-      // Actualiza el sessionId si es necesario
-      if (data.sessionId !== sessionId.current) {
-        console.log('9. Actualizando Session ID:', data.sessionId);
-        sessionId.current = data.sessionId;
-      }
-
-      // Crear mensaje del asistente con solo el AssistantResponse
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response,
+      // Agregar mensaje del usuario
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: messageToSend,
         timestamp: new Date()
-      };
+      }]);
 
-      console.log('10. Mensaje del asistente formateado:', assistantMessage);
-      setMessages(prev => [...prev, assistantMessage]);
+      // Agregar respuesta del asistente
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: data.response.data.text,
+        timestamp: new Date()
+      }]);
     } catch (error) {
-      console.error('11. Error en el proceso:', error);
-      
-      // Crear mensaje de error
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      console.error('Error sending message:', error);
+      // Agregar mensaje de error
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
         role: 'assistant',
-        content: {
-          type: 'assistant_text',
-          data: {
-            text: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.'
-          }
-        },
+        content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.',
         timestamp: new Date()
-      };
-
-      console.log('12. Mensaje de error formateado:', errorMessage);
-      setMessages(prev => [...prev, errorMessage]);
+      }]);
     } finally {
       setIsLoading(false);
-      console.log('=== FIN DEL FLUJO DE CHAT ===\n');
     }
   };
 
-  const handleViewDetails = (productId: string) => {
-    console.log('Ver detalles de', productId);
-  };
-
-  if (!isVisible && !isOpen) return null;
+  if (!sessionId) return null;
 
   return (
-    <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center ${
-        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-      } transition-opacity duration-300`}
-    >
-      {/* Overlay con blur */}
-      <div 
-        className={`absolute inset-0 backdrop-blur-sm ${
-          isOpen ? 'opacity-100' : 'opacity-0'
-        } transition-opacity duration-300`}
-      />
+    <div className="flex flex-col h-full bg-white rounded-lg shadow-lg">
+      {/* Header */}
+      <div className="p-4 border-b">
+        <h2 className="text-lg font-semibold">Chat con el Asistente</h2>
+        <p className="text-sm text-gray-500">Mesa {tableNumber}</p>
+      </div>
 
-      {/* Contenedor principal */}
-      <div 
-        className={`
-          relative w-full max-w-2xl h-[80vh] mx-4 
-          bg-[#f5fefe] dark:bg-[#0f1b1a]
-          rounded-3xl shadow-2xl overflow-hidden border border-[#c7f0ec]/30
-          ${isOpen ? 'fade-in' : 'opacity-0'}
-        `}
-      >
-        {/* Partículas flotantes */}
-        {isOpen && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(20)].map((_, i) => (
-              <div
-                key={i}
-                className="particle absolute w-2 h-2 bg-[#1ce3cf]/20 rounded-full"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 2}s`,
-                }}
-              />
-            ))}
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {isLoadingSession ? (
+          <div className="flex items-center justify-center h-full">
+            <p>Inicializando chat...</p>
           </div>
-        )}
-
-        {/* Header */}
-        <div className={`absolute top-0 left-0 right-0 h-16 bg-[#1ce3cf] dark:bg-[#1ce3cf]/90 backdrop-blur-md border-b border-[#c7f0ec]/30 ${isOpen ? 'slide-in' : ''}`}>
-          <div className="flex items-center justify-between h-full px-6">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <div className="absolute -inset-1 bg-white/20 rounded-full blur opacity-30 animate-pulse" />
-                <ChefHat className="h-6 w-6 text-white relative z-10" />
-              </div>
-              <h2 className="text-xl font-semibold text-white">Don Gourmetón</h2>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-white/20 active:scale-95 transition-all duration-200"
-            >
-              <X className="h-6 w-6 text-white" />
-            </button>
+        ) : sessionError ? (
+          <div className="flex items-center justify-center h-full text-red-600">
+            <p>Error: {sessionError}</p>
           </div>
-        </div>
-
-        {/* Mensajes */}
-        <div 
-          ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto pt-20 pb-24 px-4 space-y-4"
-          onScroll={handleScroll}
-        >
-          {messages.map((message) => (
-            <ChatMessage
+        ) : (
+          messages.map((message) => (
+            <div
               key={message.id}
-              message={message}
-              onViewDetails={handleViewDetails}
-            />
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Botón de scroll */}
-        {showScrollButton && (
-          <button
-            onClick={scrollToBottom}
-            className="absolute bottom-24 right-6 p-2 rounded-full bg-[#1ce3cf] text-white shadow-lg hover:bg-[#1ce3cf]/90 active:scale-95 transition-all duration-200"
-          >
-            <ArrowDown className="h-5 w-5" />
-          </button>
+              className={`flex ${
+                message.role === 'user' ? 'justify-end' : 'justify-start'
+              }`}
+            >
+              <div
+                className={`max-w-[70%] rounded-lg p-3 ${
+                  message.role === 'user'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+              >
+                <p className="text-sm">{message.content}</p>
+                <p className="text-xs mt-1 opacity-70">
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </p>
+              </div>
+            </div>
+          ))
         )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        {/* Input */}
-        <div className={`absolute bottom-0 left-0 right-0 p-4 bg-[#f5fefe] dark:bg-[#0f1b1a] border-t border-[#c7f0ec]/30 ${isOpen ? 'slide-up' : ''}`}>
-          <ChatInput
-            onSend={handleSend}
-            isLoading={isLoading}
-            value={inputValue}
-            onChange={setInputValue}
-            alias={alias}
+      {/* Input */}
+      <div className="p-4 border-t">
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Escribe tu mensaje..."
+            className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading}
           />
+          <button
+            onClick={handleSendMessage}
+            disabled={isLoading || !inputMessage.trim()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {isLoading ? 'Enviando...' : 'Enviar'}
+          </button>
         </div>
       </div>
     </div>
   );
-}; 
+} 

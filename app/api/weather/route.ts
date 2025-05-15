@@ -1,31 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+// Por ahora, devolvemos datos simulados
+// En una implementación real, esto se conectaría a una API de clima
+export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(
-      `https://api.weatherapi.com/v1/current.json?key=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}&q=Pozuelo de Alarcon&lang=es`
-    );
-
-    if (!response.ok) {
-      throw new Error('Weather API request failed');
-    }
-
-    const data = await response.json();
-    
-    // Solo devolvemos los datos relevantes para hoy
-    const todayData = {
-      current: {
-        temp_c: data.current.temp_c,
-        feelslike_c: data.current.feelslike_c,
-        humidity: data.current.humidity,
-        condition: data.current.condition.text
-      }
+    // Simular una llamada a una API de clima
+    const weatherData = {
+      temperature: 22,
+      condition: 'Soleado',
+      icon: '☀️'
     };
 
-    return NextResponse.json(todayData);
+    return NextResponse.json(weatherData);
+
   } catch (error) {
+    console.error('Error fetching weather:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json(
-      { error: 'Failed to fetch weather data' },
+      { error: 'Failed to fetch weather data', details: errorMessage },
       { status: 500 }
     );
   }

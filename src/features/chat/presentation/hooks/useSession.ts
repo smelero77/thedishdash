@@ -2,112 +2,65 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ChatSession } from '../../domain/entities/ChatSession';
-import { SessionRepository } from '../../domain/ports/SessionRepository';
-import { TimeOfDay } from '../../domain/types/TimeOfDay';
-
-interface UseSessionProps {
-  sessionRepository: SessionRepository;
-  initialAlias?: string;
-}
+import { Message } from '../../domain/entities/Message';
 
 interface UseSessionReturn {
-  session: ChatSession | null;
+  sessionId: string | null;
+  initialMessages: Message[];
   isLoading: boolean;
-  error: Error | null;
-  updateSession: (updates: Partial<ChatSession>) => Promise<void>;
+  error: string | null;
   refreshSession: () => Promise<void>;
 }
 
-export function useSession({ sessionRepository, initialAlias = 'Cliente' }: UseSessionProps): UseSessionReturn {
-  const [session, setSession] = useState<ChatSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export const useSession = (customerId: string | null, tableNumber: string | null): UseSessionReturn => {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadSession = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Intentar obtener una sesión existente
-      const existingSession = await sessionRepository.getSession(initialAlias);
-      
-      if (existingSession) {
-        setSession(existingSession);
-        return;
-      }
-
-      // Si no existe, crear una nueva
-      const newSession = await sessionRepository.createSession(initialAlias);
-      setSession(newSession);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Error al cargar la sesión'));
-    } finally {
-      setIsLoading(false);
+  const fetchSession = useCallback(async () => {
+    if (!customerId || !tableNumber) {
+      setError('Customer ID and table number are required');
+      return;
     }
-  }, [sessionRepository, initialAlias]);
 
-  const updateSession = useCallback(async (updates: Partial<ChatSession>) => {
-    if (!session) return;
+    setIsLoading(true);
+    setError(null);
 
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const updatedSession = new ChatSession(
-        session.id,
-        updates.deviceId || session.deviceId,
-        updates.tableCode || session.tableCode,
-        updates.startedAt || session.startedAt,
-        updates.lastActive || session.lastActive,
-        updates.systemContext || session.systemContext,
-        updates.timeOfDay || session.timeOfDay
+      const response = await fetch(
+        `/api/chat/session?customerId=${encodeURIComponent(customerId)}&tableNumber=${encodeURIComponent(tableNumber)}`
       );
 
-      await sessionRepository.updateSession(updatedSession);
-      setSession(updatedSession);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setSessionId(data.sessionId);
+      setInitialMessages(data.messages || []);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Error al actualizar la sesión'));
+      console.error('Error fetching session:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch session');
+      setSessionId(null);
+      setInitialMessages([]);
     } finally {
       setIsLoading(false);
     }
-  }, [session, sessionRepository]);
+  }, [customerId, tableNumber]);
 
-  const refreshSession = useCallback(async () => {
-    if (!session) return;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      await sessionRepository.updateLastActive(session.id);
-      await loadSession();
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Error al refrescar la sesión'));
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (customerId && tableNumber) {
+      fetchSession();
     }
-  }, [session, sessionRepository, loadSession]);
-
-  // Cargar sesión al montar el componente
-  useEffect(() => {
-    loadSession();
-  }, [loadSession]);
-
-  // Actualizar lastActive periódicamente
-  useEffect(() => {
-    if (!session) return;
-
-    const interval = setInterval(() => {
-      refreshSession();
-    }, 5 * 60 * 1000); // Cada 5 minutos
-
-    return () => clearInterval(interval);
-  }, [session, refreshSession]);
+  }, [customerId, tableNumber, fetchSession]);
 
   return {
-    session,
+    sessionId,
+    initialMessages,
     isLoading,
     error,
-    updateSession,
-    refreshSession
+    refreshSession: fetchSession
   };
-} 
+}; 
