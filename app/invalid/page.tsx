@@ -2,7 +2,7 @@
 
 import React, { Suspense } from 'react'
 import InvalidScreen from '@/components/screens/InvalidScreen'
-import LoadingScreen from '@/components/screens/MenuScreen/LoadingScreen'
+import { LoadingScreen } from '@/components/ui/LoadingScreen'
 
 export default function InvalidPage() {
   return (

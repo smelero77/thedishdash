@@ -2,7 +2,7 @@
 
 import React, { Suspense } from 'react'
 import AliasScreen from '@/components/screens/AliasScreen'
-import LoadingScreen from '@/components/screens/MenuScreen/LoadingScreen'
+import { LoadingScreen } from '@/components/ui/LoadingScreen'
 
 export default function AliasPage() {
   return (

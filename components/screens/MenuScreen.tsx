@@ -7,7 +7,7 @@ import MenuItem from './MenuItem';
 import MenuHeader from './MenuScreen/MenuHeader';
 import FloatingCartButton from './MenuScreen/FloatingCartButton';
 import SearchOverlay from './MenuScreen/SearchOverlay';
-import LoadingScreen from './MenuScreen/LoadingScreen';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import ErrorScreen from './MenuScreen/ErrorScreen';
 import CategoryTabs from './MenuScreen/CategoryTabs';
 import CategorySection from './MenuScreen/CategorySection';

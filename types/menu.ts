@@ -70,16 +70,14 @@ export interface MenuItemData {
   }[];
 }
 
-export interface MenuItemAllergen {
+export interface Allergen {
   id: string;
   name: string;
   icon_url: string;
 }
 
-export interface Allergen {
-  id: string;
-  name: string;
-  icon_url: string;
+export interface MenuItemAllergen extends Allergen {
+  is_visible: boolean;
 }
 
 export interface DietTag {
@@ -89,6 +87,25 @@ export interface DietTag {
 
 export interface MenuItemDietTag {
   diet_tags: DietTag;
+}
+
+export interface Modifier {
+  id: string;
+  name: string;
+  description: string;
+  required: boolean;
+  multi_select: boolean;
+  options: ModifierOption[];
+}
+
+export interface ModifierOption {
+  id: string;
+  name: string;
+  extra_price: number;
+  is_default: boolean;
+  icon_url?: string;
+  related_menu_item_id?: string;
+  allergens: Allergen[];
 }
 
 export interface Slot {
@@ -121,4 +138,27 @@ export interface Category {
 
 export interface CategoryWithItems extends Category {
   items: MenuItemData[];
+}
+
+export interface CartItem {
+  id: string;
+  item: MenuItemData;
+  quantity: number;
+  client_alias?: string;
+  modifiers?: SelectedModifiers;
+}
+
+export interface Cart {
+  [key: string]: CartItem;
+}
+
+export interface SelectedModifiers {
+  [key: string]: {
+    id: string;
+    name: string;
+    options: Array<{
+      id: string;
+      name: string;
+    }>;
+  };
 } 

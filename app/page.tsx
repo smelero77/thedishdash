@@ -3,11 +3,11 @@
 import * as React from "react"
 import { Suspense } from 'react'
 import StartScreen from "@/components/screens/StartScreen"
-import { LoadingFallback } from "@/components/ui/LoadingFallback"
+import { LoadingScreen } from "@/components/ui/LoadingScreen"
 
 export default function Home() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
+    <Suspense fallback={<LoadingScreen />}>
       <StartScreen />
     </Suspense>
   )

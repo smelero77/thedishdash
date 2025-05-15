@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { MenuScreenWrapper } from '@/components/screens/MenuScreenWrapper';
-import LoadingScreen from '@/components/screens/MenuScreen/LoadingScreen';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { getSlots, getCategoriesWithSlots, getMenuItems } from '@/lib/data';
 import { processMenuItem } from '@/utils/menu';
 import { getCurrentSlot } from '@/utils/slot';
