@@ -79,6 +79,31 @@ interface SlotRow {
     slot: SlotInfo; // Nombre de la relación/alias en Supabase
 }
 
+interface ModifierOption {
+  id: string;
+  name: string;
+  extra_price: number;
+  is_default: boolean;
+  icon_url?: string;
+  related_menu_item_id?: string;
+  allergens: {
+    allergen: {
+      id: string;
+      name: string;
+      icon_url?: string;
+    };
+  }[];
+}
+
+interface Modifier {
+  id: string;
+  name: string;
+  description: string;
+  required: boolean;
+  multi_select: boolean;
+  options: ModifierOption[];
+}
+
 // Validar variables de entorno (sin cambios)
 // ... (tu código de validación de env vars)
 const requiredEnvVars = {
@@ -122,6 +147,30 @@ No incluyas ningún otro texto, solo el JSON. Asegúrate de que el JSON sea sint
 
 const EMBEDDING_MODEL = 'text-embedding-ada-002';
 
+// Add these utility functions at the top level
+function normalizeText(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .toLowerCase() // Convert to lowercase
+    .replace(/[-\s]+/g, '_'); // Replace hyphens and spaces with underscores
+}
+
+function validateCoreTags(text: string): boolean {
+  const corePatterns = [
+    /^(kw_[^;]+;)+/,                        // 1. palabras clave
+    /(alergeno_[^;]+;)+/,                   // 2. alérgenos
+    /(dieta_[^;]+;)+/,                      // 3. dieta
+    /(cat_[^;]+;)+/,                        // 4. categoría
+    /(slot_[^;]+;)+/,                       // 5. slot
+    /tipo_(comida|bebida);/,                // 6. tipo
+    /base_vegetariana;base_vegana;base_sin_gluten;/, // 7. base
+    /recomendado_chef;/                     // 8. recomendado
+  ];
+
+  return corePatterns.every(rx => rx.test(text));
+}
+
 async function generateEmbedding(text: string): Promise<number[]> {
   const cleanText = text.replace(/\s+/g, ' ').trim();
   const truncatedText = cleanText.substring(0, 25000); // Truncado preventivo, API maneja 8191 tokens
@@ -159,10 +208,10 @@ async function main() {
   for (const item of items) {
     console.log(`\n🛠 Processing item: ${item.name} (ID: ${item.id})`);
 
-    // 2) Fetch related data: Allergens, Diet Tags, Categories, Slots
+    // 2) Fetch related data: Allergens, Diet Tags, Categories, Slots, Modifiers
     const { data: allergenRows } = await supabase
       .from('menu_item_allergens')
-      .select(`allergen:allergens!inner (name)`) // Usar !inner para asegurar que la relación existe y allergen no es null
+      .select(`allergen:allergens!inner (name)`)
       .eq('menu_item_id', item.id)
       .returns<AllergenRow[]>();
     const allergenNames = allergenRows?.map(r => r.allergen.name).filter(Boolean) || [];
@@ -194,6 +243,22 @@ async function main() {
     const slotDetails: SlotInfo[] = slotRows?.map(r => r.slot).filter(s => s !== null) as SlotInfo[] || [];
     const slotNames = slotDetails.map(s => s.name);
 
+    // Fetch modifiers
+    const { data: modifierRows } = await supabase
+      .from('modifiers')
+      .select(`
+        *,
+        options:modifier_options(
+          *,
+          allergens:modifier_options_allergens(
+            allergen:allergens(*)
+          )
+        )
+      `)
+      .eq('menu_item_id', item.id)
+      .returns<Modifier[]>();
+
+    const modifiers = modifierRows || [];
 
     // 3) Build full context for GPT enrichment
     const fullContext = {
@@ -230,7 +295,18 @@ async function main() {
         drink_abv: item.drink_abv,
         wine_varietal: item.wine_varietal ?? [],
         wine_region: item.wine_region ?? '',
-      })
+      }),
+      modifiers: modifiers.map(m => ({
+        name: m.name,
+        description: m.description,
+        required: m.required,
+        multi_select: m.multi_select,
+        options: m.options.map(o => ({
+          name: o.name,
+          extra_price: o.extra_price,
+          allergens: o.allergens.map(a => a.allergen.name)
+        }))
+      }))
     };
     // console.log('\n📋 Contexto completo para GPT (vFinal):', JSON.stringify(fullContext, null, 2));
 
@@ -266,30 +342,64 @@ async function main() {
     const { full_description, pairing_suggestion: gpt_pairing_suggestion } = enriched;
 
 
-    // 5) Construir Tags Semánticos (actualizado)
-    const semanticTags = [
-      ...(item.keywords?.map(k => `kw_${k.replace(/\s+/g, '_').toLowerCase()}`) || []),
-      ...allergenNames.map(a => `alérgeno_${a.replace(/\s+/g, '_').toLowerCase()}`),
-      ...dietNames.map(d => `dieta_${d.replace(/\s+/g, '_').toLowerCase()}`),
-      ...categoryNames.map(c => `cat_${c.replace(/\s+/g, '_').toLowerCase()}`),
-      ...slotNames.map(s => `slot_${s.replace(/\s+/g, '_').toLowerCase()}`), // Usar slotNames de la BD
-      `tipo_${item.item_type.toLowerCase()}`,
-    ];
-    if (item.item_type === 'Bebida') {
-        if (item.is_alcoholic !== undefined) semanticTags.push(item.is_alcoholic ? 'bebida_alcohólica' : 'bebida_no_alcohólica');
-        if (item.drink_type) semanticTags.push(`bebida_tipo_${item.drink_type.replace(/\s+/g, '_').toLowerCase()}`);
-        if (item.drink_subtype) semanticTags.push(`bebida_subtipo_${item.drink_subtype.replace(/\s+/g, '_').toLowerCase()}`);
-        if(item.drink_characteristics && item.drink_characteristics.length > 0) {
-            item.drink_characteristics.forEach(char => semanticTags.push(`bebida_caracteristica_${char.replace(/\s+/g, '_').toLowerCase()}`));
-        }
-    }
-    if (item.is_new_item) semanticTags.push('item_nuevo');
-    if (item.is_seasonal) semanticTags.push('item_de_temporada');
-    if (item.is_vegetarian_base) semanticTags.push('base_vegetariana');
-    if (item.is_vegan_base) semanticTags.push('base_vegana');
-    if (item.is_gluten_free_base) semanticTags.push('base_sin_gluten');
-    if (item.is_recommended) semanticTags.push('recomendado_chef');
+    // 5) Construir Tags Semánticos (actualizado con orden fijo)
+    const coreTags: string[] = [];
 
+    // 1. keywords
+    if (item.keywords?.length)     coreTags.push(...item.keywords.map(k => `kw_${normalizeText(k)}`));
+
+    // 2. alérgenos
+    if (allergenNames.length)      coreTags.push(...allergenNames.map(a => `alergeno_${normalizeText(a)}`));
+
+    // 3. dieta
+    if (dietNames.length)          coreTags.push(...dietNames.map(d => `dieta_${normalizeText(d)}`));
+
+    // 4. categorías
+    if (categoryNames.length)      coreTags.push(...categoryNames.map(c => `cat_${normalizeText(c)}`));
+
+    // 5. slots
+    if (slotNames.length)          coreTags.push(...slotNames.map(s => `slot_${normalizeText(s)}`));
+
+    // 6. tipo
+    coreTags.push(`tipo_${item.item_type.toLowerCase()}`);
+
+    // 7. bases
+    coreTags.push('base_vegetariana');
+    coreTags.push('base_vegana');
+    coreTags.push('base_sin_gluten');
+
+    // 8. recomendado
+    coreTags.push(item.is_recommended ? 'recomendado_chef' : 'no_recomendado_chef');
+
+    // ahora la cadena core (siempre termina en ';')
+    const coreTagsString = coreTags.join(';') + ';';
+
+    // Extended tags opcionales
+    const extTags: string[] = [];
+    if (item.item_type === 'Bebida') {
+      if (item.is_alcoholic !== undefined) extTags.push(item.is_alcoholic ? 'bebida_alcoholica' : 'bebida_no_alcoholica');
+      if (item.drink_type) extTags.push(`bebida_tipo_${normalizeText(item.drink_type)}`);
+      if (item.drink_subtype) extTags.push(`bebida_subtipo_${normalizeText(item.drink_subtype)}`);
+      if(item.drink_characteristics && item.drink_characteristics.length > 0) {
+        item.drink_characteristics.forEach(char => extTags.push(`bebida_caracteristica_${normalizeText(char)}`));
+      }
+    }
+    if (item.is_new_item) extTags.push('item_nuevo');
+    if (item.is_seasonal) extTags.push('item_de_temporada');
+
+    // Add modifier tags
+    modifiers.forEach(modifier => {
+      // Tag para el modificador (solo _req si es requerido)
+      const modifierTag = `mod_${normalizeText(modifier.name)}${modifier.required ? '_req' : ''}`;
+      extTags.push(modifierTag);
+      
+      // Tags para cada opción (sin precios ni alérgenos)
+      modifier.options.forEach(option => {
+        extTags.push(`mod_opt_${normalizeText(option.name)}`);
+      });
+    });
+
+    const extTagsString = extTags.length > 0 ? extTags.map(t => `${t};`).join('') : '';
 
     // 6) Generate comprehensive embedding text (actualizado)
     const embeddingTextParts = [
@@ -297,10 +407,9 @@ async function main() {
       `Tipo: ${item.item_type}`,
       item.description ? `Descripción corta: ${item.description.trim()}` : '',
       full_description ? `Descripción (IA): ${full_description.trim()}`: '',
-      item.food_info ? `Info detallada: ${item.food_info.trim()}` : '', // Tu descripción manual detallada
+      item.food_info ? `Info detallada: ${item.food_info.trim()}` : '',
       `Precio: ${item.price}€`,
       item.origin ? `Origen: ${item.origin.trim()}` : '',
-      // Usar la sugerencia de maridaje de GPT, o la original si la de GPT falla o no existe
       gpt_pairing_suggestion ? `Maridaje (IA): ${gpt_pairing_suggestion.trim()}` : (item.pairing_suggestion ? `Maridaje: ${item.pairing_suggestion.trim()}`: ''),
       item.chef_notes ? `Notas del Chef: ${item.chef_notes.trim()}` : '',
       item.is_recommended ? `Recomendado por la casa.` : '',
@@ -309,7 +418,18 @@ async function main() {
       dietNames.length > 0 ? `Etiquetas Dietéticas: ${dietNames.join(', ')}.` : '',
       item.keywords && item.keywords.length > 0 ? `Palabras Clave: ${item.keywords.join(', ')}.` : '',
       (item.calories_est_min && item.calories_est_max) ? `Calorías: ${item.calories_est_min} - ${item.calories_est_max} kcal (estimadas).` : (item.calories_est_max ? `Calorías: hasta ${item.calories_est_max} kcal (estimadas).` : ''),
-      slotNames.length > 0 ? `Momentos de Consumo: ${slotNames.join('; ')}.` : '', // Nombres de slot directos
+      slotNames.length > 0 ? `Momentos de Consumo: ${slotNames.join('; ')}.` : '',
+      modifiers.length > 0 ? `Modificadores: ${modifiers.map(m => {
+        const options = m.options.map(o => {
+          const priceInfo = o.extra_price > 0 ? ` (+${o.extra_price}€)` : '';
+          const allergens = o.allergens.length > 0 
+            ? ` [Alérgenos: ${o.allergens.map(a => a.allergen.name).join(', ')}]`
+            : '';
+          return `${o.name}${priceInfo}${allergens}`;
+        }).join('\n- ');
+        return `${m.name}${m.required ? ' (requerido)' : ' (opcional)'}${m.multi_select ? ' (múltiple)' : ''}:\n- ${options}`;
+      }).join('\n\n')}.` : '',
+      `Tags: ${coreTagsString}${extTagsString}`
     ];
 
     if (item.item_type === 'Bebida') {
@@ -329,11 +449,8 @@ async function main() {
     if (item.is_vegetarian_base !== undefined) embeddingTextParts.push(`Base vegetariana: ${item.is_vegetarian_base ? 'Sí' : 'No'}.`);
     if (item.is_vegan_base !== undefined) embeddingTextParts.push(`Base vegana: ${item.is_vegan_base ? 'Sí' : 'No'}.`);
     if (item.is_gluten_free_base !== undefined) embeddingTextParts.push(`Base sin gluten: ${item.is_gluten_free_base ? 'Sí' : 'No'}.`);
-    
-    embeddingTextParts.push(`Tags: ${semanticTags.join('; ')}.`);
 
     const embeddingText = embeddingTextParts.filter(part => part && part.trim() !== '').join(' ').replace(/\s+/g, ' ').trim();
-
 
     console.log('\n📝 Texto para embedding (vFinal):');
     console.log(embeddingText);
@@ -347,8 +464,17 @@ async function main() {
       .from('menu_item_embeddings')
       .upsert({ item_id: item.id, embedding, text: embeddingText }, { onConflict: 'item_id' });
     
-    if (embErr) console.error('❌ Error al guardar embedding:', embErr.message);
-    else console.log('✅ Embedding guardado.');
+    if (embErr) {
+      console.error('❌ Error al guardar embedding:', embErr.message);
+    } else {
+      console.log('✅ Embedding guardado.');
+      
+      // Validate core tags
+      const tagsSection = embeddingText.split('Tags:')[1]?.trim().replace(/\.$/, '');
+      if (!validateCoreTags(tagsSection)) {
+        console.warn('⚠️ Falta algún core tag en', item.id);
+      }
+    }
     
     // Pausa para evitar rate limiting si procesas muchos items
     // await new Promise(resolve => setTimeout(resolve, 200)); 

@@ -9,8 +9,8 @@ import { CartActionsContext } from '@/context/CartActionsContext';
 import { useCustomer } from '@/context/CustomerContext';
 import FloatingCartButton from './FloatingCartButton';
 import { CartTotalContext } from '@/context/CartTotalContext';
-import { Button } from '@/components/ui/button';
-import ChatButton from '@/components/chat/ChatButton';
+import { Button } from '@/components/ui/Button';
+import ChatButton from '../../../src/features/chat/presentation/components/ChatButton';
 
 interface SearchOverlayProps {
   searchQuery: string;

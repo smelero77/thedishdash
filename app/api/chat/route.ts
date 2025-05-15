@@ -1,94 +1,45 @@
-import { NextResponse } from 'next/server';
-import { ChatService } from '@/lib/chat';
-import { EMBEDDING_CONFIG } from '@/lib/embeddings/constants/config';
-import { v4 as uuidv4 } from 'uuid';
+import { NextRequest, NextResponse } from 'next/server';
+import { ChatController } from '@/features/chat/infrastructure/controllers/ChatController';
+import { ChatRequest } from '@/features/chat/infrastructure/controllers/types';
+import { createChatUseCase } from '@/features/chat/infrastructure/factories/chatUseCaseFactory';
 
-// Validar variables de entorno
-const requiredEnvVars = {
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-};
+// Crear una instancia del controlador
+const chatController = new ChatController(createChatUseCase());
 
-// Verificar que todas las variables de entorno necesarias estén definidas
-const missingEnvVars = Object.entries(requiredEnvVars)
-  .filter(([_, value]) => !value)
-  .map(([key]) => key);
+export async function POST(request: NextRequest) {
+  console.log('=== INICIO DEL ENDPOINT DE CHAT ===');
 
-if (missingEnvVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
-}
-
-const chatService = new ChatService(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  process.env.OPENAI_API_KEY!,
-  EMBEDDING_CONFIG
-);
-
-function isValidUUID(uuid: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-}
-
-export async function POST(request: Request) {
   try {
-    const { message: userMessage, sessionId, alias, categoryId } = await request.json();
-    console.log('Mensaje recibido:', { userMessage, sessionId, alias, categoryId });
-    
-    if (!userMessage || !alias) {
-      console.log('Error: Faltan mensaje o alias');
-      return NextResponse.json(
-        { error: 'Faltan mensaje o alias' },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    console.log('1. Request body:', body);
 
-    // 1) Si no hay sessionId válido, crea nueva
-    let sid = isValidUUID(sessionId) ? sessionId : uuidv4();
-    if (sid !== sessionId) {
-      console.log('Usando nueva sesión:', sid);
-    }
+    const { message, sessionId, tableNumber, alias, weather, categoryId } = body;
 
-    // 2) Procesa el mensaje
-    console.log('Procesando mensaje...');
-    try {
-      const result = await chatService.processMessage(sid, alias, userMessage, categoryId);
-      console.log('Resultado del procesamiento:', result);
-      
-      // 3) Devuelve respuesta estructurada + sessionId
-      return NextResponse.json({
-        response: result.response,
-        sessionId: result.sessionId
-      });
-    } catch (error) {
-      console.error('Error detallado en chatService.processMessage:', error);
-      
-      // Manejar errores específicos de OpenAI
-      if (error instanceof Error && error.message.includes('OpenAI')) {
-        console.error('Error de OpenAI:', error);
-        return NextResponse.json(
-          { error: 'Error al conectar con el servicio de IA' },
-          { status: 503 }
-        );
-      }
+    // Mapear correctamente a ChatRequest
+    const chatRequest: ChatRequest = {
+      message,
+      deviceId: alias,
+      tableCode: tableNumber?.toString() || '0',
+      weather,
+      categoryId,
+      sessionId
+    };
 
-      // Manejar errores de Supabase
-      if (error instanceof Error && error.message.includes('Supabase')) {
-        console.error('Error de Supabase:', error);
-        return NextResponse.json(
-          { error: 'Error al conectar con la base de datos' },
-          { status: 503 }
-        );
-      }
+    console.log('2. Request mapeado:', chatRequest);
 
-      throw error; // Re-lanzar otros errores para el manejo general
-    }
-  } catch (error) {
-    console.error('Error detallado en el procesamiento del mensaje:', error);
+    const result = await chatController.handleChat(chatRequest);
+    console.log('3. Respuesta del controlador:', result);
+    return NextResponse.json(result);
+  } catch (err: any) {
+    console.error('Error en el endpoint:', err);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        error: err.message || 'Error interno del servidor',
+        details: err.stack
+      }, 
       { status: 500 }
     );
+  } finally {
+    console.log('=== FIN DEL ENDPOINT DE CHAT ===\n');
   }
 } 

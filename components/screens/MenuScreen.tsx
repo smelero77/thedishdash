@@ -30,8 +30,8 @@ import Image from 'next/image';
 import { useMenuData, CategoryWithItems } from '@/hooks/useMenuData';
 import SearchButton from './SearchButton';
 import { useCategoryOrder } from '@/hooks/useCategoryOrder';
-import { ChatIA } from './ChatIA';
-import ChatButton from '@/components/chat/ChatButton';
+import ChatButton from '../../src/features/chat/presentation/components/ChatButton';
+import { ChatWindow } from '../../src/features/chat/presentation/components/ChatWindow';
 
 // Load heavy libraries dynamically
 const ModifierModal = dynamic(() => import('./ModifierModal'), { ssr: false });
@@ -51,16 +51,18 @@ export interface SelectedItem {
 
 interface MenuScreenProps {
   initialSlots: Slot[];
-  initialCategories: Category[];
+  initialCategories: CategoryWithItems[];
   initialMenuItems: MenuItemData[];
   initialCurrentSlot: Slot | null;
+  mainCategoryId: string | null;
 }
 
 const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
   initialSlots,
   initialCategories,
   initialMenuItems,
-  initialCurrentSlot
+  initialCurrentSlot,
+  mainCategoryId
 }, ref) => {
   const { slots, currentSlot, categories, loading, error } = useMenuData();
   const orderedCategories = useCategoryOrder({
@@ -402,7 +404,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
         />
       )}
 
-      <ChatIA
+      <ChatWindow
         isOpen={showChatModal}
         onClose={() => setShowChatModal(false)}
         alias={alias ?? 'Cliente'}
