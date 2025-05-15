@@ -1,15 +1,17 @@
 import { Allergen, MenuItemAllergen } from './menu';
 
+// Tipo base para opciones de modificador
 export interface ModifierOption {
   id: string;
   name: string;
   extra_price: number;
   is_default: boolean;
-  icon_url: string | undefined;
-  related_menu_item_id: string | undefined;
+  icon_url: string | null;
+  related_menu_item_id: string | null;
   allergens: MenuItemAllergen[];
 }
 
+// Tipo base para modificador
 export interface Modifier {
   id: string;
   name: string;
@@ -19,6 +21,7 @@ export interface Modifier {
   options: ModifierOption[];
 }
 
+// Tipo para selección de modificador en el carrito
 export interface ModifierSelection {
   name: string;
   options: {
@@ -28,6 +31,38 @@ export interface ModifierSelection {
   }[];
 }
 
+// Tipo para modificadores seleccionados
 export interface SelectedModifiers {
-  [modifierId: string]: string[]; // Array de IDs de opciones seleccionadas
+  [modifierId: string]: {
+    id: string;
+    name: string;
+    options: Array<{
+      id: string;
+      name: string;
+    }>;
+  };
+}
+
+// Tipo para modificadores de Supabase
+export interface SupabaseModifier {
+  id: string;
+  name: string;
+  description: string | null;
+  required: boolean;
+  multi_select: boolean;
+  modifier_options: {
+    id: string;
+    name: string;
+    extra_price: number;
+    is_default: boolean;
+    icon_url: string | null;
+    related_menu_item_id: string | null;
+    modifier_options_allergens: {
+      allergens: {
+        id: string;
+        name: string;
+        icon_url: string | null;
+      };
+    }[];
+  }[];
 } 

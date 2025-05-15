@@ -2,53 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import type { Category, MenuItemData, Slot, SupabaseMenuItem } from '@/types/menu';
 import { supabase } from '@/lib/supabase';
 import { useCurrentSlot } from './useCurrentSlot';
-import { getCurrentSlot } from '@/lib/utils';
-
-/**
- * Transforma un registro crudo de Supabase a la forma interna MenuItemData
- */
-export function processMenuItem(raw: SupabaseMenuItem): MenuItemData {
-  return {
-    id: raw.id,
-    name: raw.name,
-    description: raw.description ?? '',
-    price: raw.price,
-    image_url: raw.image_url ?? '',
-    category_ids: raw.category_ids ?? [],
-    allergens: raw.menu_item_allergens.map(a => ({
-      id: a.allergens.id,
-      name: a.allergens.name,
-      icon_url: a.allergens.icon_url ?? ''
-    })),
-    diet_tags: raw.menu_item_diet_tags.map(dt => dt.diet_tags.name),
-    food_info: raw.food_info ?? '',
-    origin: raw.origin ?? '',
-    pairing_suggestion: raw.pairing_suggestion ?? '',
-    chef_notes: raw.chef_notes ?? '',
-    is_recommended: raw.is_recommended,
-    profit_margin: raw.profit_margin ?? 0,
-    modifiers: raw.modifiers.map(m => ({
-      id: m.id,
-      name: m.name,
-      description: m.description ?? '',
-      required: m.required,
-      multi_select: m.multi_select,
-      options: m.modifier_options.map(opt => ({
-        id: opt.id,
-        name: opt.name,
-        extra_price: opt.extra_price,
-        is_default: opt.is_default,
-        icon_url: opt.icon_url ?? undefined,
-        related_menu_item_id: opt.related_menu_item_id ?? undefined,
-        allergens: opt.modifier_options_allergens.map(ma => ({
-          id: ma.allergens.id,
-          name: ma.allergens.name,
-          icon_url: ma.allergens.icon_url ?? ''
-        }))
-      }))
-    }))
-  };
-}
+import { getCurrentSlot } from '@/utils/slot';
+import { processMenuItem } from '@/utils/menu';
 
 export interface CategoryWithItems extends Category {
   items: MenuItemData[];

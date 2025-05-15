@@ -1,3 +1,5 @@
+import { Modifier } from './modifiers';
+
 export interface SupabaseModifier {
   id: string;
   name: string;
@@ -45,20 +47,27 @@ export interface SupabaseMenuItem {
 export interface MenuItemData {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
-  image_url: string;
+  image_url: string | null;
   category_ids: string[];
   allergens: Allergen[];
   diet_tags: string[];
-  food_info: string;
-  origin: string;
-  pairing_suggestion: string;
-  chef_notes: string;
+  food_info: string | null;
+  origin: string | null;
+  pairing_suggestion: string | null;
+  chef_notes: string | null;
   is_available: boolean;
   is_recommended: boolean;
-  profit_margin: number;
+  profit_margin: number | null;
   modifiers: Modifier[];
+  ingredients?: string[];
+  created_at?: string;
+  updated_at?: string;
+  menu_item_diet_tags?: MenuItemDietTag[];
+  menu_item_allergens?: {
+    allergens: Allergen;
+  }[];
 }
 
 export interface MenuItemAllergen {
@@ -87,6 +96,8 @@ export interface Slot {
   name: string;
   start_time: string;
   end_time: string;
+  description?: string;
+  is_active?: boolean;
 }
 
 export interface SlotCategory {
@@ -97,73 +108,17 @@ export interface SlotCategory {
 export interface Category {
   id: string;
   name: string;
-  image_url: string;
-  sort_order?: number;
-  is_complementary?: boolean;
+  description?: string;
+  image_url: string | null;
+  sort_order: number;
+  is_complementary: boolean;
   slot_categories?: Array<{
     slot_id: string;
   }>;
+  order?: number;
+  slot_id?: string;
 }
 
-export interface Cart {
-  [key: string]: CartItem;
-}
-
-export interface CartItem {
-  id: string;
-  quantity: number;
-  modifiers: Record<string, {
-    name: string;
-    options: {
-      id: string;
-      name: string;
-      extra_price: number;
-    }[];
-  }>;
-  item: MenuItemData;
-  client_alias?: string;
-}
-
-export interface CartActions {
-  handleAddToCart: (itemId: string, modifiers?: SelectedModifiers | null) => Promise<void>;
-  handleDecrementCart: (itemId: string, modifiers?: SelectedModifiers | null) => Promise<void>;
-  getTotalItems: () => number;
-  getItemQuantity: (itemId: string) => number;
-}
-
-// --- Tipos para Modificadores Seleccionados ---
-export interface SelectedModifierOption {
-  id: string;
-  name: string;
-  extra_price: number;
-}
-
-export interface SelectedModifier {
-  name: string;
-  options: SelectedModifierOption[];
-}
-
-export type SelectedModifiers = Record<string, SelectedModifier>;
-
-export interface ModifierOption {
-  id: string;
-  name: string;
-  extra_price: number;
-  is_default: boolean;
-  icon_url: string | undefined;
-  related_menu_item_id: string | undefined;
-  allergens: {
-    id: string;
-    name: string;
-    icon_url: string | undefined;
-  }[];
-}
-
-export interface Modifier {
-  id: string;
-  name: string;
-  description: string;
-  required: boolean;
-  multi_select: boolean;
-  options: ModifierOption[];
+export interface CategoryWithItems extends Category {
+  items: MenuItemData[];
 } 

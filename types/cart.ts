@@ -7,6 +7,9 @@ export interface CartItem {
   modifiers: Record<string, ModifierSelection>;
   item: MenuItemData;
   client_alias?: string;
+  menu_item_id?: string;
+  alias?: string;
+  price?: number;
 }
 
 export interface Cart {
@@ -27,4 +30,11 @@ export interface CartSummary {
 
 export interface ClientCartSummary {
   [alias: string]: CartSummary;
+}
+
+export interface CartActions {
+  handleAddToCart: (itemId: string, modifiers?: ModifierSelection | null) => Promise<void>;
+  handleDecrementCart: (itemId: string, modifiers?: ModifierSelection | null) => Promise<void>;
+  getTotalItems: () => number;
+  getItemQuantity: (itemId: string) => number;
 } 

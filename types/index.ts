@@ -18,6 +18,7 @@ export type {
   CartTotal,
   CartSummary,
   ClientCartSummary,
+  CartActions,
 } from './cart';
 
 // Re-export modifier types
@@ -26,4 +27,12 @@ export type {
   Modifier,
   ModifierSelection,
   SelectedModifiers,
-} from './modifiers'; 
+  SupabaseModifier,
+} from './modifiers';
+
+// Re-export session types
+export type {
+  Session,
+  Message,
+  SessionState,
+} from './session'; 

@@ -1,4 +1,6 @@
-import { Cart, CartItem } from '@/types/menu';
+import { Cart, CartItem } from '@/types/cart';
+import { MenuItemData } from '@/types/menu';
+import { ModifierSelection } from '@/types/modifiers';
 
 /**
  * Obtiene la cantidad total de un ítem específico en el carrito
@@ -96,21 +98,13 @@ export const removeFromCart = (
 /**
  * Calcula el precio total de un ítem, incluyendo los modificadores y multiplicado por la cantidad
  * @param item - El ítem del carrito
+ * @param menuItem - Los datos del ítem del menú
  * @returns Precio total (precio base + modificadores) * cantidad
  */
-export const getItemTotalPrice = (item: CartItem): number => {
-  const basePrice = item.item.price;
-  const modifiersPrice = Object.values(item.modifiers).reduce((total: number, modifier: any) => {
-    return total + modifier.options.reduce((sum: number, option: any) => sum + (option.extra_price || 0), 0);
+export const getItemTotalPrice = (item: CartItem, menuItem: MenuItemData): number => {
+  const basePrice = menuItem.price;
+  const modifiersPrice = Object.values(item.modifiers).reduce((total: number, modifier: ModifierSelection) => {
+    return total + modifier.options.reduce((sum: number, option) => sum + option.extra_price, 0);
   }, 0);
   return (basePrice + modifiersPrice) * item.quantity;
-};
-
-/**
- * Formatea un precio para su visualización
- * @param price - El precio a formatear
- * @returns Precio formateado en formato XX,XX €
- */
-export const formatPrice = (price: number): string => {
-  return price.toFixed(2).replace(".", ",") + " €";
 }; 

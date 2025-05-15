@@ -2,8 +2,9 @@ import { Suspense } from 'react';
 import { MenuScreenWrapper } from '@/components/screens/MenuScreenWrapper';
 import LoadingScreen from '@/components/screens/MenuScreen/LoadingScreen';
 import { getSlots, getCategoriesWithSlots, getMenuItems } from '@/lib/data';
-import { processMenuItem, CategoryWithItems, getCurrentSlot } from '@/lib/utils';
-import type { Slot, Category, SupabaseMenuItem, MenuItemData } from '@/types/menu';
+import { processMenuItem } from '@/utils/menu';
+import { getCurrentSlot } from '@/utils/slot';
+import type { Slot, Category, SupabaseMenuItem, MenuItemData, CategoryWithItems } from '@/types/menu';
 
 // Asume que getCategoriesWithSlots devuelve este tipo de objeto por cada relación
 interface SlotCategoryRelation {

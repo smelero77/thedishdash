@@ -1,6 +1,6 @@
 import React, { useContext, forwardRef } from 'react';
 import { Button } from '@/components/ui/Button';
-import { formatPrice } from '@/utils/cart';
+import { formatPrice } from '@/utils/format';
 
 interface FloatingCartButtonProps {
   onClick: () => void;
