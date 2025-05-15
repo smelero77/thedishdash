@@ -1,6 +1,6 @@
 // lib/data.ts
 import { MenuItemData, SupabaseMenuItem, Slot } from '@/types/menu';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 
 export interface TableData {
   id: string;
