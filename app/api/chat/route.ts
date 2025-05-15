@@ -2,11 +2,10 @@ import { NextResponse } from 'next/server';
 import { ChatService } from '@/lib/chat';
 import { EMBEDDING_CONFIG } from '@/lib/embeddings/constants/config';
 import { v4 as uuidv4 } from 'uuid';
+import { isValidUUID } from '@/utils/validation';
 
 // Validar variables de entorno
 const requiredEnvVars = {
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 };
 
@@ -20,16 +19,9 @@ if (missingEnvVars.length > 0) {
 }
 
 const chatService = new ChatService(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   process.env.OPENAI_API_KEY!,
   EMBEDDING_CONFIG
 );
-
-function isValidUUID(uuid: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-}
 
 export async function POST(request: Request) {
   try {

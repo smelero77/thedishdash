@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback, forwardRef, useRef } from 'react';
 import { X } from 'lucide-react';
-import { MenuItemAllergen as Allergen } from "../types/menu";
-import { MenuItemData } from "../types/menu";
+import { MenuItemAllergen as Allergen, MenuItemData } from '@/types/menu';
 import { ScrollProgressBar } from '@/components/ScrollProgressBar';
+import { formatPrice } from '@/utils/format';
 
 interface ModifierOption {
   id: string;
@@ -36,10 +36,6 @@ interface ModifierModalProps {
   onConfirm: (selectedOptions: Record<string, string[]>) => void;
 }
 
-const formatPrice = (price: number) => {
-  return price.toFixed(2) + '€';
-};
-
 const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(({
   isOpen,
   itemName,
@@ -58,11 +54,12 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(({
 
   // Función para detectar el modificador visible
   const handleScroll = useCallback(() => {
-    if (!contentRef.current) return;
+    const content = contentRef.current;
+    if (!content) return;
 
-    const scrollTop = contentRef.current.scrollTop;
+    const scrollTop = content.scrollTop;
     const headerHeight = 180;
-    const viewportHeight = contentRef.current.clientHeight;
+    const viewportHeight = content.clientHeight;
     const scrollBottom = scrollTop + viewportHeight;
     const tolerance = 50; // Margen de tolerancia para la detección
 
@@ -89,7 +86,7 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(({
         
         // Añadir bonus si es el último elemento y estamos cerca del final
         const isLastElement = id === modifiers[modifiers.length - 1].id;
-        const isNearBottom = scrollBottom >= contentRef.current.scrollHeight - tolerance;
+        const isNearBottom = scrollBottom >= content.scrollHeight - tolerance;
         const lastElementBonus = isLastElement && isNearBottom ? 1 : 0;
         
         const totalVisibility = visibleHeight + (centerBonus * 100) + (lastElementBonus * 200);

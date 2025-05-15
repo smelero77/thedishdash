@@ -18,16 +18,12 @@ export class ChatService {
   private embeddingService: OpenAIEmbeddingService;
 
   constructor(
-    supabaseUrl: string,
-    supabaseKey: string,
     openaiApiKey: string,
     embeddingConfig: any
   ) {
     this.embeddingService = new OpenAIEmbeddingService(openaiApiKey, embeddingConfig);
-    this.sessionService = new ChatSessionService(supabaseUrl, supabaseKey);
+    this.sessionService = new ChatSessionService();
     this.messageService = new ChatMessageService(
-      supabaseUrl,
-      supabaseKey,
       openaiApiKey,
       this.embeddingService
     );

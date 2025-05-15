@@ -1,12 +1,11 @@
 import Image from 'next/image';
 import { CartItem } from '@/types/menu';
 import { ItemQuantity } from './ItemQuantity';
+import { formatPrice } from '@/utils/format';
 
 interface StoryItemProps {
   item: CartItem;
 }
-
-const formatPrice = (price: number): string => price.toFixed(2).replace('.', ',') + ' €';
 
 export const StoryItem = ({ item }: StoryItemProps) => (
   <div className="p-4">

@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import { supabase } from '../lib/supabase';
 
 // ----- Debug logs -----
 console.log('📂 Directorio actual:', process.cwd());
@@ -107,8 +107,6 @@ interface Modifier {
 // Validar variables de entorno (sin cambios)
 // ... (tu código de validación de env vars)
 const requiredEnvVars = {
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 };
 
@@ -123,11 +121,8 @@ if (missingEnvVars.length > 0) {
   process.exit(1);
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // enrichmentPrompt (sin cambios, ya es bueno)

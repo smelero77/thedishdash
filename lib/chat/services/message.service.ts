@@ -1,4 +1,3 @@
-import { SupabaseClient } from '@supabase/supabase-js';
 import { OpenAI } from 'openai';
 import { OpenAIEmbeddingService } from '@/lib/embeddings/services/openai.service';
 import { CHAT_CONFIG } from '../constants/config';
@@ -6,20 +5,17 @@ import { recommendDishesFn, getProductDetailsFn } from '../constants/functions';
 import { AssistantResponse } from '../types/response.types';
 import { MenuItem } from '@/lib/types/menu';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import { supabase } from '@/lib/supabase';
 
 export class ChatMessageService {
-  private supabase: SupabaseClient;
   private openai: OpenAI;
   private isTyping: boolean = false;
   private typingInterval: NodeJS.Timeout | null = null;
 
   constructor(
-    supabaseUrl: string,
-    supabaseKey: string,
     openaiApiKey: string,
     private embeddingService: OpenAIEmbeddingService
   ) {
-    this.supabase = new SupabaseClient(supabaseUrl, supabaseKey);
     this.openai = new OpenAI({ apiKey: openaiApiKey });
   }
 
@@ -56,7 +52,7 @@ export class ChatMessageService {
 
       // 3.2 Contexto breve del carrito
       console.log('👤 User alias:', userAlias);
-      const { data: cartItems, error: cartError } = await this.supabase
+      const { data: cartItems, error: cartError } = await supabase
         .from("temporary_order_items")
         .select(`
           menu_item_id,
@@ -87,7 +83,7 @@ export class ChatMessageService {
       console.log('📊 Embedding generado:', msgEmbedding.length, 'dimensiones');
 
       // 1) Intento vectorial
-      let { data: similarItems, error: vecErr } = await this.supabase
+      let { data: similarItems, error: vecErr } = await supabase
         .rpc('match_menu_items', {
           query_embedding: msgEmbedding,
           match_threshold: 0.3,
@@ -105,7 +101,7 @@ export class ChatMessageService {
       if ((!similarItems || similarItems.length === 0) && userMessage.trim()) {
         console.log('⚠️ No hay resultados vectoriales, intentando fallback por texto...');
         const keyword = userMessage.toLowerCase();
-        const { data: fallback } = await this.supabase
+        const { data: fallback } = await supabase
           .from('menu_item_embeddings')
           .select(`
             menu_items!inner (
@@ -131,7 +127,7 @@ export class ChatMessageService {
       console.log('📑 IDs de categorías encontrados:', catIds);
       
       if (catIds.length) {
-        const { data: cats } = await this.supabase
+        const { data: cats } = await supabase
           .from('categories')
           .select('id, name')
           .in('id', catIds);
@@ -172,7 +168,7 @@ export class ChatMessageService {
       // Fallback explícito por categoría si no hay candidatos
       if (candidates.length === 0) {
         console.log('⚠️ No hay candidatos, intentando fallback por categoría...');
-        const { data: cat } = await this.supabase
+        const { data: cat } = await supabase
           .from('categories')
           .select('id')
           .ilike('name', '%desayuno%')
@@ -180,7 +176,7 @@ export class ChatMessageService {
 
         if (cat) {
           console.log('📑 Categoría Desayuno encontrada:', cat.id);
-          const { data: catItems } = await this.supabase
+          const { data: catItems } = await supabase
             .from('menu_items')
             .select(`
               id,
@@ -278,7 +274,7 @@ ${candidatesBlock}`
       console.log('📝 Respuesta de GPT:', JSON.stringify(resp.choices[0].message, null, 2));
 
       // 3.7 Guardar mensaje assistant
-      await this.supabase.from("messages").insert({
+      await supabase.from("messages").insert({
         session_id: sessionId,
         sender: resp.choices[0].message.role,
         content: JSON.stringify(resp.choices[0].message)
@@ -384,7 +380,7 @@ ${candidatesBlock}`
           console.log('🔍 Consultando detalles del producto:', product_id);
 
           // Consultar todos los campos en Supabase
-          const { data: item, error } = await this.supabase
+          const { data: item, error } = await supabase
             .from('menu_items')
             .select('*')
             .eq('id', product_id)
@@ -401,7 +397,7 @@ ${candidatesBlock}`
           // Obtener información de categorías
           const categoryMap: Record<string, string> = {};
           if (item.category_ids?.length) {
-            const { data: cats } = await this.supabase
+            const { data: cats } = await supabase
               .from('categories')
               .select('id, name')
               .in('id', item.category_ids);

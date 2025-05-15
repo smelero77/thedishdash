@@ -1,4 +1,13 @@
-import { Allergen, MenuItemAllergen } from './menu';
+// Tipos base
+export interface Allergen {
+  id: string;
+  name: string;
+  icon_url: string;
+}
+
+export interface MenuItemAllergen extends Allergen {
+  is_visible: boolean;
+}
 
 // Tipo base para opciones de modificador
 export interface ModifierOption {
@@ -39,6 +48,7 @@ export interface SelectedModifiers {
     options: Array<{
       id: string;
       name: string;
+      extra_price: number;
     }>;
   };
 }

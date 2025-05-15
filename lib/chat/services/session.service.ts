@@ -1,12 +1,13 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { ChatSession } from '../types/session.types';
 import { CHAT_CONFIG, SYSTEM_CONTEXT } from '../constants/config';
+import { supabase } from '@/lib/supabase';
 
 export class ChatSessionService {
   private supabase: SupabaseClient;
 
-  constructor(supabaseUrl: string, supabaseKey: string) {
-    this.supabase = createClient(supabaseUrl, supabaseKey);
+  constructor() {
+    this.supabase = supabase;
   }
 
   async create(sessionId: string, userAlias: string): Promise<ChatSession> {

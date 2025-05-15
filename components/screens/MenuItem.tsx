@@ -5,6 +5,7 @@ import React, { HTMLAttributes, forwardRef } from "react"; // Importación expl�
 import { Plus, Minus, ShoppingCart } from "lucide-react";
 import { MenuItemAllergen as Allergen } from "../../types/menu"; // Asegúrate que la ruta sea correcta
 import Image from "next/image";
+import { formatPrice } from '@/utils/format';
 
 interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   id: string;
@@ -48,13 +49,6 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
   onOpenCart,
   ...rest
 }, ref) => {
-
-  const formatPrice = (price: number) => {
-    // Considerar usar Intl.NumberFormat para un formateo más robusto y localizado
-    // const formatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
-    // return formatter.format(price);
-    return price.toFixed(2).replace(".", ",") + " €";
-  };
 
   // Podrías añadir lógica para deshabilitar botones si !is_available
 

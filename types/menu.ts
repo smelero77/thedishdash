@@ -1,27 +1,10 @@
-import { Modifier } from './modifiers';
-
-export interface SupabaseModifier {
-  id: string;
-  name: string;
-  description: string | null;
-  required: boolean;
-  multi_select: boolean;
-  modifier_options: {
-    id: string;
-    name: string;
-    extra_price: number;
-    is_default: boolean;
-    icon_url: string | null;
-    related_menu_item_id: string | null;
-    modifier_options_allergens: {
-      allergens: {
-        id: string;
-        name: string;
-        icon_url: string | null;
-      };
-    }[];
-  }[];
-}
+import { 
+  Modifier, 
+  SelectedModifiers, 
+  Allergen, 
+  MenuItemAllergen,
+  SupabaseModifier 
+} from './modifiers';
 
 export interface SupabaseMenuItem {
   id: string;
@@ -70,16 +53,6 @@ export interface MenuItemData {
   }[];
 }
 
-export interface Allergen {
-  id: string;
-  name: string;
-  icon_url: string;
-}
-
-export interface MenuItemAllergen extends Allergen {
-  is_visible: boolean;
-}
-
 export interface DietTag {
   id: string;
   name: string;
@@ -87,25 +60,6 @@ export interface DietTag {
 
 export interface MenuItemDietTag {
   diet_tags: DietTag;
-}
-
-export interface Modifier {
-  id: string;
-  name: string;
-  description: string;
-  required: boolean;
-  multi_select: boolean;
-  options: ModifierOption[];
-}
-
-export interface ModifierOption {
-  id: string;
-  name: string;
-  extra_price: number;
-  is_default: boolean;
-  icon_url?: string;
-  related_menu_item_id?: string;
-  allergens: Allergen[];
 }
 
 export interface Slot {
@@ -150,15 +104,4 @@ export interface CartItem {
 
 export interface Cart {
   [key: string]: CartItem;
-}
-
-export interface SelectedModifiers {
-  [key: string]: {
-    id: string;
-    name: string;
-    options: Array<{
-      id: string;
-      name: string;
-    }>;
-  };
 } 

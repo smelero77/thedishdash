@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CartItem, MenuItemData as CartMenuItemData, SelectedModifiers } from '@/types/menu';
 import { OrderStories } from './OrderStories';
 import { ScrollProgressBar } from '@/components/ScrollProgressBar';
+import { formatPrice } from '@/utils/format';
 
 import { CartItemsContext } from '@/context/CartItemsContext';
 import { CartTotalContext } from '@/context/CartTotalContext';
@@ -17,8 +18,6 @@ interface CartModalProps {
   onClose: () => void;
   currentClientAlias?: string;
 }
-
-const formatPrice = (price: number): string => price.toFixed(2).replace('.', ',') + ' €';
 
 const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
   onClose,
