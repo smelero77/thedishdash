@@ -74,20 +74,21 @@ export class ChatUseCase {
       const messageContext = await this.getMessageContext(session.id);
 
       // 5. Generar respuesta
-      const response = await this.generateResponse(request.message, messageContext);
+      const responseText = await this.generateResponse(request.message, messageContext);
 
       // 6. Guardar respuesta del asistente
-      const aiMessage = await this.chatRepository.saveMessage(session.id, response, 'ai');
+      const aiMessage = await this.chatRepository.saveMessage(session.id, responseText, 'ai');
 
       // 7. Obtener recomendaciones y combos
       const recommendations = await this.recommendationService.getRecommendations(session.id);
       const combos = await this.recommendationService.getCombos(session.id);
 
       return {
-        session,
-        message: aiMessage,
-        recommendations,
-        combos
+        type: 'assistant_text',
+        data: {
+          text: responseText,
+          menuItems: recommendations
+        }
       };
     } catch (error) {
       console.error('Error en ChatUseCase:', error);

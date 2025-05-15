@@ -11,24 +11,13 @@ interface SlotMenuItem {
   description: string;
   price: number;
   image_url: string;
-  category_id: string;
-  is_available: boolean;
-  is_combo: boolean;
-  combo_items?: string[];
-  modifiers?: string[];
-  dietary_info: {
-    is_vegetarian: boolean;
-    is_vegan: boolean;
-    is_gluten_free: boolean;
-    calories: number;
-  };
-  weather_conditions?: {
-    temperature_range: {
-      min: number;
-      max: number;
-    };
-    allowed_conditions: string[];
-  };
+  category_ids: string[];
+  item_type: string;
+  is_vegetarian_base: boolean;
+  is_vegan_base: boolean;
+  is_gluten_free_base: boolean;
+  calories_est_min: number;
+  calories_est_max: number;
 }
 
 export class SupabaseMenuRepository implements MenuRepository {
@@ -58,17 +47,16 @@ export class SupabaseMenuRepository implements MenuRepository {
             description,
             price,
             image_url,
-            category_id,
-            is_available,
-            is_combo,
-            combo_items,
-            modifiers,
-            dietary_info,
-            weather_conditions
+            category_ids,
+            item_type,
+            is_vegetarian_base,
+            is_vegan_base,
+            is_gluten_free_base,
+            calories_est_min,
+            calories_est_max
           )
         `)
-        .eq('slot_id', slotId)
-        .eq('is_available', true);
+        .eq('slot_id', slotId);
 
       if (excludeIds.length > 0) {
         query = query.not('menu_item_id', 'in', excludeIds);
@@ -84,16 +72,17 @@ export class SupabaseMenuRepository implements MenuRepository {
         description: item.description,
         price: item.price,
         imageUrl: item.image_url,
-        categoryIds: [item.category_id],
-        isAvailable: item.is_available,
+        categoryIds: item.category_ids || [],
+        isAvailable: true, // Por defecto asumimos que está disponible
+        itemType: item.item_type,
         isRecommended: false,
-        modifiers: item.modifiers?.map(modifierId => ({
-          id: modifierId,
-          name: '',
-          required: false,
-          multiSelect: false,
-          options: []
-        })) || []
+        modifiers: [],
+        dietaryInfo: {
+          isVegetarian: item.is_vegetarian_base,
+          isVegan: item.is_vegan_base,
+          isGlutenFree: item.is_gluten_free_base,
+          calories: item.calories_est_min || item.calories_est_max || 0
+        }
       }));
     } catch (error) {
       console.error('Error finding menu items:', error);
@@ -104,23 +93,21 @@ export class SupabaseMenuRepository implements MenuRepository {
   async getModifiers(itemId: string): Promise<ModifierOption[]> {
     try {
       const { data, error } = await this.supabase
-        .from('menu_item_modifiers')
+        .from('modifiers')
         .select(`
-          *,
-          modifier:modifiers (
-            id,
-            name,
-            description,
-            options
-          )
+          id,
+          name,
+          description,
+          required,
+          multi_select
         `)
         .eq('menu_item_id', itemId);
 
       if (error) throw error;
 
       return data.map(item => ({
-        id: item.modifier.id,
-        name: item.modifier.name,
+        id: item.id,
+        name: item.name,
         extraPrice: 0,
         isDefault: false
       }));
@@ -142,17 +129,16 @@ export class SupabaseMenuRepository implements MenuRepository {
             description,
             price,
             image_url,
-            category_id,
-            is_available,
-            is_combo,
-            combo_items,
-            modifiers,
-            dietary_info,
-            weather_conditions
+            category_ids,
+            item_type,
+            is_vegetarian_base,
+            is_vegan_base,
+            is_gluten_free_base,
+            calories_est_min,
+            calories_est_max
           )
         `)
-        .eq('slot_id', slotId)
-        .eq('is_available', true);
+        .eq('slot_id', slotId);
 
       if (error) throw error;
 
@@ -162,16 +148,17 @@ export class SupabaseMenuRepository implements MenuRepository {
         description: item.description,
         price: item.price,
         imageUrl: item.image_url,
-        categoryIds: [item.category_id],
-        isAvailable: item.is_available,
+        categoryIds: item.category_ids || [],
+        isAvailable: true, // Por defecto asumimos que está disponible
+        itemType: item.item_type,
         isRecommended: false,
-        modifiers: item.modifiers?.map(modifierId => ({
-          id: modifierId,
-          name: '',
-          required: false,
-          multiSelect: false,
-          options: []
-        })) || []
+        modifiers: [],
+        dietaryInfo: {
+          isVegetarian: item.is_vegetarian_base,
+          isVegan: item.is_vegan_base,
+          isGlutenFree: item.is_gluten_free_base,
+          calories: item.calories_est_min || item.calories_est_max || 0
+        }
       }));
     } catch (error) {
       console.error('Error getting menu items:', error);

@@ -32,7 +32,7 @@ export class ChatController {
       return {
         sessionId: requestDto.sessionId || '',
         message,
-        recommendations: [] as MenuItem[],
+        recommendations: response.data.menuItems || [],
         combos: [] as MenuCombo[]
       };
     } catch (error) {
