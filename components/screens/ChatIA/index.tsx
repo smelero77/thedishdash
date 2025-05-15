@@ -22,7 +22,10 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
       setMessages([
         {
           id: Date.now().toString(),
-          content: `¡Hola ${alias}! Soy Don Gourmetón, ¿en qué puedo ayudarte hoy?`,
+          content: {
+            type: 'assistant_text',
+            content: `¡Hola ${alias}! Soy Don Gourmetón, ¿en qué puedo ayudarte hoy?`
+          },
           role: 'assistant',
           timestamp: new Date(),
         },
@@ -104,7 +107,10 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
 
       const assistantMessage: Message = {
         id: Date.now().toString(),
-        content: data.response,
+        content: {
+          type: 'assistant_text',
+          content: data.response
+        },
         role: 'assistant',
         timestamp: new Date(),
       };
@@ -114,7 +120,10 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
       console.error('Error:', error);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.',
+        content: {
+          type: 'assistant_text',
+          content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.'
+        },
         role: 'assistant',
         timestamp: new Date(),
       };

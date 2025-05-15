@@ -1,7 +1,7 @@
 import { OpenAI } from 'openai';
 import { OpenAIEmbeddingService } from '@/lib/embeddings/services/openai.service';
 import { CHAT_CONFIG } from '../constants/config';
-import { recommendDishesFn, getProductDetailsFn } from '../constants/functions';
+import { recommendDishesFn, getProductDetailsFn, OPENAI_CONFIG } from '../constants/functions';
 import { AssistantResponse } from '../types/response.types';
 import { MenuItem } from '@/lib/types/menu';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
@@ -16,7 +16,9 @@ export class ChatMessageService {
     openaiApiKey: string,
     private embeddingService: OpenAIEmbeddingService
   ) {
-    this.openai = new OpenAI({ apiKey: openaiApiKey });
+    this.openai = new OpenAI({ 
+      apiKey: openaiApiKey
+    });
   }
 
   private startTyping(): void {
@@ -88,8 +90,7 @@ export class ChatMessageService {
           query_embedding: msgEmbedding,
           match_threshold: 0.3,
           match_count: 10
-        })
-        .eq('is_available', true);
+        });
 
       console.log('🍽️ Items similares encontrados:', similarItems?.length || 0);
       console.log('🔍 Semántica:', similarItems?.map((i: { name: string; similarity?: number; distance?: number }) => ({
@@ -261,12 +262,12 @@ ${candidatesBlock}`
 
       // 3.6 Llamada a GPT con function_call auto y DOS funciones
       const resp = await this.openai.chat.completions.create({
-        model: CHAT_CONFIG.model,
+        model: CHAT_CONFIG.entityExtractionModel,
         messages,
         functions: [recommendDishesFn, getProductDetailsFn],
         function_call: "auto",
-        temperature: CHAT_CONFIG.temperature,
-        max_tokens: 1000,
+        temperature: CHAT_CONFIG.entityExtractionTemperature,
+        max_tokens: CHAT_CONFIG.maxTokensExtraction,
         top_p: CHAT_CONFIG.topP,
         presence_penalty: CHAT_CONFIG.presencePenalty
       });
@@ -434,10 +435,10 @@ ${candidatesBlock}`
           console.log('🤖 Mensajes para explicación:', JSON.stringify(followupMessages, null, 2));
 
           const followup = await this.openai.chat.completions.create({
-            model: CHAT_CONFIG.model,
+            model: CHAT_CONFIG.entityExtractionModel,
             messages: followupMessages,
-            temperature: CHAT_CONFIG.temperature,
-            max_tokens: 300
+            temperature: CHAT_CONFIG.entityExtractionTemperature,
+            max_tokens: CHAT_CONFIG.maxTokensExtraction
           });
 
           console.log('📝 Explicación generada:', followup.choices[0].message?.content);
