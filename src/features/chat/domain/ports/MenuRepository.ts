@@ -1,6 +1,7 @@
 import { MenuItem, ModifierOption } from '../types';
 import { WeatherContext } from '../types/WeatherContext';
 import { Filters } from '../entities/Filters';
+import { Slot } from '../entities/Slot';
 
 export interface MenuRepository {
   /**
@@ -19,5 +20,13 @@ export interface MenuRepository {
    */
   getModifiers(itemId: string): Promise<ModifierOption[]>;
 
+  /**
+   * Obtiene los ítems de menú para un slot específico
+   */
   getMenuItems(slotId: string, filters: Filters): Promise<MenuItem[]>;
+
+  /**
+   * Obtiene el slot actual basado en la hora del día
+   */
+  getCurrentSlot(): Promise<Slot | null>;
 } 

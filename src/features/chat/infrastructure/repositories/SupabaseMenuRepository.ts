@@ -2,6 +2,7 @@ import { MenuRepository } from '@/features/chat/domain/ports/MenuRepository';
 import { MenuItem, Modifier, ModifierOption } from '@/features/chat/domain/types';
 import { WeatherContext } from '@/features/chat/domain/types/WeatherContext';
 import { Filters } from '@/features/chat/domain/entities/Filters';
+import { Slot } from '@/features/chat/domain/entities/Slot';
 import { createClient } from '@supabase/supabase-js';
 
 interface SlotMenuItem {
@@ -175,6 +176,38 @@ export class SupabaseMenuRepository implements MenuRepository {
     } catch (error) {
       console.error('Error getting menu items:', error);
       throw new Error('Error getting menu items');
+    }
+  }
+
+  async getCurrentSlot(): Promise<Slot | null> {
+    try {
+      const now = new Date();
+      const currentTime = now.toTimeString().split(' ')[0]; // HH:MM:SS format
+
+      const { data, error } = await this.supabase
+        .from('slots')
+        .select('*')
+        .lte('start_time', currentTime)
+        .gte('end_time', currentTime)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No slot found for current time
+          return null;
+        }
+        throw error;
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        startTime: data.start_time,
+        endTime: data.end_time
+      };
+    } catch (error) {
+      console.error('Error getting current slot:', error);
+      throw new Error('Error getting current slot');
     }
   }
 } 

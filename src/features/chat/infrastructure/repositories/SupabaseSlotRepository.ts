@@ -6,11 +6,14 @@ export class SupabaseSlotRepository implements SlotRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
   async getSlotByTime(time: Date): Promise<Slot | null> {
+    // Convertir la hora actual a formato HH:MM:SS
+    const currentTime = time.toTimeString().split(' ')[0];
+
     const { data, error } = await this.supabase
       .from('slots')
       .select('*')
-      .lte('start_time', time.toISOString())
-      .gte('end_time', time.toISOString())
+      .lte('start_time', currentTime)
+      .gte('end_time', currentTime)
       .single();
 
     if (error) {
@@ -21,8 +24,8 @@ export class SupabaseSlotRepository implements SlotRepository {
     return new SlotImpl(
       data.id,
       data.name,
-      new Date(data.start_time),
-      new Date(data.end_time)
+      new Date(`1970-01-01T${data.start_time}`),
+      new Date(`1970-01-01T${data.end_time}`)
     );
   }
 
@@ -40,8 +43,8 @@ export class SupabaseSlotRepository implements SlotRepository {
     return data.map(slot => new SlotImpl(
       slot.id,
       slot.name,
-      new Date(slot.start_time),
-      new Date(slot.end_time)
+      new Date(`1970-01-01T${slot.start_time}`),
+      new Date(`1970-01-01T${slot.end_time}`)
     ));
   }
 
@@ -60,8 +63,8 @@ export class SupabaseSlotRepository implements SlotRepository {
     return new SlotImpl(
       data.id,
       data.name,
-      new Date(data.start_time),
-      new Date(data.end_time)
+      new Date(`1970-01-01T${data.start_time}`),
+      new Date(`1970-01-01T${data.end_time}`)
     );
   }
 } 

@@ -1,22 +1,32 @@
 import { MenuItem } from '../entities/MenuItem';
 import { MenuCombo } from '../entities/MenuCombo';
 import { Filters, Slot } from '../entities';
-import { WeatherContext } from '../entities/WeatherContext';
-import { MenuRepository } from '../ports';
+import { WeatherContext } from '../types/WeatherContext';
+import { MenuRepository, RecommendationService as IRecommendationService } from '../ports';
 
-export class RecommendationService {
+export class RecommendationService implements IRecommendationService {
   constructor(private readonly menuRepository: MenuRepository) {}
 
   /**
-   * Obtiene y rankea ítems de menú para un slot dado,
-   * aplicando filtros de dominio y clima.
+   * Obtiene recomendaciones de ítems de menú para una sesión
    */
-  async getRecommendations(filters: Filters, slot: Slot | null): Promise<MenuItem[]> {
+  async getRecommendations(sessionId: string, filters?: Filters): Promise<MenuItem[]> {
+    // Por ahora, devolvemos recomendaciones basadas en el slot actual
+    const slot = await this.menuRepository.getCurrentSlot();
     if (!slot) {
       return [];
     }
 
-    return this.menuRepository.getMenuItems(slot.id, filters);
+    return this.menuRepository.getMenuItems(slot.id, filters || {});
+  }
+
+  /**
+   * Obtiene combos sugeridos para una sesión
+   */
+  async getCombos(sessionId: string): Promise<MenuCombo[]> {
+    // Por ahora, devolvemos un array vacío
+    // TODO: Implementar lógica de combos basada en el historial de la sesión
+    return [];
   }
 
   /**

@@ -1,6 +1,11 @@
+import { ChatSession } from './ChatSession';
+import { Message } from './Message';
+import { MenuItem } from './MenuItem';
+import { MenuCombo } from './MenuCombo';
+
 export interface AssistantResponse {
-  sessionId: string;
-  message: string;
-  recommendations?: string[];
-  combos?: string[];
+  session: ChatSession;
+  message: Message;
+  recommendations: MenuItem[];
+  combos: MenuCombo[];
 } 

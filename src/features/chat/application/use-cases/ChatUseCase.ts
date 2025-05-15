@@ -64,7 +64,7 @@ export class ChatUseCase {
       console.log('Sesión obtenida/creada:', session);
 
       // 2. Guardar mensaje del usuario
-      await this.chatRepository.saveMessage(session.id, request.message, 'user');
+      const userMessage = await this.chatRepository.saveMessage(session.id, request.message, 'user');
 
       // 3. Obtener historial de mensajes
       const messageHistory = await this.chatRepository.getMessageHistory(session.id);
@@ -77,13 +77,17 @@ export class ChatUseCase {
       const response = await this.generateResponse(request.message, messageContext);
 
       // 6. Guardar respuesta del asistente
-      await this.chatRepository.saveMessage(session.id, response, 'ai');
+      const aiMessage = await this.chatRepository.saveMessage(session.id, response, 'ai');
+
+      // 7. Obtener recomendaciones y combos
+      const recommendations = await this.recommendationService.getRecommendations(session.id);
+      const combos = await this.recommendationService.getCombos(session.id);
 
       return {
-        type: 'assistant_text',
-        data: {
-          text: response
-        }
+        session,
+        message: aiMessage,
+        recommendations,
+        combos
       };
     } catch (error) {
       console.error('Error en ChatUseCase:', error);
