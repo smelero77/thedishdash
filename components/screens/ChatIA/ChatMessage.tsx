@@ -1,4 +1,7 @@
-import { ChatMessageProps, AssistantResponse } from './types';
+import { ChatMessageProps } from './types';
+import { AssistantResponse, Recommendation } from '@/lib/chat/types/response.types';
+import { SYSTEM_MESSAGE_TYPES } from '@/lib/chat/constants/config';
+import { ReactNode } from 'react';
 
 function getInitials(name: string) {
   const words = name.split(' ');
@@ -8,38 +11,55 @@ function getInitials(name: string) {
   return (name[0] + (name[1] || name[0])).toUpperCase();
 }
 
-function renderContent(content: string | AssistantResponse) {
+function renderContent(content: string | AssistantResponse): ReactNode {
   if (typeof content === 'string') {
     return <p className="text-sm leading-relaxed">{content}</p>;
   }
 
+  const recommendations = content.recommendations || [];
+  const clarificationPoints = content.clarification_points || [];
+
   switch (content.type) {
-    case 'assistant_text':
-      return <p className="text-sm leading-relaxed">{content.content}</p>;
-    case 'recommendations':
+    case SYSTEM_MESSAGE_TYPES.RECOMMENDATION:
       return (
         <div className="space-y-2">
-          {content.data.map((rec: any, index: number) => (
+          {recommendations.map((rec: Recommendation, index: number) => (
             <div key={index} className="bg-white/10 rounded-lg p-2">
-              <p className="font-bold">{rec.name}</p>
-              <p className="text-sm">{rec.description}</p>
-              <p className="text-sm text-[#1ce3cf]">{rec.price}€</p>
+              <p className="font-bold">{rec.menu_item_id}</p>
+              <p className="text-sm">{rec.reason}</p>
+              <p className="text-sm text-[#1ce3cf]">Match: {Math.round(rec.match_score * 100)}%</p>
             </div>
           ))}
+          <p className="text-sm leading-relaxed">{content.content}</p>
         </div>
       );
-    case 'product_details':
+    case SYSTEM_MESSAGE_TYPES.CLARIFICATION:
       return (
         <div className="space-y-2">
-          <div className="bg-white/10 rounded-lg p-2">
-            <p className="font-bold">{content.data.item.name}</p>
-            <p className="text-sm">{content.data.explanation}</p>
-            <p className="text-sm text-[#1ce3cf]">{content.data.item.price}€</p>
-          </div>
+          <p className="text-sm leading-relaxed">{content.content}</p>
+          {clarificationPoints.length > 0 && (
+            <div className="mt-2">
+              <p className="text-sm font-semibold">Puedes:</p>
+              <ul className="list-disc list-inside text-sm">
+                {clarificationPoints.map((point: string, index: number) => (
+                  <li key={index}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    case SYSTEM_MESSAGE_TYPES.ERROR:
+      return (
+        <div className="space-y-2">
+          <p className="text-sm leading-relaxed text-red-500">{content.content}</p>
+          {content.error && content.error.message && (
+            <p className="text-xs text-red-400">Error: {content.error.message}</p>
+          )}
         </div>
       );
     default:
-      return <p className="text-sm leading-relaxed">Lo siento, no pude procesar esta respuesta.</p>;
+      return <p className="text-sm leading-relaxed">{content.content}</p>;
   }
 }
 

@@ -1,14 +1,7 @@
 import { supabase } from '../supabase';
-import { ChatMessage } from '../llm/generateResponse';
-
-export interface ChatSession {
-  id: string;
-  table_id: string;
-  customer_id: string;
-  messages: ChatMessage[];
-  created_at: string;
-  updated_at: string;
-}
+import { ChatSession, ChatSessionSchema } from '../chat/types/session.types';
+import { ConversationTurn } from '../chat/types/response.types';
+import { CHAT_SESSION_STATES } from '../chat/constants/config';
 
 export async function getOrCreateChatSession(
   tableId: string,
@@ -17,10 +10,10 @@ export async function getOrCreateChatSession(
   try {
     // Intentar obtener una sesión existente
     const { data: existingSession, error: fetchError } = await supabase
-      .from('gpt_chat_sessions')
+      .from('sessions')
       .select('*')
-      .eq('table_id', tableId)
-      .eq('customer_id', customerId)
+      .eq('alias_mesa', tableId)
+      .eq('cliente_id', customerId)
       .single();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
@@ -28,17 +21,24 @@ export async function getOrCreateChatSession(
     }
 
     if (existingSession) {
-      return existingSession;
+      return ChatSessionSchema.parse(existingSession);
     }
 
     // Crear una nueva sesión si no existe
-    const { data: newSession, error: createError } = await supabase
-      .from('gpt_chat_sessions')
-      .insert({
-        table_id: tableId,
-        customer_id: customerId,
-        messages: []
-      })
+    const newSession = {
+      alias_mesa: tableId,
+      cliente_id: customerId,
+      started_at: new Date(),
+      last_active: new Date(),
+      created_at: new Date(),
+      updated_at: new Date(),
+      state: CHAT_SESSION_STATES.INITIAL,
+      conversation_history: []
+    };
+
+    const { data: createdSession, error: createError } = await supabase
+      .from('sessions')
+      .insert(newSession)
       .select()
       .single();
 
@@ -46,7 +46,7 @@ export async function getOrCreateChatSession(
       throw createError;
     }
 
-    return newSession;
+    return ChatSessionSchema.parse(createdSession);
   } catch (error) {
     console.error('Error en getOrCreateChatSession:', error);
     throw error;
@@ -55,19 +55,32 @@ export async function getOrCreateChatSession(
 
 export async function addMessageToSession(
   sessionId: string,
-  message: ChatMessage
+  message: ConversationTurn
 ): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('gpt_chat_sessions')
+    const { data: session, error: fetchError } = await supabase
+      .from('sessions')
+      .select('conversation_history')
+      .eq('id', sessionId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    const updatedHistory = [...(session.conversation_history || []), message];
+
+    const { error: updateError } = await supabase
+      .from('sessions')
       .update({
-        messages: supabase.raw('messages || ?', [message]),
-        updated_at: new Date().toISOString()
+        conversation_history: updatedHistory,
+        last_active: new Date(),
+        updated_at: new Date()
       })
       .eq('id', sessionId);
 
-    if (error) {
-      throw error;
+    if (updateError) {
+      throw updateError;
     }
   } catch (error) {
     console.error('Error en addMessageToSession:', error);
@@ -75,11 +88,11 @@ export async function addMessageToSession(
   }
 }
 
-export async function getSessionHistory(sessionId: string): Promise<ChatMessage[]> {
+export async function getSessionHistory(sessionId: string): Promise<ConversationTurn[]> {
   try {
     const { data, error } = await supabase
-      .from('gpt_chat_sessions')
-      .select('messages')
+      .from('sessions')
+      .select('conversation_history')
       .eq('id', sessionId)
       .single();
 
@@ -87,9 +100,39 @@ export async function getSessionHistory(sessionId: string): Promise<ChatMessage[
       throw error;
     }
 
-    return data.messages || [];
+    return data.conversation_history || [];
   } catch (error) {
     console.error('Error en getSessionHistory:', error);
+    throw error;
+  }
+}
+
+export async function updateSessionState(
+  sessionId: string,
+  state: typeof CHAT_SESSION_STATES[keyof typeof CHAT_SESSION_STATES],
+  filters?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const updateData: Partial<ChatSession> = {
+      state,
+      last_active: new Date(),
+      updated_at: new Date()
+    };
+
+    if (filters) {
+      updateData.current_filters = filters;
+    }
+
+    const { error } = await supabase
+      .from('sessions')
+      .update(updateData)
+      .eq('id', sessionId);
+
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error en updateSessionState:', error);
     throw error;
   }
 } 

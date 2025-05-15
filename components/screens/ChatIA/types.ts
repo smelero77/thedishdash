@@ -1,14 +1,10 @@
+import { AssistantResponse as BackendAssistantResponse } from '@/lib/chat/types/response.types';
+
 export interface Message {
   id: string;
-  content: string | AssistantResponse;
+  content: string | BackendAssistantResponse;
   role: 'guest' | 'assistant';
   timestamp: Date;
-}
-
-export interface AssistantResponse {
-  type: 'assistant_text' | 'recommendations' | 'product_details';
-  content?: string;
-  data?: any;
 }
 
 export interface ChatIAProps {

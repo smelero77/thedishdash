@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ChatSessionService } from './services/session.service';
+import { ChatSessionService } from './services/ChatSessionService';
 import { ChatMessageService } from './services/message.service';
 import { OpenAIEmbeddingService } from '../embeddings/services/openai.service';
 import { CHAT_CONFIG } from './constants/config';
@@ -8,7 +8,7 @@ import type { AssistantResponse } from './types/response.types';
 import type { ChatSession, SessionResponse } from './types/session.types';
 import { ExtractedFilters } from './types/extractedFilters.types';
 
-export { ChatSessionService } from './services/session.service';
+export { ChatSessionService } from './services/ChatSessionService';
 export { ChatMessageService } from './services/message.service';
 export type { AssistantResponse } from './types/response.types';
 export type { ChatSession } from './types/session.types';
@@ -24,7 +24,7 @@ export class ChatService {
     embeddingConfig: any
   ) {
     this.embeddingService = new OpenAIEmbeddingService(openaiApiKey, embeddingConfig);
-    this.sessionService = new ChatSessionService();
+    this.sessionService = ChatSessionService.getInstance();
     this.messageService = new ChatMessageService(
       openaiApiKey,
       this.embeddingService
@@ -46,15 +46,32 @@ export class ChatService {
    */
   public async createSession(tableNumber: string, customerId: string): Promise<SessionResponse> {
     try {
-      // TODO: Implementar creación de sesión
-      throw new Error('Not implemented');
+      const session = await this.sessionService.create(tableNumber, customerId, {
+        timeOfDay: this.getTimeOfDay()
+      });
+
+      return {
+        success: true,
+        sessionId: session.id,
+        state: {
+          currentState: session.state,
+          filters: { main_query: '' },
+          conversationHistory: session.conversation_history || []
+        },
+        metadata: {
+          tableNumber: session.alias_mesa,
+          timeOfDay: this.getTimeOfDay(),
+          lastActive: new Date(session.last_active),
+          sessionDuration: 0
+        }
+      };
     } catch (error) {
       return {
         success: false,
         sessionId: '',
         state: {
           currentState: 'error',
-          filters: { main_query: '' }, // Valor por defecto requerido
+          filters: { main_query: '' },
           conversationHistory: []
         },
         metadata: {
@@ -102,15 +119,39 @@ export class ChatService {
     filters: ExtractedFilters
   ): Promise<SessionResponse> {
     try {
-      // TODO: Implementar actualización de filtros
-      throw new Error('Not implemented');
+      const session = await this.sessionService.get(sessionId);
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
+      const updatedSession = await this.sessionService.updateState(sessionId, {
+        currentState: session.state,
+        filters,
+        conversationHistory: session.conversation_history || []
+      });
+
+      return {
+        success: true,
+        sessionId: updatedSession.id,
+        state: {
+          currentState: updatedSession.state,
+          filters: updatedSession.current_filters as ExtractedFilters || { main_query: '' },
+          conversationHistory: updatedSession.conversation_history || []
+        },
+        metadata: {
+          tableNumber: updatedSession.alias_mesa,
+          timeOfDay: this.getTimeOfDay(),
+          lastActive: new Date(updatedSession.last_active),
+          sessionDuration: this.calculateSessionDuration(updatedSession.started_at)
+        }
+      };
     } catch (error) {
       return {
         success: false,
         sessionId,
         state: {
           currentState: 'error',
-          filters: { main_query: '' }, // Valor por defecto requerido
+          filters: { main_query: '' },
           conversationHistory: []
         },
         metadata: {
@@ -132,8 +173,24 @@ export class ChatService {
    */
   public async getSessionState(sessionId: string): Promise<ChatSession | null> {
     try {
-      // TODO: Implementar obtención de estado de sesión
-      throw new Error('Not implemented');
+      const session = await this.sessionService.get(sessionId);
+      if (!session) {
+        return null;
+      }
+
+      return {
+        id: session.id,
+        alias_mesa: session.alias_mesa,
+        cliente_id: session.cliente_id,
+        started_at: new Date(session.started_at),
+        last_active: new Date(session.last_active),
+        created_at: new Date(session.created_at),
+        updated_at: new Date(session.updated_at),
+        system_context: session.system_context,
+        state: session.state,
+        current_filters: session.current_filters,
+        conversation_history: session.conversation_history
+      };
     } catch (error) {
       console.error('Error getting session state:', error);
       return null;
@@ -145,12 +202,21 @@ export class ChatService {
    */
   public async closeSession(sessionId: string): Promise<boolean> {
     try {
-      // TODO: Implementar cierre de sesión
-      throw new Error('Not implemented');
+      await this.sessionService.close(sessionId);
+      return true;
     } catch (error) {
       console.error('Error closing session:', error);
       return false;
     }
+  }
+
+  /**
+   * Calcula la duración de una sesión en minutos
+   */
+  private calculateSessionDuration(startTime: string | Date): number {
+    const start = new Date(startTime);
+    const now = new Date();
+    return Math.floor((now.getTime() - start.getTime()) / (1000 * 60));
   }
 
   /**

@@ -4,6 +4,8 @@ import { ChatIAProps, Message } from './types';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { v4 as uuidv4 } from 'uuid';
+import { AssistantResponse } from '@/lib/chat/types/response.types';
+import { SYSTEM_MESSAGE_TYPES } from '@/lib/chat/constants/config';
 import './animations.css';
 
 export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
@@ -23,7 +25,7 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
         {
           id: Date.now().toString(),
           content: {
-            type: 'assistant_text',
+            type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
             content: `¡Hola ${alias}! Soy Don Gourmetón, ¿en qué puedo ayudarte hoy?`
           },
           role: 'assistant',
@@ -105,12 +107,18 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
 
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Asegurarse de que la respuesta tenga el formato correcto de AssistantResponse
+      const assistantResponse: AssistantResponse = {
+        type: data.type || SYSTEM_MESSAGE_TYPES.CLARIFICATION,
+        content: data.content || data.response || 'Lo siento, no pude procesar tu mensaje.',
+        ...(data.recommendations && { recommendations: data.recommendations }),
+        ...(data.clarification_points && { clarification_points: data.clarification_points }),
+        ...(data.error && { error: data.error })
+      };
+
       const assistantMessage: Message = {
         id: Date.now().toString(),
-        content: {
-          type: 'assistant_text',
-          content: data.response
-        },
+        content: assistantResponse,
         role: 'assistant',
         timestamp: new Date(),
       };
@@ -121,8 +129,12 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
       const errorMessage: Message = {
         id: Date.now().toString(),
         content: {
-          type: 'assistant_text',
-          content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.'
+          type: SYSTEM_MESSAGE_TYPES.ERROR,
+          content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.',
+          error: {
+            code: 'CHAT_ERROR',
+            message: error instanceof Error ? error.message : 'Error desconocido'
+          }
         },
         role: 'assistant',
         timestamp: new Date(),
@@ -198,12 +210,18 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
         <div 
           ref={messagesContainerRef}
           className={`
-            absolute top-16 bottom-20 left-0 right-0 
-            overflow-y-auto px-4 py-4 space-y-4
-            custom-scrollbar
-            ${isOpen ? 'slide-in' : ''}
+            absolute top-16 bottom-20 left-0 right-0
+            overflow-y-auto px-4 py-6
+            scrollbar-thin scrollbar-thumb-[#1ce3cf]/40 scrollbar-track-transparent
+            touch-pan-y overscroll-contain
+            -webkit-overflow-scrolling: touch
+            [&::-webkit-scrollbar]:w-2
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb]:bg-[#1ce3cf]/40
+            [&::-webkit-scrollbar-track]:bg-transparent
+            [&::-webkit-scrollbar-track]:rounded-full
+            [&::-webkit-scrollbar-track]:my-2
           `}
-          onScroll={handleScroll}
         >
           {messages.map((message) => (
             <ChatMessage key={message.id} message={message} alias={alias} />
@@ -227,7 +245,7 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
         {showScrollButton && (
           <button
             onClick={scrollToBottom}
-            className="fixed bottom-24 right-4 p-4 rounded-full bg-[#11c9b7] text-white shadow-lg active:scale-95 active:bg-[#11c9b7]/90 transition-all duration-200 z-10 touch-manipulation"
+            className="fixed bottom-24 right-4 p-4 rounded-full bg-[#1ce3cf] text-white shadow-lg hover:bg-[#1ce3cf]/90 active:scale-95 transition-all duration-200 z-10 touch-manipulation"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <ArrowDown className="h-6 w-6" />
@@ -235,7 +253,7 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
         )}
 
         {/* Input */}
-        <div className={`absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#f5fefe] to-transparent dark:from-[#0f1b1a] dark:to-transparent ${isOpen ? 'slide-in' : ''}`}>
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-[#f5fefe] dark:bg-[#0f1b1a] border-t border-[#c7f0ec]/30">
           <ChatInput onSend={handleSend} isLoading={isLoading} alias={alias} />
         </div>
       </div>

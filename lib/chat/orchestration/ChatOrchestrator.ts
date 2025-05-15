@@ -13,7 +13,7 @@ import { MenuItem } from '@/lib/types/menu';
 import { ChatSession } from '../types/session.types';
 import { RpcFilterParameters } from '../types/extractedFilters.types';
 import { RECOMMENDATION_SYSTEM_CONTEXT } from '../constants/prompts';
-import { CHAT_CONFIG, SYSTEM_MESSAGE_TYPES } from '../constants/config';
+import { CHAT_CONFIG, SYSTEM_MESSAGE_TYPES, CHAT_SESSION_STATES } from '../constants/config';
 import { recommendDishesFn, getProductDetailsFn } from '../constants/functions';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { ChatSessionService } from '../services/ChatSessionService';
@@ -135,6 +135,12 @@ export class ChatOrchestrator {
     try {
       // Validación inicial del mensaje
       if (userMessage.trim().length < 3) {
+        await this.chatSessionService.updateState(session.id, {
+          currentState: CHAT_SESSION_STATES.COLLECTING_PREFERENCES,
+          filters: { main_query: userMessage.trim() },
+          conversationHistory: session.conversation_history || []
+        });
+
         return { 
           type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
           content: "Por favor, describe un poco más lo que te apetece.",
@@ -158,6 +164,13 @@ export class ChatOrchestrator {
         )
       );
 
+      // Actualizar estado a RECOMMENDING después de extraer filtros
+      await this.chatSessionService.updateState(session.id, {
+        currentState: CHAT_SESSION_STATES.RECOMMENDING,
+        filters: extractedFilters,
+        conversationHistory: session.conversation_history || []
+      });
+
       // ETAPA 2: Búsqueda Semántica con Filtros Mapeados
       let searchedItems = await this.withCircuitBreaker(() =>
         this.withTimeout(
@@ -171,6 +184,13 @@ export class ChatOrchestrator {
         const hasActiveFilters = Object.values(rpcMappedParams).some(
           val => val !== null && val !== undefined && (!Array.isArray(val) || val.length > 0)
         );
+
+        // Volver a COLLECTING_PREFERENCES si no hay resultados
+        await this.chatSessionService.updateState(session.id, {
+          currentState: CHAT_SESSION_STATES.COLLECTING_PREFERENCES,
+          filters: extractedFilters,
+          conversationHistory: session.conversation_history || []
+        });
 
         return {
           type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
@@ -188,6 +208,13 @@ export class ChatOrchestrator {
       const finalCandidates = await this.candidateProcessor.processCandidates(searchedItems, rawCartItems);
 
       if (finalCandidates.length === 0) {
+        // Volver a COLLECTING_PREFERENCES si no hay candidatos finales
+        await this.chatSessionService.updateState(session.id, {
+          currentState: CHAT_SESSION_STATES.COLLECTING_PREFERENCES,
+          filters: extractedFilters,
+          conversationHistory: session.conversation_history || []
+        });
+
         return {
           type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
           content: "Parece que los artículos que coinciden ya están en tu carrito o no hay más opciones con esos filtros.",
@@ -198,6 +225,13 @@ export class ChatOrchestrator {
       // ETAPA 4: Construcción de Contexto y Generación de Recomendación
       const cartContext = this.contextBuilder.buildCartContext(rawCartItems);
       const candidatesBlock = this.contextBuilder.buildCandidatesContextBlock(finalCandidates);
+
+      // Actualizar estado a CONFIRMING antes de generar recomendaciones
+      await this.chatSessionService.updateState(session.id, {
+        currentState: CHAT_SESSION_STATES.CONFIRMING,
+        filters: extractedFilters,
+        conversationHistory: session.conversation_history || []
+      });
 
       const messagesForRecommendationAI: ChatCompletionMessageParam[] = [
         { role: 'system', content: RECOMMENDATION_SYSTEM_CONTEXT },
@@ -218,6 +252,7 @@ export class ChatOrchestrator {
         const now = new Date();
         await this.chatSessionService.update(session.id, {
           conversation_history: [
+            ...session.conversation_history || [],
             { role: 'user', content: userMessage, timestamp: now },
             { role: 'assistant', content: String(assistantResponse.content), timestamp: now }
           ]
@@ -236,6 +271,7 @@ export class ChatOrchestrator {
       const now = new Date();
       await this.chatSessionService.update(session.id, {
         conversation_history: [
+          ...session.conversation_history || [],
           { role: 'user', content: userMessage, timestamp: now },
           { role: 'assistant', content: String(response.content), timestamp: now }
         ]
@@ -244,10 +280,21 @@ export class ChatOrchestrator {
       return response;
 
     } catch (error: any) {
-      this.logger.error('[ChatOrchestrator] Error en processUserMessage:', error.message, error.stack);
+      // Actualizar estado a ERROR en caso de error
+      await this.chatSessionService.updateState(session.id, {
+        currentState: CHAT_SESSION_STATES.ERROR,
+        filters: { main_query: userMessage.trim() },
+        conversationHistory: session.conversation_history || []
+      });
+
+      this.logger.error('[ChatOrchestrator] Error procesando mensaje:', error);
       return {
         type: SYSTEM_MESSAGE_TYPES.ERROR,
-        content: "Hubo un problema procesando tu solicitud. Por favor, inténtalo más tarde."
+        content: "Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo.",
+        error: {
+          code: 'PROCESSING_ERROR',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        }
       };
     }
   }
