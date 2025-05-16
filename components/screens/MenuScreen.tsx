@@ -405,7 +405,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
       <ChatIA
         isOpen={showChatModal}
         onClose={() => setShowChatModal(false)}
-        alias={alias ?? 'Cliente'}
+        userAlias={alias ?? 'Cliente'}
       />
 
       <style jsx global>{`

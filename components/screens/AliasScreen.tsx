@@ -58,7 +58,7 @@ export default function AliasScreen() {
     
     // Guardar el alias en localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem('gourmeton_client_alias', alias.trim())
+      localStorage.setItem('customerAlias', alias.trim())
     }
     
     // Redirigir al menú

@@ -57,6 +57,11 @@ export async function POST(request: Request) {
     if (!session) {
       console.log('Sesión no encontrada, creando nueva:', sid);
       try {
+        console.log('[API /chat] Valores para creación de sesión:', {
+          tableNumberInt, 
+          userAlias, 
+          sessionId: sid 
+        });
         session = await chatSessionService.create(
           tableNumberInt,
           userAlias,
