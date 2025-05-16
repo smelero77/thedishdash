@@ -335,12 +335,17 @@ export class ChatMessageService {
           Contexto de la conversación reciente:
           ${lastTurns.map(turn => `${turn.role}: ${turn.content}`).join('\n')}
           
+          IMPORTANTE: Solo puedes recomendar platos de esta lista exacta de candidatos disponibles:
+          ${candidates.map((item: MenuItem & { category_info: {id:string,name:string}[] }) => `ID: ${item.id} - ${item.name}`).join('\n')}
+          
           Instrucciones:
-          1. Si el usuario rechaza recomendaciones ("no me gustan estos", "dame otros"), evita sugerir los mismos platos.
-          2. Mantén un tono amigable y profesional.
-          3. Haz preguntas específicas para entender mejor las preferencias del usuario.
-          4. Sugiere combinaciones de platos cuando sea apropiado.
-          5. Menciona características especiales de los platos (ej. "sin gluten", "vegetariano").`
+          1. Si el usuario pide recomendaciones o menciona "desayunar", SIEMPRE usa la función recommend_dishes.
+          2. Si el usuario rechaza recomendaciones ("no me gustan estos", "dame otros"), evita sugerir los mismos platos.
+          3. Mantén un tono amigable y profesional.
+          4. Haz preguntas específicas para entender mejor las preferencias del usuario.
+          5. Sugiere combinaciones de platos cuando sea apropiado.
+          6. Menciona características especiales de los platos (ej. "sin gluten", "vegetariano").
+          7. DEBES usar EXACTAMENTE los IDs proporcionados en la lista de candidatos. NO inventes IDs.`
         },
         {
           role: 'user',
@@ -353,7 +358,7 @@ export class ChatMessageService {
         model: OPENAI_CONFIG.model,
         messages,
         functions: [recommendDishesFn, getProductDetailsFn],
-        function_call: 'auto',
+        function_call: userMessage.toLowerCase().includes('desayunar') ? { name: 'recommend_dishes' } : 'auto',
         temperature: 0.7,
         max_tokens: 500
       });
@@ -432,37 +437,45 @@ export class ChatMessageService {
       const parsedArgs = JSON.parse(args);
 
       if (name === 'recommend_dishes') {
-        // Mapear los IDs de las recomendaciones a los items originales para obtener la información completa
-        const recommendations = parsedArgs.recommendations.map((rec: any) => {
-          const originalItem = originalItems?.find(item => item.id === rec.id);
-          if (!originalItem) {
-            console.warn('⚠️ Item original no encontrado:', rec.id);
-            return rec;
-          }
-          
+        // Filtrar solo las recomendaciones con IDs válidos
+        const validRecommendations = parsedArgs.recommendations
+          .map((rec: any) => {
+            const originalItem = originalItems?.find(item => item.id === rec.id);
+            if (!originalItem) {
+              console.warn('⚠️ Item original no encontrado:', rec.id);
+              return null;
+            }
+            
+            return {
+              id: rec.id,
+              name: originalItem.name,
+              price: originalItem.price,
+              reason: rec.reason,
+              image_url: originalItem.image_url || '/images/default-food.jpg',
+              category_info: originalItem.category_info
+            };
+          })
+          .filter(Boolean); // Eliminar recomendaciones nulas
+
+        if (validRecommendations.length === 0) {
           return {
-            id: rec.id,
-            name: rec.name,
-            price: originalItem.price,
-            reason: rec.reason,
-            image_url: originalItem.image_url || '/images/default-food.jpg',
-            category_info: originalItem.category_info
+            type: 'text',
+            content: 'Lo siento, no pude encontrar platos que coincidan con tus preferencias. ¿Podrías ser más específico sobre lo que buscas?'
           };
-        });
+        }
 
         return {
           type: 'recommendations',
           content: msg.content || '',
-          data: recommendations
+          data: validRecommendations
         };
       } else if (name === 'get_product_details') {
-        const originalItem = originalItems?.find(item => item.id === parsedArgs.product.id);
+        const originalItem = originalItems?.find(item => item.id === parsedArgs.product_id);
         if (!originalItem) {
-          console.warn('⚠️ Item original no encontrado para detalles:', parsedArgs.product.id);
+          console.warn('⚠️ Item original no encontrado para detalles:', parsedArgs.product_id);
           return {
-            type: 'product_details',
-            content: msg.content || '',
-            product: parsedArgs.product
+            type: 'text',
+            content: 'Lo siento, no pude encontrar los detalles del producto solicitado.'
           };
         }
 
@@ -476,7 +489,7 @@ export class ChatMessageService {
               price: originalItem.price,
               image_url: originalItem.image_url || '/images/default-food.jpg'
             },
-            explanation: parsedArgs.product.explanation
+            explanation: parsedArgs.explanation
           }
         };
       }

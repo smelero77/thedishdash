@@ -2,7 +2,7 @@ import { CHAT_CONFIG } from './config';
 
 export const recommendDishesFn = {
   name: "recommend_dishes",
-  description: "Elige 2–3 platos y devuelve también las categorías (id + nombre).",
+  description: "Elige 2–3 platos de la lista de candidatos proporcionada y explica por qué los recomiendas.",
   parameters: {
     type: "object",
     properties: {
@@ -11,24 +11,17 @@ export const recommendDishesFn = {
         items: {
           type: "object",
           properties: {
-            id: { type: "string", format: "uuid" },
-            name: { type: "string" },
-            price: { type: "number" },
-            reason: { type: "string" },
-            image_url: { type: "string" },
-            category_info: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  id: { type: "string", format: "uuid" },
-                  name: { type: "string" }
-                },
-                required: ["id", "name"]
-              }
+            id: { 
+              type: "string", 
+              format: "uuid",
+              description: "El ID EXACTO de un item de la lista de candidatos proporcionada en el contexto."
+            },
+            reason: { 
+              type: "string",
+              description: "La razón por la que este item es una buena recomendación para el usuario."
             }
           },
-          required: ["id", "name", "price", "reason", "image_url", "category_info"]
+          required: ["id", "reason"]
         }
       }
     },
