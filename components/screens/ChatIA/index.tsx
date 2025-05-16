@@ -4,11 +4,13 @@ import { ChatIAProps, Message } from './types';
 import { ChatMessage, TypedAssistantResponse } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { v4 as uuidv4 } from 'uuid';
-import { AssistantResponse } from '@/lib/chat/types/response.types';
+import { ChatResponse } from '@/lib/chat/types/response.types';
 import { SYSTEM_MESSAGE_TYPES } from '@/lib/chat/constants/config';
+import { useTable } from '@/context/TableContext';
 import './animations.css';
 
-export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
+export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) => {
+  const { tableNumber } = useTable();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -26,14 +28,14 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
           id: Date.now().toString(),
           content: {
             type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
-            content: `¡Hola ${alias}! Soy Don Gourmetón, ¿en qué puedo ayudarte hoy?`
+            content: `¡Hola ${userAlias}! Soy Don Gourmetón, ¿en qué puedo ayudarte hoy?`
           },
           role: 'assistant',
           timestamp: new Date(),
         },
       ]);
     }
-  }, [isOpen, alias]);
+  }, [isOpen, userAlias]);
 
   useEffect(() => {
     if (isOpen) {
@@ -99,7 +101,8 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
         body: JSON.stringify({
           message,
           sessionId: currentSessionIdToSend,
-          alias,
+          tableNumber,
+          userAlias,
         }),
       });
 
@@ -273,7 +276,7 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
           `}
         >
           {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} alias={alias} />
+            <ChatMessage key={message.id} message={message} alias={userAlias} />
           ))}
           {isTyping && (
             <div className="flex items-center space-x-3">
@@ -303,7 +306,7 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
 
         {/* Input */}
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-[#f5fefe] dark:bg-[#0f1b1a] border-t border-[#c7f0ec]/30">
-          <ChatInput onSend={handleSend} isLoading={isLoading} alias={alias} />
+          <ChatInput onSend={handleSend} isLoading={isLoading} alias={userAlias} />
         </div>
       </div>
     </div>

@@ -400,25 +400,31 @@ Esta documentación detalla la estructura de las tablas, sus campos y las relaci
 
 ## Tabla: `sessions`
 
-**Propósito:** Gestiona las sesiones de interacción de los usuarios/clientes con el sistema de The Dish Dash, posiblemente con el asistente de IA o el menú digital.
+**Propósito:** Gestiona las sesiones de interacción de los usuarios/clientes con el sistema de The Dish Dash, específicamente para el chat con el asistente de IA o el menú digital. Cada sesión representa una conversación única de un cliente en una mesa determinada.
 
-| Nombre Columna   | Tipo de Dato        | ¿Nulable? | Valor por Defecto   | UDT Name    | Descripción                                                                   |
-| :--------------- | :------------------ | :-------- | :------------------ | :---------- | :---------------------------------------------------------------------------- |
-| `id`             | `uuid`              | NO        | `gen_random_uuid()` | `uuid`      | Identificador único de la sesión.                                             |
-| `alias_mesa`     | `text`              | NO        | `null`              | `text`      | Alias o código de la mesa asociada a la sesión.                               |
-| `cliente_id`     | `uuid`              | NO        | `null`              | `uuid`      | Identificador del cliente (podría ser el `device_id` de `customer_aliases`).  |
-| `started_at`     | `timestamp with time zone` | SÍ        | `now()`             | `timestamptz` | Fecha y hora de inicio de la sesión.                                          |
-| `last_active`    | `timestamp with time zone` | SÍ        | `now()`             | `timestamptz` | Fecha y hora de la última actividad en la sesión.                             |
-| `created_at`     | `timestamp with time zone` | SÍ        | `now()`             | `timestamptz` | Fecha y hora de creación del registro de sesión.                              |
-| `updated_at`     | `timestamp with time zone` | SÍ        | `now()`             | `timestamptz` | Fecha y hora de la última actualización del registro de sesión.               |
-| `system_context` | `text`              | SÍ        | `null`              | `text`      | Contexto del sistema para la IA (ej. "Eres un camarero virtual de The Dish Dash...").|
-| `menu_items`     | `jsonb`             | SÍ        | `null`              | `jsonb`     | Estado actual de los ítems seleccionados o en carrito para esta sesión (no confirmado).|
-| `time_of_day`    | `text`              | SÍ        | `null`              | `text`      | Parte del día (ej. "Mañana", "Tarde", "Noche") para contextualizar.           |
+| Nombre Columna   | Tipo de Dato        | ¿Nulable? | Valor por Defecto   | UDT Name    | Descripción                                                                                     |
+| :--------------- | :------------------ | :-------- | :------------------ | :---------- | :---------------------------------------------------------------------------------------------- |
+| `id`             | `uuid`              | NO        | `gen_random_uuid()` | `uuid`      | Identificador único de la sesión de chat. Es la clave primaria.                               |
+| `table_number`   | `integer`           | NO        |                     | `int4`      | Número de la mesa física donde se está llevando a cabo la sesión de chat.                     |
+| `alias`          | `text`              | NO        |                     | `text`      | Alias textual del cliente/usuario que está participando en esta sesión de chat (ej. "ser", "ana"). |
+| `started_at`     | `timestamp with time zone` | SÍ        | `now()`             | `timestamptz` | Fecha y hora de inicio de la sesión.                                                            |
+| `updated_at`     | `timestamp with time zone` | SÍ        | `now()`             | `timestamptz` | Fecha y hora de la última actualización del registro de sesión (ej. por un nuevo mensaje).      |
+| `system_context` | `text`              | SÍ        | `null`              | `text`      | Contexto del sistema para la IA (ej. "Eres un camarero virtual de The Dish Dash...").          |
+| `menu_items`     | `jsonb`             | SÍ        | `null`              | `jsonb`     | Estado actual de los ítems seleccionados o en carrito para esta sesión de chat (no confirmado). |
+| `time_of_day`    | `text`              | SÍ        | `null`              | `text`      | Parte del día (ej. "Mañana", "Tarde", "Noche") para contextualizar la interacción.            |
 
 **Relaciones:**
 * **Referenciada por:**
-    * `messages.session_id` referencia a `sessions.id`
-* **Notas:** `cliente_id` podría referenciar a `customer_aliases.device_id` o `customer_aliases.alias`. `alias_mesa` podría referenciar a `table_codes.table_number` o un campo similar.
+    * `messages.session_id` referencia a `sessions.id` (Indica a qué sesión de chat pertenece cada mensaje).
+* **Notas:**
+    * `table_number` podría tener una relación conceptual o una clave foránea (no definida aquí) con una tabla `table_codes(table_number)` si existiera una tabla maestra de mesas.
+    * `alias` identifica al usuario en esta sesión. Podría relacionarse con `customer_aliases.alias` si se desea vincular estas sesiones de chat con un registro de cliente más persistente.
+    * Se recomienda un trigger en `updated_at` para que se actualice automáticamente con cada modificación de la fila.
+
+**Consideraciones de Unicidad (Importante para la lógica de la aplicación):**
+* La clave primaria es `id`, lo que garantiza que cada registro de sesión es único.
+* Para asegurar que un mismo cliente (`alias`) no tenga múltiples sesiones de chat activas y conflictivas en la misma mesa (`table_number`), la aplicación debe gestionar la creación o reutilización de sesiones.
+* Si se desea forzar a nivel de base de datos que solo exista una sesión activa por combinación de `table_number` y `alias`, se podría añadir una restricción `UNIQUE (table_number, alias)`. Esto dependerá de si se permite que un mismo alias en la misma mesa pueda tener varias conversaciones paralelas o si siempre se debe reutilizar la última activa.
 
 ---
 

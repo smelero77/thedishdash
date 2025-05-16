@@ -36,11 +36,9 @@ export const ConversationHistorySchema = z.array(
 // Esquema para la sesión de chat
 export const ChatSessionSchema = z.object({
   id: z.string().uuid(),
-  alias_mesa: z.string(),
-  cliente_id: z.string().uuid(),
+  table_number: z.number(),
+  alias: z.string(),
   started_at: z.date(),
-  last_active: z.date(),
-  created_at: z.date(),
   updated_at: z.date(),
   system_context: z.string().nullable(),
   menu_items: z.record(z.unknown()).nullable(),

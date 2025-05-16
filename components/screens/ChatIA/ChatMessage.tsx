@@ -1,5 +1,5 @@
 import { ChatMessageProps } from './types';
-import { AssistantResponse } from '@/lib/chat/types/response.types';
+import { ChatResponse } from '@/lib/chat/types/response.types';
 import { SYSTEM_MESSAGE_TYPES } from '@/lib/chat/constants/config';
 import { ReactNode } from 'react';
 
@@ -26,6 +26,7 @@ export interface ErrorResponse {
   content: string;
   error: {
     message: string;
+    code?: string;
   };
 }
 

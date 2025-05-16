@@ -23,8 +23,8 @@ export class ChatSessionService {
    * Crea una nueva sesión de chat
    */
   public async create(
-    aliasMesa: string,
-    clienteId: string,
+    tableNumber: number,
+    userAlias: string,
     options: {
       timeOfDay?: string;
       lastActive?: Date;
@@ -34,8 +34,8 @@ export class ChatSessionService {
   ): Promise<ChatSession> {
     try {
       console.log('Creando/actualizando sesión:', {
-        aliasMesa,
-        clienteId,
+        tableNumber,
+        userAlias,
         options,
         sessionId
       });
@@ -58,10 +58,8 @@ export class ChatSessionService {
           const { data: updatedSession, error: updateError } = await supabase
             .from('sessions')
             .update({
-              alias_mesa: aliasMesa,
-              cliente_id: clienteId,
-              last_active: options.lastActive || new Date(),
-              time_of_day: options.timeOfDay,
+              table_number: tableNumber,
+              alias: userAlias,
               updated_at: new Date()
             })
             .eq('id', sessionId)
@@ -85,14 +83,10 @@ export class ChatSessionService {
       const newSessionId = sessionId || uuidv4();
       const newSession = {
         id: newSessionId,
-        alias_mesa: aliasMesa,
-        cliente_id: clienteId,
+        table_number: tableNumber,
+        alias: userAlias,
         started_at: new Date(),
-        last_active: options.lastActive || new Date(),
-        created_at: new Date(),
-        updated_at: new Date(),
-        time_of_day: options.timeOfDay,
-        system_context: "Eres un asistente virtual de The Dish Dash, un restaurante moderno y acogedor. Tu objetivo es ayudar a los clientes a encontrar platos que disfruten."
+        updated_at: new Date()
       };
 
       console.log('Insertando nueva sesión:', newSession);
@@ -153,15 +147,10 @@ export class ChatSessionService {
     updates: Partial<ChatSession>
   ): Promise<ChatSession> {
     const dbUpdates = {
-      alias_mesa: updates.alias_mesa,
-      cliente_id: updates.cliente_id,
+      table_number: updates.table_number,
+      alias: updates.alias,
       started_at: updates.started_at,
-      last_active: updates.last_active,
-      created_at: updates.created_at,
-      updated_at: new Date(),
-      system_context: updates.system_context,
-      menu_items: updates.menu_items,
-      time_of_day: updates.time_of_day
+      updated_at: new Date()
     };
 
     const { data, error } = await supabase
@@ -186,7 +175,7 @@ export class ChatSessionService {
     state: SessionState
   ): Promise<ChatSession> {
     return this.update(sessionId, {
-      last_active: new Date()
+      updated_at: new Date()
     });
   }
 
@@ -203,7 +192,7 @@ export class ChatSessionService {
       if (!session) {
         console.log(`Sesión no encontrada en addMessage, intentando recuperar o crear: ${sessionId}`);
         
-        // Intentamos obtener el alias_mesa de algún mensaje existente
+        // Intentamos obtener información de algún mensaje existente
         const { data: existingMessage, error: messageError } = await supabase
           .from('messages')
           .select('session_id, sender')
@@ -222,18 +211,16 @@ export class ChatSessionService {
           throw new Error(`Session inconsistency: message exists but session not found: ${sessionId}`);
         }
 
-        // Si no hay mensajes, intentamos obtener el alias_mesa del mensaje actual
-        const aliasMesa = message.role === 'user' ? 'guest' : 'assistant';
-        const customerId = uuidv4(); // Generamos un nuevo UUID para el cliente
+        // Si no hay mensajes, creamos una sesión con valores predeterminados
+        const tableNumber = 0; // Valor predeterminado - se debe actualizar según el contexto
+        const userAlias = message.role === 'user' ? 'guest' : 'assistant';
         
-        // Crear nueva sesión con el alias_mesa del mensaje
+        // Crear nueva sesión con valores predeterminados
         session = await this.create(
-          aliasMesa,
-          customerId,
+          tableNumber,
+          userAlias,
           {
-            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon',
-            lastActive: new Date(),
-            sessionDuration: 0
+            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon'
           },
           sessionId
         );
@@ -243,27 +230,34 @@ export class ChatSessionService {
         }
       }
 
+      // Determinar el sender correcto para la base de datos
+      // La tabla messages espera 'guest' en lugar de 'user'
+      const dbSender = message.role === 'user' ? 'guest' : message.role;
+      
+      // Asegurar que content nunca sea null
+      const dbContent = message.content !== null ? message.content : '';
+
       // Insertar el mensaje
       const { error: insertError } = await supabase
         .from('messages')
         .insert({
           session_id: sessionId,
-          sender: message.role === 'user' ? 'guest' : 'assistant',
-          content: message.content || '',
-          created_at: message.timestamp
+          sender: dbSender,
+          content: dbContent,
+          created_at: message.timestamp || new Date()
         });
 
       if (insertError) {
-        console.error(`Error al insertar mensaje en sesión ${sessionId}:`, insertError);
-        throw new Error(`Error adding message: ${insertError.message}`);
+        console.error('Error al insertar mensaje:', insertError);
+        throw new Error(`Error inserting message: ${insertError.message}`);
       }
 
-      // Actualizar last_active de la sesión
+      // Actualizar updated_at de la sesión
       await this.update(sessionId, {
-        last_active: new Date()
+        updated_at: new Date()
       });
     } catch (error) {
-      console.error(`Error inesperado en addMessage para sesión ${sessionId}:`, error);
+      console.error('Error en addMessage:', error);
       throw error;
     }
   }
@@ -329,7 +323,7 @@ export class ChatSessionService {
     const { data, error } = await supabase
       .from('sessions')
       .select('*')
-      .order('last_active', { ascending: false });
+      .order('updated_at', { ascending: false });
 
     if (error) {
       throw new Error(`Error getting active sessions: ${error.message}`);
@@ -348,7 +342,7 @@ export class ChatSessionService {
     const { data, error } = await supabase
       .from('sessions')
       .delete()
-      .lt('last_active', cutoffDate)
+      .lt('updated_at', cutoffDate)
       .select();
 
     if (error) {
@@ -360,100 +354,48 @@ export class ChatSessionService {
 
   /**
    * Actualiza las últimas recomendaciones mostradas al usuario
+   * Nota: Esta función no actualiza la base de datos ya que menu_items no existe
    */
   public async updateLastRecommendations(
     sessionId: string,
     recommendationIds: string[]
   ): Promise<void> {
-    const { data: session } = await supabase
-      .from('sessions')
-      .select('menu_items')
-      .eq('id', sessionId)
-      .single();
-
-    const menuItems = session?.menu_items || {};
-    const updatedMenuItems = {
-      ...menuItems,
-      last_recommendations: recommendationIds
-    };
-
-    const { error } = await supabase
-      .from('sessions')
-      .update({
-        menu_items: updatedMenuItems,
-        updated_at: new Date()
-      })
-      .eq('id', sessionId);
-
-    if (error) {
-      throw new Error(`Error updating last recommendations: ${error.message}`);
-    }
+    console.log(`Para sesión ${sessionId}, se registrarían recomendaciones: ${recommendationIds.join(', ')}`);
+    // No podemos guardar en la BD ya que el campo no existe
+    return;
   }
 
   /**
    * Obtiene las últimas recomendaciones mostradas al usuario
+   * Nota: Esta función devuelve un array vacío ya que menu_items no existe en la tabla
    */
   public async getLastRecommendations(sessionId: string): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('sessions')
-      .select('menu_items')
-      .eq('id', sessionId)
-      .single();
-
-    if (error) {
-      throw new Error(`Error getting last recommendations: ${error.message}`);
-    }
-
-    return (data?.menu_items as any)?.last_recommendations || [];
+    console.log(`Solicitadas recomendaciones para sesión ${sessionId}`);
+    // No podemos recuperar datos que no existen en la BD
+    return [];
   }
 
   /**
    * Actualiza los ítems rechazados por el usuario
+   * Nota: Esta función no actualiza la base de datos ya que menu_items no existe
    */
   public async updateRejectedItems(
     sessionId: string,
     rejectedIds: string[]
   ): Promise<void> {
-    const { data: session } = await supabase
-      .from('sessions')
-      .select('menu_items')
-      .eq('id', sessionId)
-      .single();
-
-    const menuItems = session?.menu_items || {};
-    const updatedMenuItems = {
-      ...menuItems,
-      rejected_items: rejectedIds
-    };
-
-    const { error } = await supabase
-      .from('sessions')
-      .update({
-        menu_items: updatedMenuItems,
-        updated_at: new Date()
-      })
-      .eq('id', sessionId);
-
-    if (error) {
-      throw new Error(`Error updating rejected items: ${error.message}`);
-    }
+    console.log(`Para sesión ${sessionId}, se registrarían ítems rechazados: ${rejectedIds.join(', ')}`);
+    // No podemos guardar en la BD ya que el campo no existe
+    return;
   }
 
   /**
    * Obtiene los ítems rechazados por el usuario
+   * Nota: Esta función devuelve un array vacío ya que menu_items no existe en la tabla
    */
   public async getRejectedItems(sessionId: string): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('sessions')
-      .select('menu_items')
-      .eq('id', sessionId)
-      .single();
-
-    if (error) {
-      throw new Error(`Error getting rejected items: ${error.message}`);
-    }
-
-    return (data?.menu_items as any)?.rejected_items || [];
+    console.log(`Solicitados ítems rechazados para sesión ${sessionId}`);
+    // No podemos recuperar datos que no existen en la BD
+    return [];
   }
 }
 

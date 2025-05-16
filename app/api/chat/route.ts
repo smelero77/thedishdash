@@ -26,13 +26,22 @@ const chatService = ChatService.getInstance(
 
 export async function POST(request: Request) {
   try {
-    const { message: userMessage, sessionId, alias, categoryId } = await request.json();
-    console.log('Mensaje recibido:', { userMessage, sessionId, alias, categoryId });
+    const { message: userMessage, sessionId, tableNumber, userAlias, categoryId } = await request.json();
+    console.log('Mensaje recibido:', { userMessage, sessionId, tableNumber, userAlias, categoryId });
     
-    if (!userMessage || !alias) {
-      console.log('Error: Faltan mensaje o alias');
+    if (!userMessage || !tableNumber || !userAlias) {
+      console.log('Error: Faltan mensaje, número de mesa o alias de usuario');
       return NextResponse.json(
-        { error: 'Faltan mensaje o alias' },
+        { error: 'Faltan campos requeridos: mensaje, número de mesa o alias de usuario' },
+        { status: 400 }
+      );
+    }
+
+    // Convertir tableNumber a número si viene como string
+    const tableNumberInt = parseInt(tableNumber, 10);
+    if (isNaN(tableNumberInt)) {
+      return NextResponse.json(
+        { error: 'El número de mesa debe ser un valor numérico' },
         { status: 400 }
       );
     }
@@ -47,15 +56,12 @@ export async function POST(request: Request) {
     let session = await chatSessionService.get(sid);
     if (!session) {
       console.log('Sesión no encontrada, creando nueva:', sid);
-      const customerId = uuidv4(); // Generamos un nuevo UUID para el cliente
       try {
         session = await chatSessionService.create(
-          alias, // tableNumber
-          customerId, // customerId (nuevo UUID para el cliente)
+          tableNumberInt,
+          userAlias,
           {
-            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon',
-            lastActive: new Date(),
-            sessionDuration: 0
+            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon'
           },
           sid // sessionId
         );
@@ -74,7 +80,7 @@ export async function POST(request: Request) {
     // 3) Procesa el mensaje
     console.log('Procesando mensaje...');
     try {
-      const result = await chatService.processMessage(sid, alias, userMessage, categoryId);
+      const result = await chatService.processMessage(sid, userAlias, userMessage, categoryId);
       console.log('Resultado del procesamiento:', JSON.stringify(result, null, 2));
       
       // 4) Devuelve respuesta estructurada + sessionId

@@ -10,7 +10,7 @@ export interface Message {
 export interface ChatIAProps {
   isOpen: boolean;
   onClose: () => void;
-  alias?: string;
+  userAlias?: string;
 }
 
 export interface ChatMessageProps {
