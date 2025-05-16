@@ -3,6 +3,7 @@ import { ChatService } from '@/lib/chat';
 import { EMBEDDING_CONFIG } from '@/lib/embeddings/constants/config';
 import { v4 as uuidv4 } from 'uuid';
 import { isValidUUID } from '@/utils/validation';
+import { chatSessionService } from '@/lib/chat/services/ChatSessionService';
 
 // Validar variables de entorno
 const requiredEnvVars = {
@@ -18,7 +19,7 @@ if (missingEnvVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
-const chatService = new ChatService(
+const chatService = ChatService.getInstance(
   process.env.OPENAI_API_KEY!,
   EMBEDDING_CONFIG
 );
@@ -42,13 +43,41 @@ export async function POST(request: Request) {
       console.log('Usando nueva sesión:', sid);
     }
 
-    // 2) Procesa el mensaje
+    // 2) Verificar si la sesión existe, si no, crearla
+    let session = await chatSessionService.get(sid);
+    if (!session) {
+      console.log('Sesión no encontrada, creando nueva:', sid);
+      const customerId = uuidv4(); // Generamos un nuevo UUID para el cliente
+      try {
+        session = await chatSessionService.create(
+          alias, // tableNumber
+          customerId, // customerId (nuevo UUID para el cliente)
+          {
+            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon',
+            lastActive: new Date(),
+            sessionDuration: 0
+          },
+          sid // sessionId
+        );
+      } catch (error) {
+        console.error('Error al crear nueva sesión:', error);
+        return NextResponse.json(
+          { 
+            error: 'Error al crear nueva sesión',
+            details: error instanceof Error ? error.message : 'Error desconocido'
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // 3) Procesa el mensaje
     console.log('Procesando mensaje...');
     try {
       const result = await chatService.processMessage(sid, alias, userMessage, categoryId);
       console.log('Resultado del procesamiento:', JSON.stringify(result, null, 2));
       
-      // 3) Devuelve respuesta estructurada + sessionId
+      // 4) Devuelve respuesta estructurada + sessionId
       return NextResponse.json({
         response: result,
         sessionId: sid

@@ -2,10 +2,13 @@ import { OpenAI } from 'openai';
 import { OpenAIEmbeddingService } from '@/lib/embeddings/services/openai.service';
 import { CHAT_CONFIG } from '../constants/config';
 import { recommendDishesFn, getProductDetailsFn, OPENAI_CONFIG } from '../constants/functions';
-import { AssistantResponse } from '../types/response.types';
+import { ChatResponse } from '../types/response.types';
 import { MenuItem } from '@/lib/types/menu';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { supabase } from '@/lib/supabase';
+import { chatSessionService } from './ChatSessionService';
+import { AssistantMessageSchema, UserMessageSchema } from '../types/session.types';
+import { v4 as uuidv4 } from 'uuid';
 
 export class ChatMessageService {
   private openai: OpenAI;
@@ -43,7 +46,7 @@ export class ChatMessageService {
     userAlias: string,
     userMessage: string,
     categoryId?: string
-  ): Promise<AssistantResponse> {
+  ): Promise<ChatResponse> {
     console.log('🚀 INICIO PROCESAMIENTO:', {
       sessionId,
       userAlias,
@@ -61,6 +64,35 @@ export class ChatMessageService {
           message: userMessage
         });
         throw new Error("Escribe algo más descriptivo, por favor.");
+      }
+
+      // Verificar y crear sesión si no existe
+      let currentSession = await chatSessionService.get(sessionId);
+      if (!currentSession) {
+        console.log('Sesión no encontrada en processMessage, creando nueva:', sessionId);
+        const customerId = uuidv4();
+        currentSession = await chatSessionService.create(
+          userAlias,
+          customerId,
+          {
+            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon',
+            lastActive: new Date(),
+            sessionDuration: 0
+          },
+          sessionId
+        );
+      }
+
+      // Guardar mensaje del usuario en el historial
+      try {
+        await chatSessionService.addMessage(sessionId, {
+          role: 'user',
+          content: userMessage,
+          timestamp: new Date()
+        });
+      } catch (error) {
+        console.error('Error al guardar mensaje del usuario:', error);
+        // Continuamos con el procesamiento aunque falle el guardado del mensaje
       }
 
       // 3.2 Contexto breve del carrito
@@ -227,6 +259,18 @@ export class ChatMessageService {
       });
       
       let candidates = filteredItems.filter((i: MenuItem) => !cartIds.has(i.id));
+
+      // Obtener items rechazados de la sesión
+      if (currentSession?.rejected_items?.length) {
+        const rejectedIds = new Set(currentSession.rejected_items);
+        candidates = candidates.filter((i: MenuItem) => !rejectedIds.has(i.id));
+        console.log('🚫 FILTRADO RECHAZADOS:', {
+          rejectedIds: Array.from(rejectedIds),
+          remainingCandidates: candidates.length,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       console.log('🎯 CANDIDATOS FINALES:', {
         count: candidates.length,
         items: candidates.map((i: MenuItem) => ({ id: i.id, name: i.name })),
@@ -252,356 +296,195 @@ export class ChatMessageService {
               description,
               price,
               image_url,
-              profit_margin,
-              category_ids,
-              food_info,
-              origin,
-              pairing_suggestion,
-              chef_notes,
-              is_recommended
+              category_ids
             `)
-            .contains('category_ids', [cat.id])
+            .eq('category_ids', cat.id)
             .eq('is_available', true)
-            .order('profit_margin', { ascending: false })
-            .limit(5);
+            .limit(10);
 
-          if (catItems && catItems.length > 0) {
-            console.log('🍽️ Items de desayuno encontrados:', catItems.length);
-            console.log('📋 Items de desayuno:', catItems.map(i => ({ id: i.id, name: i.name, profit_margin: i.profit_margin })));
-            
-            // Enriquecer los items con la información de categorías
-            const enrichedCatItems = catItems.map(item => ({
-              ...item,
-              category_info: [{
-                id: cat.id,
-                name: 'Desayuno'
-              }]
+          if (catItems?.length) {
+            candidates = catItems.map((i: any) => ({
+              ...i,
+              category_info: [{ id: cat.id, name: 'Desayuno' }]
             }));
-            
-            candidates = enrichedCatItems;
-          } else {
-            console.log('❌ No se encontraron items en la categoría Desayuno');
+            console.log('🍳 CANDIDATOS FALLBACK:', {
+              count: candidates.length,
+              items: candidates.map((i: MenuItem) => ({ id: i.id, name: i.name })),
+              timestamp: new Date().toISOString()
+            });
           }
-        } else {
-          console.log('❌ No se encontró la categoría Desayuno');
         }
       }
 
-      // Si aún no hay candidatos después de todos los fallbacks, devolver mensaje al usuario
-      if (candidates.length === 0) {
-        console.log('⚠️ No hay resultados después de todos los fallbacks');
-        return {
-          type: "assistant_text",
-          content: "Lo siento, no he encontrado platos que coincidan con tu búsqueda. ¿Podrías intentar con otras palabras o ser más específico?"
-        };
-      }
-
-      // 3.4 Construcción de bloque con IDs
-      const candidatesBlock = this.buildCandidatesBlock(candidates);
-      console.log('📝 BLOQUE CANDIDATOS:', {
-        block: candidatesBlock,
+      // Obtener últimos turnos de conversación para contexto
+      const lastTurns = await chatSessionService.getLastConversationTurns(sessionId, 2);
+      console.log('💬 ÚLTIMOS TURNOS:', {
+        count: lastTurns.length,
+        turns: lastTurns,
         timestamp: new Date().toISOString()
       });
 
-      // 3.5 Montaje de mensajes
+      // Construir mensajes para GPT
       const messages: ChatCompletionMessageParam[] = [
-        { 
-          role: "system", 
-          content: "Eres un asistente de restaurante especializado en recomendar platos y proporcionar información detallada sobre el menú. IMPORTANTE: Debes usar EXACTAMENTE las URLs de imágenes que te proporciono, sin modificarlas ni crear URLs de ejemplo. Si una imagen no tiene URL, usa null."
+        {
+          role: 'system',
+          content: `Eres un asistente virtual de The Dish Dash, un restaurante moderno y acogedor. 
+          Tu objetivo es ayudar a los clientes a encontrar platos que disfruten.
+          ${cartContext}
+          
+          Contexto de la conversación reciente:
+          ${lastTurns.map(turn => `${turn.role}: ${turn.content}`).join('\n')}
+          
+          Instrucciones:
+          1. Si el usuario rechaza recomendaciones ("no me gustan estos", "dame otros"), evita sugerir los mismos platos.
+          2. Mantén un tono amigable y profesional.
+          3. Haz preguntas específicas para entender mejor las preferencias del usuario.
+          4. Sugiere combinaciones de platos cuando sea apropiado.
+          5. Menciona características especiales de los platos (ej. "sin gluten", "vegetariano").`
         },
-        { 
-          role: "system", 
-          content: cartContext 
-        },
-        { 
-          role: "system", 
-          content: `Estos son los platos disponibles (excluyendo lo ya en tu carrito).  
-Selecciona 2–3 y devuélveme un JSON con { id, name, price, reason, image_url, category_info }.
-IMPORTANTE: 
-- Usa EXACTAMENTE las URLs de imágenes que te proporciono, sin modificarlas
-- Si una imagen no tiene URL, usa null
-- Las categorías deben incluir el id y name exactos que te proporciono
-
-${candidatesBlock}` 
-        },
-        { 
-          role: "user", 
-          content: userMessage 
+        {
+          role: 'user',
+          content: userMessage
         }
       ];
 
-      console.log('🤖 MENSAJES ENVIADOS A GPT:', {
-        messages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        })),
-        functions: [recommendDishesFn, getProductDetailsFn],
-        config: {
-          model: CHAT_CONFIG.recommendationModel,
-          temperature: CHAT_CONFIG.temperature,
-          maxTokens: CHAT_CONFIG.maxTokensRecommendation,
-          topP: CHAT_CONFIG.topP,
-          presencePenalty: CHAT_CONFIG.presencePenalty
-        },
-        timestamp: new Date().toISOString()
-      });
-
-      // 3.6 Llamada a GPT para recomendaciones
-      const resp = await this.openai.chat.completions.create({
-        model: CHAT_CONFIG.recommendationModel,  // gpt-4o-mini
+      // Llamar a GPT
+      const completion = await this.openai.chat.completions.create({
+        model: OPENAI_CONFIG.model,
         messages,
         functions: [recommendDishesFn, getProductDetailsFn],
-        function_call: "auto",
-        temperature: CHAT_CONFIG.temperature,    // 0.4
-        max_tokens: CHAT_CONFIG.maxTokensRecommendation,
-        top_p: CHAT_CONFIG.topP,
-        presence_penalty: CHAT_CONFIG.presencePenalty
+        function_call: 'auto',
+        temperature: 0.7,
+        max_tokens: 500
       });
 
-      console.log('📝 RESPUESTA COMPLETA DE GPT:', {
-        id: resp.id,
-        model: resp.model,
-        created: resp.created,
-        choices: resp.choices.map(choice => ({
-          index: choice.index,
-          message: {
-            role: choice.message.role,
-            content: choice.message.content,
-            function_call: choice.message.function_call ? {
-              name: choice.message.function_call.name,
-              arguments: choice.message.function_call.arguments
-            } : null
-          },
-          finish_reason: choice.finish_reason
-        })),
-        usage: {
-          prompt_tokens: resp.usage?.prompt_tokens,
-          completion_tokens: resp.usage?.completion_tokens,
-          total_tokens: resp.usage?.total_tokens
-        },
+      const response = completion.choices[0].message;
+      console.log('🤖 RESPUESTA GPT:', {
+        content: response.content,
+        function_call: response.function_call,
         timestamp: new Date().toISOString()
       });
 
-      // 3.7 Guardar mensaje assistant
-      console.log('💾 GUARDANDO RESPUESTA:', {
-        sessionId,
-        role: resp.choices[0].message.role,
-        content: JSON.stringify(resp.choices[0].message),
-        timestamp: new Date().toISOString()
-      });
-      await supabase.from("messages").insert({
-        session_id: sessionId,
-        sender: resp.choices[0].message.role,
-        content: JSON.stringify(resp.choices[0].message)
+      // Guardar respuesta del asistente en el historial
+      await chatSessionService.addMessage(sessionId, {
+        role: 'assistant',
+        content: response.content,
+        function_call: response.function_call ? {
+          name: response.function_call.name,
+          arguments: response.function_call.arguments
+        } : undefined,
+        timestamp: new Date()
       });
 
-      // 3.8 Manejar función invocada
-      console.log('🔄 PROCESANDO RESPUESTA:', {
-        functionCall: resp.choices[0].message.function_call ? {
-          name: resp.choices[0].message.function_call.name,
-          arguments: resp.choices[0].message.function_call.arguments
-        } : null,
-        content: resp.choices[0].message.content,
-        timestamp: new Date().toISOString()
-      });
-      const response = await this.handleAssistantMessage(resp.choices[0].message, candidates);
-      console.log('✅ RESPUESTA PROCESADA:', {
-        type: response.type,
-        data: response,
-        timestamp: new Date().toISOString()
-      });
-      this.stopTyping();
-      return response;
+      // Si es una recomendación, guardar los IDs recomendados
+      if (response.function_call?.name === 'recommend_dishes') {
+        const args = JSON.parse(response.function_call.arguments);
+        const recommendedIds = args.recommendations.map((r: any) => r.id);
+        await chatSessionService.updateLastRecommendations(sessionId, recommendedIds);
+      }
+
+      // Detectar si el usuario está rechazando recomendaciones
+      const rejectionPatterns = [
+        /no me gustan estos/i,
+        /dame otros/i,
+        /no quiero estos/i,
+        /muéstrame otros/i
+      ];
+
+      const isRejection = rejectionPatterns.some(pattern => pattern.test(userMessage));
+      if (isRejection && currentSession?.last_recommendations?.length) {
+        await chatSessionService.updateRejectedItems(sessionId, currentSession.last_recommendations);
+        console.log('🚫 RECHAZO DETECTADO:', {
+          rejectedIds: currentSession.last_recommendations,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      return this.handleAssistantMessage(response, candidates);
     } catch (error) {
-      console.error('❌ ERROR:', {
+      console.error('❌ ERROR EN PROCESAMIENTO:', {
         error,
-        sessionId,
-        userAlias,
         timestamp: new Date().toISOString()
       });
-      this.stopTyping();
       throw error;
+    } finally {
+      this.stopTyping();
     }
   }
 
-  // Construye bloque textual de candidatos
   private buildCandidatesBlock(items: Array<MenuItem & { category_info: {id:string,name:string}[] }>): string {
-    // Calcular score para cada item
-    const scored = items.map(i => ({
-      ...i,
-      score: (i.profit_margin || 0) * 1.2 + (i.is_recommended ? 1 : 0)
-    }));
-
-    // Ordenar por score y tomar los top 3
-    const top3 = scored
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
-
-    // Generar texto formateado con IDs
-    return top3
-      .map(i => 
-        `- id: **${i.id}**
-  name: **${i.name}**
-  price: **${i.price} €**
-  description: ${i.description || '—'}
-  image_url: ${i.image_url || 'null'}
-  categories:
-    ${i.category_info.map(ci => `- id: ${ci.id}, name: ${ci.name}`).join('\n    ')}`
-      )
-      .join("\n\n");
+    return items.map(item => `
+      ID: ${item.id}
+      Nombre: ${item.name}
+      Descripción: ${item.description || 'No disponible'}
+      Precio: ${item.price}
+      Categorías: ${item.category_info.map(c => c.name).join(', ')}
+      ${item.image_url ? `Imagen: ${item.image_url}` : ''}
+    `).join('\n---\n');
   }
 
-  // Manejo de respuestas function_call
   private async handleAssistantMessage(
     msg: any,
     originalItems?: Array<MenuItem & { category_info: {id:string,name:string}[] }>
-  ): Promise<AssistantResponse> {
-    if (!msg.function_call) {
-      console.log('📝 Respuesta de texto simple:', msg.content);
-      return { type: "assistant_text", content: msg.content || "" };
-    }
+  ): Promise<ChatResponse> {
+    if (msg.function_call) {
+      const { name, arguments: args } = msg.function_call;
+      const parsedArgs = JSON.parse(args);
 
-    try {
-      console.log('🔍 Función invocada:', msg.function_call.name);
-      console.log('📦 Argumentos:', msg.function_call.arguments);
-
-      switch (msg.function_call.name) {
-        case "recommend_dishes": {
-          let recommendations;
-          try {
-            const parsedArgs = JSON.parse(msg.function_call.arguments);
-            recommendations = parsedArgs.recommendations;
-
-            // Validar estructura de cada recomendación
-            if (!Array.isArray(recommendations)) {
-              throw new Error('Las recomendaciones deben ser un array');
-            }
-
-            // Validar y limpiar cada recomendación
-            recommendations = recommendations.map(rec => {
-              // Obtener las categorías del item original
-              const originalItem = originalItems?.find(c => c.id === rec.id);
-              const categoryInfo = originalItem?.category_info || [];
-
-              return {
-                id: rec.id,
-                name: rec.name,
-                price: Number(rec.price),
-                reason: rec.reason,
-                image_url: rec.image_url?.trim() || null,
-                category_info: categoryInfo
-              };
-            });
-
-            console.log('🍽️ Recomendaciones procesadas:', JSON.stringify(recommendations, null, 2));
-
-            if (!recommendations.length) {
-              return {
-                type: "assistant_text",
-                content: "Lo siento, no pude generar recomendaciones adecuadas. ¿Podrías ser más específico?"
-              };
-            }
-
-            return { type: "recommendations", data: recommendations };
-          } catch (error) {
-            console.error('❌ Error procesando recomendaciones:', error);
-            console.error('📦 Argumentos recibidos:', msg.function_call.arguments);
-            return {
-              type: "assistant_text",
-              content: "Lo siento, hubo un error al procesar las recomendaciones. ¿Podrías intentarlo de nuevo?"
-            };
+      if (name === 'recommend_dishes') {
+        // Mapear los IDs de las recomendaciones a los items originales para obtener la información completa
+        const recommendations = parsedArgs.recommendations.map((rec: any) => {
+          const originalItem = originalItems?.find(item => item.id === rec.id);
+          if (!originalItem) {
+            console.warn('⚠️ Item original no encontrado:', rec.id);
+            return rec;
           }
-        }
-
-        case "get_product_details": {
-          const { product_id } = JSON.parse(msg.function_call.arguments) as { product_id: string };
-          console.log('🔍 Consultando detalles del producto:', product_id);
-
-          // Consultar todos los campos en Supabase
-          const { data: item, error } = await supabase
-            .from('menu_items')
-            .select('*')
-            .eq('id', product_id)
-            .single();
-
-          if (error || !item) {
-            console.error('❌ Error al obtener detalles:', error);
-            return {
-              type: "assistant_text",
-              content: "Lo siento, no pude encontrar los detalles del plato. ¿Podrías intentarlo de nuevo?"
-            };
-          }
-
-          // Obtener información de categorías
-          const categoryMap: Record<string, string> = {};
-          if (item.category_ids?.length) {
-            const { data: cats } = await supabase
-              .from('categories')
-              .select('id, name')
-              .in('id', item.category_ids);
-            
-            cats?.forEach((c: { id: string; name: string }) => { categoryMap[c.id] = c.name; });
-          }
-
-          // Enriquecer item con información de categorías
-          const enrichedItem = {
-            ...item,
-            category_info: (item.category_ids || []).map((cid: string) => ({
-              id: cid,
-              name: categoryMap[cid] || '—'
-            }))
-          };
-
-          console.log('📦 Item enriquecido:', JSON.stringify(enrichedItem, null, 2));
-
-          // Generar texto explicativo con GPT
-          const followupMessages: ChatCompletionMessageParam[] = [
-            { 
-              role: "system", 
-              content: `Genera una ficha de producto y explicación clara. 
-              Destaca los ingredientes principales, el origen si está disponible, 
-              y cualquier nota especial del chef o sugerencia de maridaje.` 
-            },
-            { 
-              role: "function", 
-              name: "get_product_details", 
-              content: JSON.stringify(enrichedItem) 
-            }
-          ];
-
-          console.log('🤖 Mensajes para explicación:', JSON.stringify(followupMessages, null, 2));
-
-          const followup = await this.openai.chat.completions.create({
-            model: CHAT_CONFIG.productExplanationModel,
-            messages: followupMessages,
-            temperature: CHAT_CONFIG.productExplanationTemperature,
-            max_tokens: CHAT_CONFIG.maxTokensProductExplanation
-          });
-
-          console.log('📝 Explicación generada:', followup.choices[0].message?.content);
-
+          
           return {
-            type: "product_details",
-            data: {
-              item: enrichedItem,
-              explanation: followup.choices[0].message?.content || "No hay descripción disponible."
-            }
+            id: rec.id,
+            name: rec.name,
+            price: originalItem.price,
+            reason: rec.reason,
+            image_url: originalItem.image_url || '/images/default-food.jpg',
+            category_info: originalItem.category_info
+          };
+        });
+
+        return {
+          type: 'recommendations',
+          content: msg.content || '',
+          data: recommendations
+        };
+      } else if (name === 'get_product_details') {
+        const originalItem = originalItems?.find(item => item.id === parsedArgs.product.id);
+        if (!originalItem) {
+          console.warn('⚠️ Item original no encontrado para detalles:', parsedArgs.product.id);
+          return {
+            type: 'product_details',
+            content: msg.content || '',
+            product: parsedArgs.product
           };
         }
 
-        default:
-          console.log('⚠️ Función no reconocida:', msg.function_call.name);
-          return { 
-            type: "assistant_text", 
-            content: msg.content || "Lo siento, no pude procesar tu solicitud." 
-          };
+        return {
+          type: 'product_details',
+          content: msg.content || '',
+          product: {
+            item: {
+              id: originalItem.id,
+              name: originalItem.name,
+              price: originalItem.price,
+              image_url: originalItem.image_url || '/images/default-food.jpg'
+            },
+            explanation: parsedArgs.product.explanation
+          }
+        };
       }
-    } catch (error) {
-      console.error('❌ Error procesando respuesta del asistente:', error);
-      return { 
-        type: "assistant_text", 
-        content: "Lo siento, hubo un error al procesar tu solicitud. ¿Podrías intentarlo de nuevo?" 
-      };
     }
+
+    return {
+      type: 'text',
+      content: msg.content || 'Lo siento, no pude procesar tu solicitud.'
+    };
   }
 } 
