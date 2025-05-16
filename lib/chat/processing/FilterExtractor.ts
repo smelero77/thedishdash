@@ -61,7 +61,7 @@ export class FilterExtractor {
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error('OpenAI API timeout')), OPENAI_TIMEOUT)
           )
-        ]);
+        ]) as OpenAI.Chat.Completions.ChatCompletion;
 
         // Obtener la respuesta y parsear el JSON
         const functionCall = response.choices[0]?.message?.function_call;
@@ -70,6 +70,15 @@ export class FilterExtractor {
         }
 
         const extractedData = JSON.parse(functionCall.arguments);
+        
+        // Mostrar en el log lo que devuelve GPT para cada artículo
+        console.log('🤖 RESPUESTA GPT PARA ARTÍCULO:', {
+          prompt: ENTITY_EXTRACTION_PROMPT.substring(0, 100) + '...',
+          userMessage,
+          fullResponse: response,
+          extractedData,
+          timestamp: new Date().toISOString()
+        });
         
         // Validar y transformar los datos extraídos
         const validatedData = ExtractedFiltersSchema.parse(extractedData);

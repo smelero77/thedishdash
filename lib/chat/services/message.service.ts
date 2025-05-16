@@ -51,13 +51,15 @@ export class ChatMessageService {
     sessionId: string,
     userAlias: string,
     userMessage: string,
-    categoryId?: string
+    categoryId?: string,
+    tableNumber?: number
   ): Promise<ChatResponse> {
     console.log('🚀 INICIO PROCESAMIENTO:', {
       sessionId,
       userAlias,
       userMessage,
       categoryId,
+      tableNumber,
       timestamp: new Date().toISOString()
     });
     this.startTyping();
@@ -78,8 +80,8 @@ export class ChatMessageService {
         console.log('Sesión no encontrada en processMessage, creando nueva:', sessionId);
         const customerId = uuidv4();
         currentSession = await chatSessionService.create(
+          tableNumber || 0,
           userAlias,
-          customerId,
           {
             timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon',
             lastActive: new Date(),
@@ -104,23 +106,51 @@ export class ChatMessageService {
       // 3.2 Contexto breve del carrito
       console.log('🛒 CONSULTA CARRITO:', {
         alias: userAlias,
+        tableNumber: currentSession.table_number,
         timestamp: new Date().toISOString()
       });
-      const { data: cartItems, error: cartError } = await supabase
-        .from("temporary_order_items")
-        .select(`
-          menu_item_id,
-          quantity,
-          menu_items!inner (
-            name
-          )
-        `)
-        .eq("alias", userAlias);
+
+      // Primero obtener el pedido temporal (cabecera) para la mesa del usuario
+      const { data: temporaryOrder, error: temporaryOrderError } = await supabase
+        .from("temporary_orders")
+        .select("id")
+        .eq("table_number", currentSession.table_number)
+        .single();
+      
+      if (temporaryOrderError) {
+        console.error('❌ ERROR AL OBTENER PEDIDO TEMPORAL:', {
+          error: temporaryOrderError,
+          tableNumber: currentSession.table_number,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      let cartItems: any[] = [];
+      let cartError = null;
+
+      if (temporaryOrder) {
+        // Luego obtener los items relacionados con ese pedido temporal
+        const result = await supabase
+          .from("temporary_order_items")
+          .select(`
+            menu_item_id,
+            quantity,
+            menu_items!inner (
+              name
+            )
+          `)
+          .eq("temporary_order_id", temporaryOrder.id)
+          .eq("alias", userAlias);
+        
+        cartItems = result.data || [];
+        cartError = result.error;
+      }
       
       if (cartError) {
         console.error('❌ ERROR CARRITO:', {
           error: cartError,
-          alias: userAlias
+          alias: userAlias,
+          temporaryOrderId: temporaryOrder?.id
         });
       }
       console.log('📦 RESULTADO CARRITO:', {
