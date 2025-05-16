@@ -35,6 +35,34 @@ export interface RecommendationsResponse {
   data: Recommendation[];
 }
 
+export interface ProductDetailsResponse {
+  type: 'product_details';
+  content: string;
+  product: {
+    item: {
+      id: string;
+      name: string;
+      description: string;
+      price: number;
+      image_url: string;
+      category_info: Array<{
+        id: string;
+        name: string;
+      }>;
+      food_info?: string;
+      origin?: string;
+      pairing_suggestion?: string;
+      chef_notes?: string;
+      calories_est_min?: number;
+      calories_est_max?: number;
+      is_vegetarian_base?: boolean;
+      is_vegan_base?: boolean;
+      is_gluten_free_base?: boolean;
+    };
+    explanation: string;
+  };
+}
+
 export interface TextResponse {
   type: string;
   content: string;
@@ -44,7 +72,8 @@ export type TypedAssistantResponse =
   | RecommendationsResponse
   | ClarificationResponse
   | ErrorResponse
-  | TextResponse;
+  | TextResponse
+  | ProductDetailsResponse;
 
 function getInitials(name: string) {
   const words = name.split(' ');
@@ -91,6 +120,72 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
               </div>
             </div>
           ))}
+        </div>
+      );
+    }
+    case 'product_details': {
+      const productDetails = content as ProductDetailsResponse;
+      const { item, explanation } = productDetails.product;
+      
+      return (
+        <div className="space-y-4">
+          <div className="bg-white/10 rounded-lg p-4">
+            <div className="flex items-start gap-4">
+              {item.image_url && (
+                <img 
+                  src={item.image_url} 
+                  alt={item.name}
+                  className="w-20 h-20 object-cover rounded-lg"
+                />
+              )}
+              <div className="flex-1">
+                <h3 className="font-bold text-lg">{item.name}</h3>
+                <p className="text-sm text-[#1ce3cf]">{item.price}€</p>
+                <p className="text-sm mt-2">{explanation || item.description}</p>
+                
+                {item.food_info && (
+                  <div className="mt-3 text-xs text-white/80 dark:text-white/70">
+                    <p>{item.food_info}</p>
+                  </div>
+                )}
+                
+                {/* Mostrar etiquetas dietéticas */}
+                <div className="flex gap-2 mt-3">
+                  {item.is_vegetarian_base && (
+                    <span className="text-xs bg-green-600/20 text-green-600 dark:text-green-400 px-2 py-1 rounded">
+                      Vegetariano
+                    </span>
+                  )}
+                  {item.is_vegan_base && (
+                    <span className="text-xs bg-green-700/20 text-green-700 dark:text-green-500 px-2 py-1 rounded">
+                      Vegano
+                    </span>
+                  )}
+                  {item.is_gluten_free_base && (
+                    <span className="text-xs bg-yellow-600/20 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded">
+                      Sin Gluten
+                    </span>
+                  )}
+                </div>
+                
+                {item.category_info?.length > 0 && (
+                  <div className="flex gap-2 mt-2">
+                    {item.category_info.map((cat) => (
+                      <span key={cat.id} className="text-xs bg-[#1ce3cf]/20 text-[#1ce3cf] px-2 py-1 rounded">
+                        {cat.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                {item.calories_est_min && item.calories_est_max && (
+                  <p className="text-xs mt-2 text-white/70">
+                    Calorías estimadas: {item.calories_est_min}-{item.calories_est_max} kcal
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       );
     }

@@ -67,11 +67,24 @@ export class ChatMessageService {
     try {
       // 3.1 Validación mínima
       if (userMessage.trim().length < 3) {
-        console.log('❌ VALIDACIÓN FALLIDA:', {
-          messageLength: userMessage.trim().length,
-          message: userMessage
-        });
-        throw new Error("Escribe algo más descriptivo, por favor.");
+        // Verificar si hay un historial de conversación antes de rechazar mensajes cortos
+        const conversationTurns = await chatSessionService.getLastConversationTurns(sessionId, 2);
+        const hasConversationHistory = conversationTurns.length > 1;
+        
+        if (!hasConversationHistory) {
+          console.log('❌ VALIDACIÓN FALLIDA:', {
+            messageLength: userMessage.trim().length,
+            message: userMessage,
+            hasHistory: false
+          });
+          throw new Error("Escribe algo más descriptivo, por favor.");
+        } else {
+          console.log('ℹ️ MENSAJE CORTO ACEPTADO (hay historial):', {
+            messageLength: userMessage.trim().length,
+            message: userMessage,
+            historyTurns: conversationTurns.length
+          });
+        }
       }
 
       // Verificar y crear sesión si no existe
@@ -406,17 +419,8 @@ export class ChatMessageService {
         timestamp: new Date().toISOString()
       });
 
-      // Guardar respuesta del asistente en el historial
-      await chatSessionService.addMessage(sessionId, {
-        role: 'assistant',
-        content: response.content,
-        function_call: response.function_call ? {
-          name: response.function_call.name,
-          arguments: response.function_call.arguments
-        } : undefined,
-        timestamp: new Date()
-      });
-
+      // NO guardamos aquí directamente la respuesta cruda, sino que la procesamos primero
+      
       // Si es una recomendación, guardar los IDs recomendados
       if (response.function_call?.name === 'recommend_dishes') {
         const args = JSON.parse(response.function_call.arguments);
@@ -441,7 +445,45 @@ export class ChatMessageService {
         });
       }
 
-      return this.handleAssistantMessage(response, candidates);
+      const result = await this.handleAssistantMessage(response, candidates);
+
+      // Guardar la respuesta del asistente en la base de datos con su contenido correcto
+      try {
+        let messageContent = '';
+        
+        // Determinar el contenido según el tipo de respuesta
+        if (result.type === 'recommendations' && Array.isArray(result.data) && result.data.length > 0) {
+          // Para recomendaciones, convertir los datos en texto útil
+          messageContent = `Te recomiendo: ${result.data.map(item => 
+            `${item.name} - ${item.reason}`
+          ).join('. ')}`;
+        } else if (result.type === 'product_details' && result.product) {
+          // Para detalles de producto
+          messageContent = `${result.product.item.name}: ${result.product.explanation}`;
+        } else {
+          // Para texto normal u otros tipos
+          messageContent = result.content || '';
+        }
+        
+        const assistantMessage = {
+          role: 'assistant' as const,
+          content: messageContent,
+          timestamp: new Date()
+        };
+        
+        await chatSessionService.addMessage(sessionId, assistantMessage);
+        console.log('✅ Respuesta del asistente guardada:', {
+          sessionId,
+          contentLength: messageContent.length,
+          messageType: result.type,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Error al guardar respuesta del asistente:', error);
+        // Continuamos aunque falle el guardado
+      }
+
+      return result;
     } catch (error) {
       console.error('❌ ERROR EN PROCESAMIENTO:', {
         error,
