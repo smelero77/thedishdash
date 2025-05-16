@@ -19,17 +19,25 @@ export interface ProductDetails {
   item: {
     id: string;
     name: string;
+    description?: string;
     price: number;
     image_url: string;
+    category_info?: Array<{
+      id: string;
+      name: string;
+    }>;
+    food_info?: string | null;
+    origin?: string | null;
+    pairing_suggestion?: string | null;
+    chef_notes?: string;
+    calories_est_min?: number;
+    calories_est_max?: number;
+    is_vegetarian_base?: boolean;
+    is_vegan_base?: boolean;
+    is_gluten_free_base?: boolean;
   };
   explanation: string;
 }
-
-export type ChatResponse = 
-  | { type: 'text'; content: string }
-  | { type: 'recommendations'; content: string; data: MenuRecommendation[] }
-  | { type: 'product_details'; content: string; product: ProductDetails }
-  | { type: 'error'; content: string; error: { code: string; message: string } };
 
 // Nuevos esquemas y tipos para el sistema modular
 export const RecommendationSchema = z.object({
@@ -57,8 +65,22 @@ export const ChatResponseSchema = z.object({
     item: z.object({
       id: z.string(),
       name: z.string(),
+      description: z.string().optional(),
       price: z.number(),
-      image_url: z.string()
+      image_url: z.string(),
+      category_info: z.array(z.object({
+        id: z.string(),
+        name: z.string()
+      })).optional(),
+      food_info: z.string().nullable().optional(),
+      origin: z.string().nullable().optional(),
+      pairing_suggestion: z.string().nullable().optional(),
+      chef_notes: z.string().optional(),
+      calories_est_min: z.number().optional(),
+      calories_est_max: z.number().optional(),
+      is_vegetarian_base: z.boolean().optional(),
+      is_vegan_base: z.boolean().optional(),
+      is_gluten_free_base: z.boolean().optional()
     }),
     explanation: z.string()
   }).optional(),

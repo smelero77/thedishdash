@@ -15,7 +15,7 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const sessionId = useRef(uuidv4());
+  const sessionIdRef = useRef<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
 
   // Add welcome message from Don Gourmetón when chat opens and there are no messages
@@ -76,7 +76,7 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
     if (!message.trim()) return;
 
     const newMessage: Message = {
-      id: Date.now().toString(),
+      id: uuidv4(),
       content: message,
       role: 'guest',
       timestamp: new Date(),
@@ -86,6 +86,10 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
     setIsLoading(true);
     setIsTyping(true);
 
+    // Si es el primer mensaje y no hay sessionId, el backend creará uno.
+    // Si ya hay un sessionId (de una respuesta anterior), se reutilizará.
+    const currentSessionIdToSend = sessionIdRef.current;
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -94,17 +98,24 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
         },
         body: JSON.stringify({
           message,
-          sessionId: sessionId.current,
+          sessionId: currentSessionIdToSend,
           alias,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Error en la respuesta del servidor');
+        const errorData = await response.json().catch(() => ({ detail: 'Error en la respuesta del servidor' }));
+        throw new Error(errorData.detail || 'Error en la respuesta del servidor');
       }
 
       const data = await response.json();
       console.log('Respuesta de la API:', JSON.stringify(data, null, 2));
+
+      // Modificado: Almacenar/actualizar el sessionId desde la respuesta del backend
+      if (data.sessionId && sessionIdRef.current !== data.sessionId) {
+        console.log(`Updating client sessionId from ${sessionIdRef.current} to ${data.sessionId}`);
+        sessionIdRef.current = data.sessionId;
+      }
 
       await new Promise(resolve => setTimeout(resolve, 1000));
 

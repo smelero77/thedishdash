@@ -10,6 +10,12 @@ import { chatSessionService } from './ChatSessionService';
 import { AssistantMessageSchema, UserMessageSchema } from '../types/session.types';
 import { v4 as uuidv4 } from 'uuid';
 
+// Función auxiliar para validar UUIDs
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
 export class ChatMessageService {
   private openai: OpenAI;
   private isTyping: boolean = false;
@@ -429,38 +435,67 @@ export class ChatMessageService {
   }
 
   private async handleAssistantMessage(
-    msg: any,
+    msg: OpenAI.Chat.Completions.ChatCompletionMessage,
     originalItems?: Array<MenuItem & { category_info: {id:string,name:string}[] }>
   ): Promise<ChatResponse> {
     if (msg.function_call) {
       const { name, arguments: args } = msg.function_call;
-      const parsedArgs = JSON.parse(args);
+      let parsedArgs;
+      try {
+        parsedArgs = JSON.parse(args);
+      } catch (error) {
+        console.error("Error al parsear argumentos de function_call:", error);
+        return {
+          type: 'text',
+          content: 'Lo siento, tuve un problema al procesar la respuesta. ¿Podrías intentarlo de nuevo?'
+        };
+      }
 
       if (name === 'recommend_dishes') {
-        // Filtrar solo las recomendaciones con IDs válidos
+        if (!parsedArgs.recommendations || !Array.isArray(parsedArgs.recommendations)) {
+          console.warn('⚠️ Faltan recomendaciones o no es un array en la respuesta de GPT:', parsedArgs);
+          return {
+            type: 'text',
+            content: 'Parece que no encontré recomendaciones específicas esta vez. ¿Te gustaría que intente buscar algo más general o que me des más detalles sobre lo que te apetece?'
+          };
+        }
         const validRecommendations = parsedArgs.recommendations
           .map((rec: any) => {
-            const originalItem = originalItems?.find(item => item.id === rec.id);
+            let originalItem = originalItems?.find(item => item.id === rec.id);
+
+            // Inicio de la lógica de parche para IDs no UUID
+            if (!originalItem && typeof rec.id === 'string' && !isValidUUID(rec.id) && originalItems) {
+              console.warn(`GPT recommended ID "${rec.id}" is not a UUID. Attempting to match by name.`);
+              const nameToMatch = rec.id.toLowerCase().replace(/-/g, ' ').trim();
+              originalItem = originalItems.find(item => item.name.toLowerCase().trim() === nameToMatch);
+              if (originalItem) {
+                console.log(`Successfully matched non-UUID "${rec.id}" to item "${originalItem.name}" (ID: ${originalItem.id}) by name.`);
+              } else {
+                console.warn(`Could not match non-UUID ID "${rec.id}" to any candidate by name either.`);
+              }
+            }
+            // Fin de la lógica de parche
+
             if (!originalItem) {
-              console.warn('⚠️ Item original no encontrado:', rec.id);
+              console.warn('⚠️ Item original no encontrado para el ID de recomendación:', rec.id);
               return null;
             }
-            
+
             return {
-              id: rec.id,
+              id: originalItem.id,
               name: originalItem.name,
               price: originalItem.price,
-              reason: rec.reason,
+              reason: rec.reason || `Una excelente opción para disfrutar.`,
               image_url: originalItem.image_url || '/images/default-food.jpg',
-              category_info: originalItem.category_info
+              category_info: originalItem.category_info || []
             };
           })
-          .filter(Boolean); // Eliminar recomendaciones nulas
+          .filter(Boolean);
 
         if (validRecommendations.length === 0) {
           return {
             type: 'text',
-            content: 'Lo siento, no pude encontrar platos que coincidan con tus preferencias. ¿Podrías ser más específico sobre lo que buscas?'
+            content: msg.content || 'No encontré recomendaciones que coincidan exactamente. ¿Podrías darme más detalles sobre tus gustos o prefieres que te muestre algunas opciones populares?'
           };
         }
 
@@ -470,34 +505,69 @@ export class ChatMessageService {
           data: validRecommendations
         };
       } else if (name === 'get_product_details') {
-        const originalItem = originalItems?.find(item => item.id === parsedArgs.product_id);
+        let originalItem = originalItems?.find(item => item.id === parsedArgs.product_id);
+
+        if (!originalItem && typeof parsedArgs.product_id === 'string' && !isValidUUID(parsedArgs.product_id) && originalItems) {
+          console.warn(`GPT requested details for non-UUID ID "${parsedArgs.product_id}". Attempting to match by name.`);
+          const nameToMatch = parsedArgs.product_id.toLowerCase().replace(/-/g, ' ').trim();
+          originalItem = originalItems.find(item => item.name.toLowerCase().trim() === nameToMatch);
+          if (originalItem) {
+            console.log(`Successfully matched non-UUID "${parsedArgs.product_id}" to item "${originalItem.name}" (ID: ${originalItem.id}) for details by name.`);
+          } else {
+            console.warn(`Could not match non-UUID ID "${parsedArgs.product_id}" for details by name either.`);
+          }
+        }
+
         if (!originalItem) {
-          console.warn('⚠️ Item original no encontrado para detalles:', parsedArgs.product_id);
+          console.warn('⚠️ Item original no encontrado para detalles del producto:', parsedArgs.product_id);
           return {
             type: 'text',
-            content: 'Lo siento, no pude encontrar los detalles del producto solicitado.'
+            content: msg.content || 'Lo siento, no pude encontrar los detalles del producto que mencionaste. ¿Hay algo más en lo que pueda ayudarte?'
           };
         }
 
+        const explanation = parsedArgs.explanation || originalItem.description || "Un plato delicioso de nuestro menú.";
+
         return {
           type: 'product_details',
-          content: msg.content || '',
+          content: msg.content || `Aquí tienes más detalles sobre ${originalItem.name}:`,
           product: {
             item: {
               id: originalItem.id,
               name: originalItem.name,
+              description: originalItem.description,
               price: originalItem.price,
-              image_url: originalItem.image_url || '/images/default-food.jpg'
+              image_url: originalItem.image_url || '/images/default-food.jpg',
+              category_info: originalItem.category_info,
+              food_info: (originalItem as any).food_info,
+              origin: (originalItem as any).origin,
+              pairing_suggestion: (originalItem as any).pairing_suggestion,
+              chef_notes: (originalItem as any).chef_notes,
+              calories_est_min: (originalItem as any).calories_est_min,
+              calories_est_max: (originalItem as any).calories_est_max,
+              is_vegetarian_base: (originalItem as any).is_vegetarian_base,
+              is_vegan_base: (originalItem as any).is_vegan_base,
+              is_gluten_free_base: (originalItem as any).is_gluten_free_base,
             },
-            explanation: parsedArgs.explanation
+            explanation: explanation
           }
         };
       }
     }
 
+    // Si no hay function_call, o es un tipo no manejado explícitamente arriba
+    if (msg.content) {
+      return {
+        type: 'text',
+        content: msg.content
+      };
+    }
+    
+    // Fallback final si no hay contenido ni function_call válida
+    console.warn("Respuesta de GPT sin contenido ni function_call válida:", msg);
     return {
       type: 'text',
-      content: msg.content || 'Lo siento, no pude procesar tu solicitud.'
+      content: 'No estoy seguro de cómo responder a eso. ¿Podrías intentarlo de otra manera?'
     };
   }
 } 
