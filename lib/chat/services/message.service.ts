@@ -307,7 +307,7 @@ export class ChatMessageService {
       const messages: ChatCompletionMessageParam[] = [
         { 
           role: "system", 
-          content: "Eres un asistente de restaurante especializado en recomendar platos y proporcionar información detallada sobre el menú. IMPORTANTE: Asegúrate de que las URLs de las imágenes estén completas y no truncadas. Si una URL es muy larga, usa una versión más corta pero completa."
+          content: "Eres un asistente de restaurante especializado en recomendar platos y proporcionar información detallada sobre el menú. IMPORTANTE: Debes usar EXACTAMENTE las URLs de imágenes que te proporciono, sin modificarlas ni crear URLs de ejemplo. Si una imagen no tiene URL, usa null."
         },
         { 
           role: "system", 
@@ -317,7 +317,10 @@ export class ChatMessageService {
           role: "system", 
           content: `Estos son los platos disponibles (excluyendo lo ya en tu carrito).  
 Selecciona 2–3 y devuélveme un JSON con { id, name, price, reason, image_url, category_info }.
-IMPORTANTE: Asegúrate de que el JSON sea válido y que las URLs de las imágenes estén completas.
+IMPORTANTE: 
+- Usa EXACTAMENTE las URLs de imágenes que te proporciono, sin modificarlas
+- Si una imagen no tiene URL, usa null
+- Las categorías deben incluir el id y name exactos que te proporciono
 
 ${candidatesBlock}` 
         },
@@ -401,7 +404,7 @@ ${candidatesBlock}`
         content: resp.choices[0].message.content,
         timestamp: new Date().toISOString()
       });
-      const response = await this.handleAssistantMessage(resp.choices[0].message);
+      const response = await this.handleAssistantMessage(resp.choices[0].message, candidates);
       console.log('✅ RESPUESTA PROCESADA:', {
         type: response.type,
         data: response,
@@ -441,7 +444,7 @@ ${candidatesBlock}`
   name: **${i.name}**
   price: **${i.price} €**
   description: ${i.description || '—'}
-  image_url: ${i.image_url ? i.image_url.split('/').pop() || '—' : '—'}
+  image_url: ${i.image_url || 'null'}
   categories:
     ${i.category_info.map(ci => `- id: ${ci.id}, name: ${ci.name}`).join('\n    ')}`
       )
@@ -449,7 +452,10 @@ ${candidatesBlock}`
   }
 
   // Manejo de respuestas function_call
-  private async handleAssistantMessage(msg: any): Promise<AssistantResponse> {
+  private async handleAssistantMessage(
+    msg: any,
+    originalItems?: Array<MenuItem & { category_info: {id:string,name:string}[] }>
+  ): Promise<AssistantResponse> {
     if (!msg.function_call) {
       console.log('📝 Respuesta de texto simple:', msg.content);
       return { type: "assistant_text", content: msg.content || "" };
@@ -472,19 +478,20 @@ ${candidatesBlock}`
             }
 
             // Validar y limpiar cada recomendación
-            recommendations = recommendations.map(rec => ({
-              id: rec.id,
-              name: rec.name,
-              price: Number(rec.price),
-              reason: rec.reason,
-              image_url: rec.image_url?.trim() || null,
-              category_info: Array.isArray(rec.category_info) 
-                ? rec.category_info.map((cat: any) => ({
-                    id: cat.id,
-                    name: cat.name
-                  }))
-                : []
-            }));
+            recommendations = recommendations.map(rec => {
+              // Obtener las categorías del item original
+              const originalItem = originalItems?.find(c => c.id === rec.id);
+              const categoryInfo = originalItem?.category_info || [];
+
+              return {
+                id: rec.id,
+                name: rec.name,
+                price: Number(rec.price),
+                reason: rec.reason,
+                image_url: rec.image_url?.trim() || null,
+                category_info: categoryInfo
+              };
+            });
 
             console.log('🍽️ Recomendaciones procesadas:', JSON.stringify(recommendations, null, 2));
 

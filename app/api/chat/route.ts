@@ -46,12 +46,12 @@ export async function POST(request: Request) {
     console.log('Procesando mensaje...');
     try {
       const result = await chatService.processMessage(sid, alias, userMessage, categoryId);
-      console.log('Resultado del procesamiento:', result);
+      console.log('Resultado del procesamiento:', JSON.stringify(result, null, 2));
       
       // 3) Devuelve respuesta estructurada + sessionId
       return NextResponse.json({
-        response: result.response,
-        sessionId: result.sessionId
+        response: result,
+        sessionId: sid
       });
     } catch (error) {
       console.error('Error detallado en chatService.processMessage:', error);

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, ChefHat, ArrowDown } from 'lucide-react';
 import { ChatIAProps, Message } from './types';
-import { ChatMessage } from './ChatMessage';
+import { ChatMessage, TypedAssistantResponse } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { v4 as uuidv4 } from 'uuid';
 import { AssistantResponse } from '@/lib/chat/types/response.types';
@@ -104,21 +104,59 @@ export const ChatIA = ({ isOpen, onClose, alias = 'Cliente' }: ChatIAProps) => {
       }
 
       const data = await response.json();
+      console.log('Respuesta de la API:', JSON.stringify(data, null, 2));
 
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Asegurarse de que la respuesta tenga el formato correcto de AssistantResponse
-      const assistantResponse: AssistantResponse = {
-        type: data.type || SYSTEM_MESSAGE_TYPES.CLARIFICATION,
-        content: data.content || data.response || 'Lo siento, no pude procesar tu mensaje.',
-        ...(data.recommendations && { recommendations: data.recommendations }),
-        ...(data.clarification_points && { clarification_points: data.clarification_points }),
-        ...(data.error && { error: data.error })
-      };
+      // Transformar la respuesta legacy a la estructura esperada
+      const legacyAsstResponse = data.response;
+      console.log('Respuesta legacy:', JSON.stringify(legacyAsstResponse, null, 2));
+
+      let finalUiAssistantResponse: TypedAssistantResponse;
+
+      if (!legacyAsstResponse || typeof legacyAsstResponse.type === 'undefined') {
+        console.error('Respuesta inesperada del API:', legacyAsstResponse);
+        finalUiAssistantResponse = {
+          type: SYSTEM_MESSAGE_TYPES.ERROR,
+          content: 'Lo siento, recibí una respuesta inesperada del servidor.',
+          error: { message: 'Formato de respuesta inválido.' }
+        };
+      } else if (legacyAsstResponse.type === "recommendations") {
+        finalUiAssistantResponse = {
+          type: 'recommendations',
+          data: legacyAsstResponse.data.map((rec: any) => ({
+            id: rec.id,
+            name: rec.name,
+            price: rec.price,
+            reason: rec.reason,
+            image_url: rec.image_url,
+            category_info: rec.category_info || []
+          }))
+        };
+      } else if (legacyAsstResponse.type === "assistant_text") {
+        finalUiAssistantResponse = {
+          type: SYSTEM_MESSAGE_TYPES.INFO,
+          content: legacyAsstResponse.content
+        };
+      } else if (legacyAsstResponse.type === "product_details") {
+        finalUiAssistantResponse = {
+          type: SYSTEM_MESSAGE_TYPES.INFO,
+          content: `${legacyAsstResponse.data.item.name}: ${legacyAsstResponse.data.explanation}`
+        };
+      } else {
+        console.error('Tipo de respuesta no manejado:', legacyAsstResponse.type);
+        finalUiAssistantResponse = {
+          type: SYSTEM_MESSAGE_TYPES.ERROR,
+          content: 'Lo siento, no pude procesar tu mensaje de la forma esperada.',
+          error: { message: `Tipo de respuesta no manejado: ${legacyAsstResponse.type}` }
+        };
+      }
+
+      console.log('Respuesta final transformada:', JSON.stringify(finalUiAssistantResponse, null, 2));
 
       const assistantMessage: Message = {
         id: Date.now().toString(),
-        content: assistantResponse,
+        content: finalUiAssistantResponse,
         role: 'assistant',
         timestamp: new Date(),
       };

@@ -1,8 +1,8 @@
-import { AssistantResponse as BackendAssistantResponse } from '@/lib/chat/types/response.types';
+import { TypedAssistantResponse } from './ChatMessage';
 
 export interface Message {
   id: string;
-  content: string | BackendAssistantResponse;
+  content: string | TypedAssistantResponse;
   role: 'guest' | 'assistant';
   timestamp: Date;
 }

@@ -1,7 +1,49 @@
 import { ChatMessageProps } from './types';
-import { AssistantResponse, Recommendation } from '@/lib/chat/types/response.types';
+import { AssistantResponse } from '@/lib/chat/types/response.types';
 import { SYSTEM_MESSAGE_TYPES } from '@/lib/chat/constants/config';
 import { ReactNode } from 'react';
+
+export interface Recommendation {
+  id: string;
+  name: string;
+  price: number;
+  reason: string;
+  image_url: string;
+  category_info: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+
+export interface ClarificationResponse {
+  type: typeof SYSTEM_MESSAGE_TYPES.CLARIFICATION;
+  content: string;
+  clarification_points: string[];
+}
+
+export interface ErrorResponse {
+  type: typeof SYSTEM_MESSAGE_TYPES.ERROR;
+  content: string;
+  error: {
+    message: string;
+  };
+}
+
+export interface RecommendationsResponse {
+  type: 'recommendations';
+  data: Recommendation[];
+}
+
+export interface TextResponse {
+  type: string;
+  content: string;
+}
+
+export type TypedAssistantResponse = 
+  | RecommendationsResponse
+  | ClarificationResponse
+  | ErrorResponse
+  | TextResponse;
 
 function getInitials(name: string) {
   const words = name.split(' ');
@@ -11,37 +53,56 @@ function getInitials(name: string) {
   return (name[0] + (name[1] || name[0])).toUpperCase();
 }
 
-function renderContent(content: string | AssistantResponse): ReactNode {
+function renderContent(content: string | TypedAssistantResponse): ReactNode {
   if (typeof content === 'string') {
     return <p className="text-sm leading-relaxed">{content}</p>;
   }
 
-  const recommendations = content.recommendations || [];
-  const clarificationPoints = content.clarification_points || [];
-
   switch (content.type) {
-    case SYSTEM_MESSAGE_TYPES.RECOMMENDATION:
+    case 'recommendations': {
+      const recommendations = content as RecommendationsResponse;
       return (
-        <div className="space-y-2">
-          {recommendations.map((rec: Recommendation, index: number) => (
-            <div key={index} className="bg-white/10 rounded-lg p-2">
-              <p className="font-bold">{rec.menu_item_id}</p>
-              <p className="text-sm">{rec.reason}</p>
-              <p className="text-sm text-[#1ce3cf]">Match: {Math.round(rec.match_score * 100)}%</p>
+        <div className="space-y-4">
+          {recommendations.data.map((rec: Recommendation) => (
+            <div key={rec.id} className="bg-white/10 rounded-lg p-4">
+              <div className="flex items-start gap-4">
+                {rec.image_url && (
+                  <img 
+                    src={rec.image_url} 
+                    alt={rec.name}
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                )}
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg">{rec.name}</h3>
+                  <p className="text-sm text-[#1ce3cf]">{rec.price}€</p>
+                  <p className="text-sm mt-2">{rec.reason}</p>
+                  {rec.category_info?.length > 0 && (
+                    <div className="flex gap-2 mt-2">
+                      {rec.category_info.map((cat) => (
+                        <span key={cat.id} className="text-xs bg-[#1ce3cf]/20 text-[#1ce3cf] px-2 py-1 rounded">
+                          {cat.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
-          <p className="text-sm leading-relaxed">{content.content}</p>
         </div>
       );
-    case SYSTEM_MESSAGE_TYPES.CLARIFICATION:
+    }
+    case SYSTEM_MESSAGE_TYPES.CLARIFICATION: {
+      const clarification = content as ClarificationResponse;
       return (
         <div className="space-y-2">
-          <p className="text-sm leading-relaxed">{content.content}</p>
-          {clarificationPoints.length > 0 && (
+          <p className="text-sm leading-relaxed">{clarification.content}</p>
+          {clarification.clarification_points?.length > 0 && (
             <div className="mt-2">
               <p className="text-sm font-semibold">Puedes:</p>
               <ul className="list-disc list-inside text-sm">
-                {clarificationPoints.map((point: string, index: number) => (
+                {clarification.clarification_points.map((point: string, index: number) => (
                   <li key={index}>{point}</li>
                 ))}
               </ul>
@@ -49,17 +110,22 @@ function renderContent(content: string | AssistantResponse): ReactNode {
           )}
         </div>
       );
-    case SYSTEM_MESSAGE_TYPES.ERROR:
+    }
+    case SYSTEM_MESSAGE_TYPES.ERROR: {
+      const error = content as ErrorResponse;
       return (
         <div className="space-y-2">
-          <p className="text-sm leading-relaxed text-red-500">{content.content}</p>
-          {content.error && content.error.message && (
-            <p className="text-xs text-red-400">Error: {content.error.message}</p>
+          <p className="text-sm leading-relaxed text-red-500">{error.content}</p>
+          {error.error?.message && (
+            <p className="text-xs text-red-400">Error: {error.error.message}</p>
           )}
         </div>
       );
-    default:
-      return <p className="text-sm leading-relaxed">{content.content}</p>;
+    }
+    default: {
+      const text = content as TextResponse;
+      return <p className="text-sm leading-relaxed">{text.content}</p>;
+    }
   }
 }
 
