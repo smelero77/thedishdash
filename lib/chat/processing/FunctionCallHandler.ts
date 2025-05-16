@@ -7,6 +7,7 @@ import { SYSTEM_MESSAGE_TYPES, ERROR_CODES } from '../constants/config';
 import { OPENAI_FUNCTIONS } from '../constants/functions';
 import { supabase } from '@/lib/supabase';
 import { MenuItemData } from '@/types/menu';
+import { CHAT_CONFIG } from '../constants/config';
 
 // Esquemas de validación con Zod
 const PriceRangeSchema = z.object({
@@ -219,7 +220,7 @@ export class FunctionCallHandler {
       const prompt = this.buildProductExplanationPrompt(menuItem);
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: CHAT_CONFIG.productExplanationModel,
         messages: [
           {
             role: 'system',
@@ -230,8 +231,8 @@ export class FunctionCallHandler {
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 300
+        temperature: CHAT_CONFIG.productExplanationTemperature,
+        max_tokens: CHAT_CONFIG.maxTokensProductExplanation
       });
 
       return response.choices[0].message.content || 'No se pudo generar una explicación detallada.';

@@ -3,22 +3,25 @@
  */
 export const CHAT_CONFIG = {
   // Modelos de OpenAI
-  entityExtractionModel: "gpt-3.5-turbo-0125", // Modelo para extracción
-  recommendationModel: "gpt-4o-mini",          // Modelo para recomendaciones/respuestas
+  entityExtractionModel: "gpt-3.5-turbo-0125",    // Modelo para extracción de entidades/filtros
+  recommendationModel: "gpt-4o-mini",             // Modelo para recomendaciones/respuestas
+  productExplanationModel: "gpt-3.5-turbo-0125",  // Modelo para explicaciones de productos
   
   // Parámetros de generación
-  temperature: 0.3,                           // Para recomendación, un poco más de creatividad
-  entityExtractionTemperature: 0.1,           // Para extracción, muy determinista
-  maxTokensRecommendation: 1000,              // Para la respuesta final
-  maxTokensExtraction: 500,                   // Para la extracción de JSON
+  temperature: 0.4,                              // Para recomendación (0.3-0.5)
+  entityExtractionTemperature: 0.1,              // Para extracción, muy determinista
+  productExplanationTemperature: 0.3,            // Para explicaciones de productos (0.2-0.5)
+  maxTokensRecommendation: 1000,                 // Para la respuesta final
+  maxTokensExtraction: 500,                      // Para la extracción de JSON
+  maxTokensProductExplanation: 300,              // Para explicaciones de productos
   topP: 0.9,
   presencePenalty: 0.2,
   
   // Parámetros de búsqueda semántica
-  semanticSearchMatchThreshold: 0.38,         // Ajustar después de pruebas
-  semanticSearchMatchCount: 10,               // Items iniciales de la búsqueda semántica
-  maxCandidatesForGptContext: 5,              // Máximo de items en el candidatesBlock
-  minRelevantCandidatesThreshold: 3,          // Si la búsqueda devuelve menos, intentar fallback FTS
+  semanticSearchMatchThreshold: 0.3,             // Ajustar después de pruebas
+  semanticSearchMatchCount: 10,                  // Items iniciales de la búsqueda semántica
+  maxCandidatesForGptContext: 5,                 // Máximo de items en el candidatesBlock
+  minRelevantCandidatesThreshold: 3,             // Si la búsqueda devuelve menos, intentar fallback FTS
 } as const;
 
 /**

@@ -44,16 +44,30 @@ export class ChatMessageService {
     userMessage: string,
     categoryId?: string
   ): Promise<AssistantResponse> {
+    console.log('🚀 INICIO PROCESAMIENTO:', {
+      sessionId,
+      userAlias,
+      userMessage,
+      categoryId,
+      timestamp: new Date().toISOString()
+    });
     this.startTyping();
     
     try {
       // 3.1 Validación mínima
       if (userMessage.trim().length < 3) {
+        console.log('❌ VALIDACIÓN FALLIDA:', {
+          messageLength: userMessage.trim().length,
+          message: userMessage
+        });
         throw new Error("Escribe algo más descriptivo, por favor.");
       }
 
       // 3.2 Contexto breve del carrito
-      console.log('👤 User alias:', userAlias);
+      console.log('🛒 CONSULTA CARRITO:', {
+        alias: userAlias,
+        timestamp: new Date().toISOString()
+      });
       const { data: cartItems, error: cartError } = await supabase
         .from("temporary_order_items")
         .select(`
@@ -66,9 +80,15 @@ export class ChatMessageService {
         .eq("alias", userAlias);
       
       if (cartError) {
-        console.error('❌ Error obteniendo items del carrito:', cartError);
+        console.error('❌ ERROR CARRITO:', {
+          error: cartError,
+          alias: userAlias
+        });
       }
-      console.log('🛒 Items en carrito:', cartItems);
+      console.log('📦 RESULTADO CARRITO:', {
+        items: cartItems,
+        count: cartItems?.length || 0
+      });
 
       const cartContext = (!cartItems || cartItems.length === 0)
         ? "Tu carrito está vacío."
@@ -77,30 +97,56 @@ export class ChatMessageService {
             `- ${i.menu_items.name} x${i.quantity}`
           ).join("\n");
 
-      console.log('📦 Contexto del carrito:', cartContext);
-
       // 3.3 Búsqueda semántica
-      console.log('\n🔍 Iniciando búsqueda semántica para:', userMessage);
+      console.log('🔍 INICIO BÚSQUEDA SEMÁNTICA:', {
+        query: userMessage,
+        timestamp: new Date().toISOString()
+      });
       const msgEmbedding = await this.embeddingService.getEmbedding(userMessage);
-      console.log('📊 Embedding generado:', msgEmbedding.length, 'dimensiones');
+      console.log('📊 EMBEDDING GENERADO:', {
+        dimensions: msgEmbedding.length,
+        timestamp: new Date().toISOString()
+      });
 
       // 1) Intento vectorial
-      let { data: similarItems, error: vecErr } = await supabase
-        .rpc('match_menu_items', {
-          query_embedding: msgEmbedding,
-          match_threshold: 0.3,
-          match_count: 10
-        });
+      const rpcParams = {
+        p_query_embedding: msgEmbedding,
+        p_match_threshold: 0.3,
+        p_match_count: 10
+      };
+      console.log('🎯 PARÁMETROS RPC match_menu_items:', {
+        query_embedding_length: rpcParams.p_query_embedding.length,
+        match_threshold: rpcParams.p_match_threshold,
+        match_count: rpcParams.p_match_count,
+        timestamp: new Date().toISOString()
+      });
 
-      console.log('🍽️ Items similares encontrados:', similarItems?.length || 0);
-      console.log('🔍 Semántica:', similarItems?.map((i: { name: string; similarity?: number; distance?: number }) => ({
-        name: i.name,
-        distance: i.similarity || i.distance
-      })));
+      let { data: similarItems, error: vecErr } = await supabase
+        .rpc('match_menu_items', rpcParams);
+
+      if (vecErr) {
+        console.error('❌ ERROR EN BÚSQUEDA VECTORIAL:', {
+          error: vecErr,
+          params: rpcParams,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      console.log('🍽️ RESULTADOS VECTORIALES:', {
+        count: similarItems?.length || 0,
+        items: similarItems?.map((i: { name: string; similarity?: number; distance?: number }) => ({
+          name: i.name,
+          distance: i.similarity || i.distance
+        })),
+        timestamp: new Date().toISOString()
+      });
 
       // 2) Fallback por keywords si no hay resultados
       if ((!similarItems || similarItems.length === 0) && userMessage.trim()) {
-        console.log('⚠️ No hay resultados vectoriales, intentando fallback por texto...');
+        console.log('⚠️ INICIO FALLBACK KEYWORDS:', {
+          keyword: userMessage.toLowerCase(),
+          timestamp: new Date().toISOString()
+        });
         const keyword = userMessage.toLowerCase();
         const { data: fallback } = await supabase
           .from('menu_item_embeddings')
@@ -118,14 +164,21 @@ export class ChatMessageService {
           .eq('menu_items.is_available', true)
           .limit(10);
 
-        console.log('🔄 Results fallback:', fallback?.length || 0);
+        console.log('🔄 RESULTADOS FALLBACK:', {
+          count: fallback?.length || 0,
+          items: fallback?.map(f => f.menu_items),
+          timestamp: new Date().toISOString()
+        });
         similarItems = fallback?.map(f => f.menu_items) || [];
       }
 
       // 3.3.1 Obtener información de categorías
       const categoryMap: Record<string, string> = {};
       const catIds = Array.from(new Set(similarItems?.flatMap((i: MenuItem) => i.category_ids || []) || []));
-      console.log('📑 IDs de categorías encontrados:', catIds);
+      console.log('📑 CONSULTA CATEGORÍAS:', {
+        categoryIds: catIds,
+        timestamp: new Date().toISOString()
+      });
       
       if (catIds.length) {
         const { data: cats } = await supabase
@@ -134,7 +187,10 @@ export class ChatMessageService {
           .in('id', catIds);
         
         cats?.forEach((c: { id: string; name: string }) => { categoryMap[c.id] = c.name; });
-        console.log('🏷️ Mapa de categorías:', categoryMap);
+        console.log('🏷️ MAPA CATEGORÍAS:', {
+          categories: categoryMap,
+          timestamp: new Date().toISOString()
+        });
       }
 
       // 3.3.2 Enriquecer items con información de categorías
@@ -146,25 +202,36 @@ export class ChatMessageService {
         }))
       })) || [];
 
-      console.log('✨ Items enriquecidos:', JSON.stringify(enrichedItems, null, 2));
+      console.log('✨ ITEMS ENRIQUECIDOS:', {
+        count: enrichedItems.length,
+        items: enrichedItems,
+        timestamp: new Date().toISOString()
+      });
 
       // Filtrar por categoría si se especifica
       const filteredItems = categoryId 
         ? enrichedItems.filter((i: MenuItem) => i.category_ids?.includes(categoryId))
         : enrichedItems;
 
-      console.log('🔍 Items después de filtrar por categoría:', filteredItems.length);
-      if (categoryId) {
-        console.log('📑 Filtrando por categoría ID:', categoryId);
-      }
+      console.log('🔍 FILTRADO POR CATEGORÍA:', {
+        categoryId,
+        count: filteredItems.length,
+        timestamp: new Date().toISOString()
+      });
 
       // Excluir items ya en carrito
       const cartIds = new Set(cartItems?.map((i: any) => i.menu_item_id));
-      console.log('🛒 IDs en carrito:', Array.from(cartIds));
-      console.log('🔍 Items antes de filtrar carrito:', filteredItems.map((i: MenuItem) => ({ id: i.id, name: i.name })));
+      console.log('🛒 FILTRADO CARRITO:', {
+        cartIds: Array.from(cartIds),
+        timestamp: new Date().toISOString()
+      });
       
       let candidates = filteredItems.filter((i: MenuItem) => !cartIds.has(i.id));
-      console.log('🎯 Candidatos finales:', candidates.map((i: MenuItem) => ({ id: i.id, name: i.name })));
+      console.log('🎯 CANDIDATOS FINALES:', {
+        count: candidates.length,
+        items: candidates.map((i: MenuItem) => ({ id: i.id, name: i.name })),
+        timestamp: new Date().toISOString()
+      });
 
       // Fallback explícito por categoría si no hay candidatos
       if (candidates.length === 0) {
@@ -231,8 +298,10 @@ export class ChatMessageService {
 
       // 3.4 Construcción de bloque con IDs
       const candidatesBlock = this.buildCandidatesBlock(candidates);
-      console.log('\n📝 Bloque de candidatos construido:');
-      console.log(candidatesBlock);
+      console.log('📝 BLOQUE CANDIDATOS:', {
+        block: candidatesBlock,
+        timestamp: new Date().toISOString()
+      });
 
       // 3.5 Montaje de mensajes
       const messages: ChatCompletionMessageParam[] = [
@@ -258,23 +327,65 @@ ${candidatesBlock}`
         }
       ];
 
-      console.log('🤖 Mensajes enviados a GPT:', JSON.stringify(messages, null, 2));
+      console.log('🤖 MENSAJES ENVIADOS A GPT:', {
+        messages: messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
+        functions: [recommendDishesFn, getProductDetailsFn],
+        config: {
+          model: CHAT_CONFIG.recommendationModel,
+          temperature: CHAT_CONFIG.temperature,
+          maxTokens: CHAT_CONFIG.maxTokensRecommendation,
+          topP: CHAT_CONFIG.topP,
+          presencePenalty: CHAT_CONFIG.presencePenalty
+        },
+        timestamp: new Date().toISOString()
+      });
 
-      // 3.6 Llamada a GPT con function_call auto y DOS funciones
+      // 3.6 Llamada a GPT para recomendaciones
       const resp = await this.openai.chat.completions.create({
-        model: CHAT_CONFIG.entityExtractionModel,
+        model: CHAT_CONFIG.recommendationModel,  // gpt-4o-mini
         messages,
         functions: [recommendDishesFn, getProductDetailsFn],
         function_call: "auto",
-        temperature: CHAT_CONFIG.entityExtractionTemperature,
-        max_tokens: CHAT_CONFIG.maxTokensExtraction,
+        temperature: CHAT_CONFIG.temperature,    // 0.4
+        max_tokens: CHAT_CONFIG.maxTokensRecommendation,
         top_p: CHAT_CONFIG.topP,
         presence_penalty: CHAT_CONFIG.presencePenalty
       });
 
-      console.log('📝 Respuesta de GPT:', JSON.stringify(resp.choices[0].message, null, 2));
+      console.log('📝 RESPUESTA COMPLETA DE GPT:', {
+        id: resp.id,
+        model: resp.model,
+        created: resp.created,
+        choices: resp.choices.map(choice => ({
+          index: choice.index,
+          message: {
+            role: choice.message.role,
+            content: choice.message.content,
+            function_call: choice.message.function_call ? {
+              name: choice.message.function_call.name,
+              arguments: choice.message.function_call.arguments
+            } : null
+          },
+          finish_reason: choice.finish_reason
+        })),
+        usage: {
+          prompt_tokens: resp.usage?.prompt_tokens,
+          completion_tokens: resp.usage?.completion_tokens,
+          total_tokens: resp.usage?.total_tokens
+        },
+        timestamp: new Date().toISOString()
+      });
 
       // 3.7 Guardar mensaje assistant
+      console.log('💾 GUARDANDO RESPUESTA:', {
+        sessionId,
+        role: resp.choices[0].message.role,
+        content: JSON.stringify(resp.choices[0].message),
+        timestamp: new Date().toISOString()
+      });
       await supabase.from("messages").insert({
         session_id: sessionId,
         sender: resp.choices[0].message.role,
@@ -282,10 +393,29 @@ ${candidatesBlock}`
       });
 
       // 3.8 Manejar función invocada
+      console.log('🔄 PROCESANDO RESPUESTA:', {
+        functionCall: resp.choices[0].message.function_call ? {
+          name: resp.choices[0].message.function_call.name,
+          arguments: resp.choices[0].message.function_call.arguments
+        } : null,
+        content: resp.choices[0].message.content,
+        timestamp: new Date().toISOString()
+      });
       const response = await this.handleAssistantMessage(resp.choices[0].message);
+      console.log('✅ RESPUESTA PROCESADA:', {
+        type: response.type,
+        data: response,
+        timestamp: new Date().toISOString()
+      });
       this.stopTyping();
       return response;
     } catch (error) {
+      console.error('❌ ERROR:', {
+        error,
+        sessionId,
+        userAlias,
+        timestamp: new Date().toISOString()
+      });
       this.stopTyping();
       throw error;
     }
@@ -435,10 +565,10 @@ ${candidatesBlock}`
           console.log('🤖 Mensajes para explicación:', JSON.stringify(followupMessages, null, 2));
 
           const followup = await this.openai.chat.completions.create({
-            model: CHAT_CONFIG.entityExtractionModel,
+            model: CHAT_CONFIG.productExplanationModel,
             messages: followupMessages,
-            temperature: CHAT_CONFIG.entityExtractionTemperature,
-            max_tokens: CHAT_CONFIG.maxTokensExtraction
+            temperature: CHAT_CONFIG.productExplanationTemperature,
+            max_tokens: CHAT_CONFIG.maxTokensProductExplanation
           });
 
           console.log('📝 Explicación generada:', followup.choices[0].message?.content);

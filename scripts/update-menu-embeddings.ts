@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 import OpenAI from 'openai';
 import { supabase } from '../lib/supabase';
+import { EMBEDDING_CONFIG } from '../lib/embeddings/constants/config';
 
 // ----- Debug logs -----
 console.log('📂 Directorio actual:', process.cwd());
@@ -140,8 +141,6 @@ IMPORTANTE: Debes devolver SOLO un objeto JSON válido con exactamente estas dos
 No incluyas ningún otro texto, solo el JSON. Asegúrate de que el JSON sea sintácticamente correcto.
 `;
 
-const EMBEDDING_MODEL = 'text-embedding-ada-002';
-
 // Add these utility functions at the top level
 function normalizeText(text: string): string {
   return text
@@ -167,10 +166,34 @@ function validateCoreTags(text: string): boolean {
 }
 
 async function generateEmbedding(text: string): Promise<number[]> {
-  const cleanText = text.replace(/\s+/g, ' ').trim();
-  const truncatedText = cleanText.substring(0, 25000); // Truncado preventivo, API maneja 8191 tokens
-  const resp = await openai.embeddings.create({ model: EMBEDDING_MODEL, input: truncatedText });
-  return resp.data[0].embedding;
+  if (!text) {
+    console.warn('Se recibió texto vacío para generar embedding, devolviendo array vacío.');
+    return [];
+  }
+  
+  const cleanText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+  const maxChars = EMBEDDING_CONFIG.maxTokens * 3; // Un poco conservador para evitar errores
+  const truncatedText = cleanText.substring(0, maxChars);
+
+  if (!truncatedText) {
+    console.warn('Texto truncado resultó vacío, devolviendo array vacío.');
+    return [];
+  }
+
+  console.log(`Generando embedding para texto (primeros 100 chars): "${truncatedText.substring(0, 100)}..."`);
+  console.log(`Usando modelo: ${EMBEDDING_CONFIG.model}, Dimensiones: ${EMBEDDING_CONFIG.dimensions}`);
+
+  try {
+    const resp = await openai.embeddings.create({
+      model: EMBEDDING_CONFIG.model,
+      input: truncatedText,
+      dimensions: EMBEDDING_CONFIG.dimensions
+    });
+    return resp.data[0].embedding;
+  } catch (error) {
+    console.error('Error al generar embedding:', error);
+    throw error;
+  }
 }
 
 async function main() {
