@@ -147,6 +147,11 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
             category_info: rec.category_info || []
           }))
         };
+      } else if (legacyAsstResponse.type === "text") {
+        finalUiAssistantResponse = {
+          type: SYSTEM_MESSAGE_TYPES.INFO,
+          content: legacyAsstResponse.content
+        };
       } else if (legacyAsstResponse.type === "assistant_text") {
         finalUiAssistantResponse = {
           type: SYSTEM_MESSAGE_TYPES.INFO,
