@@ -365,7 +365,7 @@ export class ChatMessageService {
         messages,
         functions: [recommendDishesFn, getProductDetailsFn],
         function_call: userMessage.toLowerCase().includes('desayunar') ? { name: 'recommend_dishes' } : 'auto',
-        temperature: 0.7,
+        temperature: 0.5,
         max_tokens: 500
       });
 
@@ -459,19 +459,29 @@ export class ChatMessageService {
             content: 'Parece que no encontré recomendaciones específicas esta vez. ¿Te gustaría que intente buscar algo más general o que me des más detalles sobre lo que te apetece?'
           };
         }
+        
+        // Verificar explícitamente si hay IDs inválidos en las recomendaciones
+        const invalidIds = parsedArgs.recommendations
+          .filter((rec: any) => typeof rec.id === 'string' && !originalItems?.some(item => item.id === rec.id))
+          .map((rec: any) => rec.id);
+          
+        if (invalidIds.length > 0) {
+          console.warn('⚠️ GPT generó IDs inválidos en las recomendaciones:', invalidIds);
+        }
+        
         const validRecommendations = parsedArgs.recommendations
           .map((rec: any) => {
             let originalItem = originalItems?.find(item => item.id === rec.id);
 
             // Inicio de la lógica de parche para IDs no UUID
-            if (!originalItem && typeof rec.id === 'string' && !isValidUUID(rec.id) && originalItems) {
-              console.warn(`GPT recommended ID "${rec.id}" is not a UUID. Attempting to match by name.`);
+            if (!originalItem && typeof rec.id === 'string' && originalItems) {
+              console.warn(`GPT recommended ID "${rec.id}" is not a valid menu item ID. Attempting to match by name.`);
               const nameToMatch = rec.id.toLowerCase().replace(/-/g, ' ').trim();
               originalItem = originalItems.find(item => item.name.toLowerCase().trim() === nameToMatch);
               if (originalItem) {
-                console.log(`Successfully matched non-UUID "${rec.id}" to item "${originalItem.name}" (ID: ${originalItem.id}) by name.`);
+                console.log(`Successfully matched non-matching ID "${rec.id}" to item "${originalItem.name}" (ID: ${originalItem.id}) by name.`);
               } else {
-                console.warn(`Could not match non-UUID ID "${rec.id}" to any candidate by name either.`);
+                console.warn(`Could not match non-matching ID "${rec.id}" to any candidate by name either.`);
               }
             }
             // Fin de la lógica de parche
@@ -495,7 +505,7 @@ export class ChatMessageService {
         if (validRecommendations.length === 0) {
           return {
             type: 'text',
-            content: msg.content || 'No encontré recomendaciones que coincidan exactamente. ¿Podrías darme más detalles sobre tus gustos o prefieres que te muestre algunas opciones populares?'
+            content: 'Intenté seleccionar algunas opciones, pero no encontré coincidencias exactas con los productos disponibles en este momento. ¿Podrías reformular tu pregunta o darme más detalles sobre tus preferencias?'
           };
         }
 

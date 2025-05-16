@@ -94,7 +94,8 @@ export class ContextBuilder {
       // Limitar la cantidad de candidatos para no exceder tokens de GPT
       const itemsToShow = items.slice(0, CHAT_CONFIG.maxCandidatesForGptContext);
 
-      return itemsToShow.map(item => {
+      // Crear una lista numerada con los IDs claramente marcados
+      const candidatesBlock = itemsToShow.map((item, index) => {
         const description = item.description 
           ? item.description.length > 150 
             ? `${item.description.substring(0, 150)}...` 
@@ -107,14 +108,19 @@ export class ContextBuilder {
 
         const characteristics = this.getMenuItemCharacteristics(item);
 
-        return `- ID: ${item.id}\n` +
+        return `============= CANDIDATO ${index + 1} =============\n` +
+          `  ID: "${item.id}" (IMPORTANTE: usa EXACTAMENTE este ID)\n` +
           `  Nombre: ${item.name}\n` +
           `  Precio: ${item.price}€\n` +
           `  Descripción: ${description}\n` +
           `  Categorías: ${categories}\n` +
           (characteristics ? `  Características: ${characteristics}\n` : '') +
-          (item.is_recommended ? '  ¡Recomendado!\n' : '');
+          (item.is_recommended ? '  ¡Recomendado!\n' : '') +
+          `============= FIN CANDIDATO ${index + 1} =============`;
       }).join("\n\n");
+
+      // Añadir una nota enfática al principio
+      return `IMPORTANTE: A continuación se lista TODOS los candidatos disponibles. DEBES usar EXCLUSIVAMENTE los IDs exactos proporcionados en esta lista. NUNCA inventes IDs ni uses nombres como si fueran IDs. Para cada plato recomendado, la razón de recomendación debe basarse ÚNICAMENTE en los atributos y características de ESE plato específico.\n\n${candidatesBlock}`;
     } catch (error) {
       console.error('[ContextBuilder] Error building candidates context:', error);
       return "Error al construir el contexto de candidatos.";

@@ -2,7 +2,7 @@ import { CHAT_CONFIG } from './config';
 
 export const recommendDishesFn = {
   name: "recommend_dishes",
-  description: "Elige 2–3 platos de la lista de candidatos proporcionada y explica por qué los recomiendas.",
+  description: "Elige 2–3 platos de la lista de candidatos proporcionada y explica por qué los recomiendas. DEBES usar EXACTAMENTE los IDs que aparecen en la lista de candidatos. Para cada plato, asegúrate de que la razón de recomendación se base ÚNICAMENTE en los detalles de ese plato específico.",
   parameters: {
     type: "object",
     properties: {
@@ -14,11 +14,11 @@ export const recommendDishesFn = {
             id: { 
               type: "string", 
               format: "uuid",
-              description: "El ID EXACTO de un item de la lista de candidatos proporcionada en el contexto."
+              description: "El ID EXACTO de un item de la lista de candidatos proporcionada. CRÍTICO: Usa SOLO IDs que aparezcan en la lista de candidatos, NUNCA inventes IDs ni uses otros valores."
             },
             reason: { 
               type: "string",
-              description: "La razón por la que este item es una buena recomendación para el usuario."
+              description: "La razón por la que este item específico es una buena recomendación para el usuario. IMPORTANTE: Esta razón debe basarse ÚNICAMENTE en los atributos y características del plato con este ID específico (nombre, descripción, categorías, etc.). NO mezcles información con otros platos."
             }
           },
           required: ["id", "reason"]
