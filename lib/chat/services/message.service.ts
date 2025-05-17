@@ -87,6 +87,9 @@ export class ChatMessageService {
         }
       }
 
+      // Variable para indicar si el mensaje corto fue aceptado
+      const isShortMessageAccepted = userMessage.trim().length < 3 && await chatSessionService.getLastConversationTurns(sessionId, 2).then(turns => turns.length > 1);
+
       // Verificar y crear sesión si no existe
       let currentSession = await chatSessionService.get(sessionId);
       if (!currentSession) {
@@ -183,7 +186,43 @@ export class ChatMessageService {
         query: userMessage,
         timestamp: new Date().toISOString()
       });
-      const msgEmbedding = await this.embeddingService.getEmbedding(userMessage);
+
+      // Variable para almacenar la consulta que se usará para la búsqueda semántica
+      let queryForSemanticSearch = userMessage;
+
+      // Si es un mensaje corto aceptado, verificar si podemos usar una consulta más relevante
+      if (isShortMessageAccepted) {
+        // Obtener últimos 3 turnos (incluyendo el actual) para analizar el contexto
+        const contextTurns = await chatSessionService.getLastConversationTurns(sessionId, 3);
+        
+        // Si tenemos al menos 2 mensajes previos (asistente y usuario)
+        if (contextTurns.length >= 2) {
+          const lastAssistantMsg = contextTurns.find(turn => turn.role === 'assistant');
+          const previousUserMsg = contextTurns.find(turn => turn.role === 'user' && turn.content !== userMessage);
+          
+          // Verificar si el último mensaje del asistente parece ser una pregunta clarificadora
+          const isProbablyQuestion = lastAssistantMsg && lastAssistantMsg.content && 
+            (lastAssistantMsg.content.includes('?') || 
+             lastAssistantMsg.content.includes('quieres') || 
+             lastAssistantMsg.content.includes('prefieres'));
+          
+          // Verificar si el mensaje actual es una simple afirmación
+          const isSimpleConfirmation = /^(s[ií]|claro|vale|ok|por supuesto|adelante|correcto|efectivamente|exacto)$/i.test(userMessage.trim());
+          
+          if (isProbablyQuestion && isSimpleConfirmation && previousUserMsg && previousUserMsg.content) {
+            // Usar la consulta original del usuario que llevó a la pregunta
+            queryForSemanticSearch = previousUserMsg.content;
+            
+            console.log('🔄 USANDO CONSULTA ORIGINAL PARA MENSAJE CORTO:', {
+              originalQuery: queryForSemanticSearch,
+              currentShortMessage: userMessage,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      }
+      
+      const msgEmbedding = await this.embeddingService.getEmbedding(queryForSemanticSearch);
       console.log('📊 EMBEDDING GENERADO:', {
         dimensions: msgEmbedding.length,
         timestamp: new Date().toISOString()

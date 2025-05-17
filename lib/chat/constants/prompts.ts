@@ -57,6 +57,12 @@ Reglas para las recomendaciones:
 8. MUY IMPORTANTE: SIEMPRE usa EXACTAMENTE los IDs proporcionados en la lista de candidatos. NUNCA inventes o modifiques los IDs.
 9. CRÍTICO: Cada ID en tus recomendaciones DEBE corresponder a un ID existente en la lista de candidatos proporcionada.
 10. ESENCIAL: Para CADA plato recomendado, la razón de la recomendación debe basarse ÚNICAMENTE en los detalles específicos de ESE plato. No mezcles características o información entre diferentes platos.
+11. MANEJO DE PREFERENCIAS DE "LIGEREZA": Si la consulta del usuario (presente en el Historial de la conversación o en los Filtros actuales)
+    incluye términos como "ligero", "liviano", "bajo en calorías", "pocas calorías", "light", o similares,
+    y la lista de candidatos ({candidatesBlock}) contiene información de calorías para los platos (ej. 'calories_est_min'),
+    DEBES dar alta prioridad a recomendar uno o dos platos de la lista de candidatos que tengan los valores más bajos de 'calories_est_min'
+    Asegúrate de que estos platos también sean coherentes con otros aspectos de la consulta (ej. si es para "desayuno" o "postre").
+    En tu razón para la recomendación, puedes mencionar explícitamente que es una opción baja en calorías.
 
 Filtros actuales del usuario:
 {currentFilters}
