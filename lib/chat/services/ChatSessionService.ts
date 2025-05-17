@@ -342,52 +342,6 @@ export class ChatSessionService {
 
     return data?.length || 0;
   }
-
-  /**
-   * Actualiza las últimas recomendaciones mostradas al usuario
-   * Nota: Esta función no actualiza la base de datos ya que menu_items no existe
-   */
-  public async updateLastRecommendations(
-    sessionId: string,
-    recommendationIds: string[]
-  ): Promise<void> {
-    console.log(`Para sesión ${sessionId}, se registrarían recomendaciones: ${recommendationIds.join(', ')}`);
-    // No podemos guardar en la BD ya que el campo no existe
-    return;
-  }
-
-  /**
-   * Obtiene las últimas recomendaciones mostradas al usuario
-   * Nota: Esta función devuelve un array vacío ya que menu_items no existe en la tabla
-   */
-  public async getLastRecommendations(sessionId: string): Promise<string[]> {
-    console.log(`Solicitadas recomendaciones para sesión ${sessionId}`);
-    // No podemos recuperar datos que no existen en la BD
-    return [];
-  }
-
-  /**
-   * Actualiza los ítems rechazados por el usuario
-   * Nota: Esta función no actualiza la base de datos ya que menu_items no existe
-   */
-  public async updateRejectedItems(
-    sessionId: string,
-    rejectedIds: string[]
-  ): Promise<void> {
-    console.log(`Para sesión ${sessionId}, se registrarían ítems rechazados: ${rejectedIds.join(', ')}`);
-    // No podemos guardar en la BD ya que el campo no existe
-    return;
-  }
-
-  /**
-   * Obtiene los ítems rechazados por el usuario
-   * Nota: Esta función devuelve un array vacío ya que menu_items no existe en la tabla
-   */
-  public async getRejectedItems(sessionId: string): Promise<string[]> {
-    console.log(`Solicitados ítems rechazados para sesión ${sessionId}`);
-    // No podemos recuperar datos que no existen en la BD
-    return [];
-  }
 }
 
 // Exportar una instancia singleton

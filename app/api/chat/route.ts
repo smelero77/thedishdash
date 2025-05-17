@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
-import { ChatService } from '@/lib/chat';
+import { ChatOrchestrator } from '@/lib/chat/orchestration/ChatOrchestrator';
 import { EMBEDDING_CONFIG } from '@/lib/embeddings/constants/config';
 import { v4 as uuidv4 } from 'uuid';
 import { isValidUUID } from '@/utils/validation';
 import { chatSessionService } from '@/lib/chat/services/ChatSessionService';
+import { OpenAIEmbeddingService } from '@/lib/embeddings/services/openai.service';
+import { supabase } from '@/lib/supabase';
 
 // Validar variables de entorno
 const requiredEnvVars = {
@@ -19,9 +21,11 @@ if (missingEnvVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
-const chatService = ChatService.getInstance(
+const embeddingService = new OpenAIEmbeddingService(process.env.OPENAI_API_KEY!, EMBEDDING_CONFIG);
+const chatService = new ChatOrchestrator(
   process.env.OPENAI_API_KEY!,
-  EMBEDDING_CONFIG
+  supabase,
+  embeddingService
 );
 
 export async function POST(request: Request) {
@@ -85,7 +89,7 @@ export async function POST(request: Request) {
     // 3) Procesa el mensaje
     console.log('Procesando mensaje...');
     try {
-      const result = await chatService.processMessage(sid, userAlias, userMessage, categoryId);
+      const result = await chatService.processUserMessage(session, userMessage, categoryId);
       console.log('Resultado del procesamiento:', JSON.stringify(result, null, 2));
       
       // 4) Devuelve respuesta estructurada + sessionId
