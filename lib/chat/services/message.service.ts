@@ -359,6 +359,53 @@ export class ChatMessageService {
         });
       }
 
+      // Extraer posibles filtros de precio del mensaje del usuario
+      // Regex para detectar expresiones de precio como "menos de 15 euros", "mas de 10 euro", "hasta 12€", etc.
+      // Se aceptan tanto "euro" como "euros", con o sin símbolo.
+      const priceFilterRegex = /\b(menos|más|mas|bajo|mayor|menor|hasta|desde)\s+(de\s+)?(\d+)(\s+euros?|\s+€)?\b/i;
+      const priceMatch = userMessage.match(priceFilterRegex);
+      let priceMin: number | undefined = undefined;
+      let priceMax: number | undefined = undefined;
+
+      if (priceMatch) {
+        const priceValue = parseInt(priceMatch[3], 10);
+        const priceOperator = priceMatch[1].toLowerCase();
+        
+        if (!isNaN(priceValue)) {
+          if (['menos', 'menor', 'hasta'].includes(priceOperator)) {
+            priceMax = priceValue;
+            console.log('💰 FILTRO DE PRECIO DETECTADO - Máximo:', priceMax);
+          } else if (['más', 'mas', 'mayor', 'desde'].includes(priceOperator)) {
+            priceMin = priceValue;
+            console.log('💰 FILTRO DE PRECIO DETECTADO - Mínimo:', priceMin);
+          }
+        }
+      }
+
+      // Aplicar filtro de precio manualmente a los candidatos
+      if (priceMin !== undefined || priceMax !== undefined) {
+        const filteredByPrice = candidates.filter((item: MenuItem) => {
+          const price = item.price;
+          return (priceMin === undefined || price >= priceMin) && 
+                 (priceMax === undefined || price <= priceMax);
+        });
+        
+        console.log('💰 FILTRADO POR PRECIO:', {
+          original: candidates.length,
+          filtered: filteredByPrice.length,
+          priceMin,
+          priceMax,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Solo usar resultados filtrados si hay suficientes, sino mantener advertencia en log
+        if (filteredByPrice.length > 0) {
+          candidates = filteredByPrice;
+        } else {
+          console.warn('⚠️ Filtro de precio aplicado resultó en 0 candidatos. Manteniendo resultados originales pero añadiendo advertencia en prompt.');
+        }
+      }
+
       console.log('🎯 CANDIDATOS FINALES:', {
         count: candidates.length,
         items: candidates.map((i: MenuItem) => ({ id: i.id, name: i.name })),
@@ -404,6 +451,16 @@ export class ChatMessageService {
         }
       }
 
+      // ✔️ Si después del fallback seguimos sin candidatos, devolvemos mensaje solicitando más detalles
+      if (candidates.length === 0) {
+        console.warn('⚠️ Sin candidatos tras búsquedas, filtros y fallback. Se devuelve mensaje de aclaración al usuario.');
+        this.stopTyping();
+        return {
+          type: 'text',
+          content: 'No he encontrado platos que se ajusten a lo que pides. ¿Podrías darme más detalles o reformular tu petición?'
+        };
+      }
+
       // Obtener últimos turnos de conversación para contexto
       const lastTurns = await chatSessionService.getLastConversationTurns(sessionId, 2);
       console.log('💬 ÚLTIMOS TURNOS:', {
@@ -424,7 +481,14 @@ export class ChatMessageService {
           ${lastTurns.map(turn => `${turn.role}: ${turn.content}`).join('\n')}
           
           IMPORTANTE: Solo puedes recomendar platos de esta lista exacta de candidatos disponibles:
-          ${candidates.map((item: MenuItem & { category_info: {id:string,name:string}[] }) => `ID: ${item.id} - ${item.name}`).join('\n')}
+          ${candidates.map((item: MenuItem & { category_info: {id:string,name:string}[] }) => `ID: ${item.id} - ${item.name} - Precio: ${item.price}€`).join('\n')}
+          
+          ${priceMin !== undefined || priceMax !== undefined ? 
+            `FILTROS DE PRECIO ACTIVOS:
+             ${priceMin !== undefined ? `- Precio mínimo: ${priceMin}€` : ''}
+             ${priceMax !== undefined ? `- Precio máximo: ${priceMax}€` : ''}
+             Es CRÍTICO que SOLO recomiendes platos que cumplan con estos criterios de precio.` 
+            : ''}
           
           Instrucciones:
           1. Si el usuario pide recomendaciones o menciona "desayunar", SIEMPRE usa la función recommend_dishes.
@@ -433,7 +497,8 @@ export class ChatMessageService {
           4. Haz preguntas específicas para entender mejor las preferencias del usuario.
           5. Sugiere combinaciones de platos cuando sea apropiado.
           6. Menciona características especiales de los platos (ej. "sin gluten", "vegetariano").
-          7. DEBES usar EXACTAMENTE los IDs proporcionados en la lista de candidatos. NO inventes IDs.`
+          7. DEBES usar EXACTAMENTE los IDs proporcionados en la lista de candidatos. NO inventes IDs.
+          8. NUNCA recomiendes platos que no cumplan con los filtros de precio si están especificados.`
         },
         {
           role: 'user',
@@ -484,7 +549,7 @@ export class ChatMessageService {
         });
       }
 
-      const result = await this.handleAssistantMessage(response, candidates);
+      const result = await this.handleAssistantMessage(response, candidates, priceMin, priceMax);
 
       // Guardar la respuesta del asistente en la base de datos con su contenido correcto
       try {
@@ -547,7 +612,9 @@ export class ChatMessageService {
 
   private async handleAssistantMessage(
     msg: OpenAI.Chat.Completions.ChatCompletionMessage,
-    originalItems?: Array<MenuItem & { category_info: {id:string,name:string}[] }>
+    originalItems?: Array<MenuItem & { category_info: {id:string,name:string}[] }>,
+    priceMin?: number,
+    priceMax?: number
   ): Promise<ChatResponse> {
     if (msg.function_call) {
       const { name, arguments: args } = msg.function_call;
@@ -602,6 +669,13 @@ export class ChatMessageService {
               return null;
             }
 
+            // Verificar si el ítem cumple con las restricciones de precio
+            if ((priceMin !== undefined && originalItem.price < priceMin) || 
+                (priceMax !== undefined && originalItem.price > priceMax)) {
+              console.warn(`⚠️ Item "${originalItem.name}" (Precio: ${originalItem.price}€) no cumple con filtros de precio: MIN=${priceMin || 'N/A'}, MAX=${priceMax || 'N/A'}`);
+              return null; // Excluir recomendaciones que no cumplen con restricciones de precio
+            }
+
             return {
               id: originalItem.id,
               name: originalItem.name,
@@ -614,9 +688,17 @@ export class ChatMessageService {
           .filter(Boolean);
 
         if (validRecommendations.length === 0) {
+          let errorMessage = 'No encontré opciones que coincidan exactamente con lo que buscas.';
+          
+          if (priceMin !== undefined || priceMax !== undefined) {
+            errorMessage += ` ${priceMin !== undefined ? `El precio mínimo de ${priceMin}€` : ''}${priceMin !== undefined && priceMax !== undefined ? ' y ' : ''}${priceMax !== undefined ? `el precio máximo de ${priceMax}€` : ''} limita las opciones disponibles.`;
+          }
+          
+          errorMessage += ' ¿Podrías ajustar tu búsqueda o cambiar tus criterios?';
+          
           return {
             type: 'text',
-            content: 'Intenté seleccionar algunas opciones, pero no encontré coincidencias exactas con los productos disponibles en este momento. ¿Podrías reformular tu pregunta o darme más detalles sobre tus preferencias?'
+            content: errorMessage
           };
         }
 

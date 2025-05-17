@@ -44,7 +44,10 @@ export const ChatSessionSchema = z.object({
   menu_items: z.record(z.unknown()).nullable(),
   time_of_day: z.string().nullable(),
   last_recommendations: z.array(z.string()).default([]),
-  rejected_items: z.array(z.string()).default([])
+  rejected_items: z.array(z.string()).default([]),
+  conversation_history: z.array(z.any()).optional(),
+  filters: z.any().optional(),
+  alias_mesa: z.string().optional()
 });
 
 // Tipo derivado del esquema

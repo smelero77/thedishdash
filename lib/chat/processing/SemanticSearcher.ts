@@ -58,35 +58,91 @@ export class SemanticSearcher {
       p_match_count: CHAT_CONFIG.semanticSearchMatchCount
     } as const;
 
-    // Filtrar y añadir solo parámetros con valores válidos
-    const filterParams = Object.entries(mappedRpcFilters).reduce((acc, [key, value]) => {
+    // Crear una copia de los parámetros RPC para procesamiento
+    const rpcParams: Record<string, any> = { ...baseParams };
+    
+    // IMPORTANTE: Procesar y agregar SIEMPRE los parámetros de precio si existen
+    if (mappedRpcFilters.p_price_min !== undefined) {
+      rpcParams.p_price_min = mappedRpcFilters.p_price_min;
+    }
+    
+    if (mappedRpcFilters.p_price_max !== undefined) {
+      rpcParams.p_price_max = mappedRpcFilters.p_price_max;
+    }
+    
+    // Procesar el resto de parámetros
+    Object.entries(mappedRpcFilters).forEach(([key, value]) => {
+      // Saltar los parámetros de precio que ya fueron procesados
+      if (key === 'p_price_min' || key === 'p_price_max') {
+        return;
+      }
+      
       if (value !== null && value !== undefined) {
         if (Array.isArray(value)) {
-          if (value.length > 0) acc[key] = value;
+          if (value.length > 0) rpcParams[key] = value;
         } else if (typeof value === 'boolean') {
-          acc[key] = value;
+          rpcParams[key] = value;
         } else if (typeof value === 'string' && value.trim() !== '') {
-          acc[key] = value;
+          rpcParams[key] = value;
         } else if (typeof value === 'number' && !isNaN(value)) {
-          acc[key] = value;
+          rpcParams[key] = value;
         }
       }
-      return acc;
-    }, {} as Record<string, any>);
+    });
 
-    return { ...baseParams, ...filterParams };
+    // Log detallado de todos los parámetros antes de la llamada a la función RPC
+    this.logger.debug('[SemanticSearcher] PARÁMETROS RPC match_menu_items:', {
+      query_embedding_length: queryEmbedding.length,
+      match_threshold: rpcParams.p_match_threshold,
+      match_count: rpcParams.p_match_count,
+      price_min: rpcParams.p_price_min,
+      price_max: rpcParams.p_price_max,
+      item_type: rpcParams.p_item_type,
+      is_vegetarian: rpcParams.p_is_vegetarian_base,
+      is_vegan: rpcParams.p_is_vegan_base,
+      is_gluten_free: rpcParams.p_is_gluten_free_base,
+      is_alcoholic: rpcParams.p_is_alcoholic,
+      calories_min: rpcParams.p_calories_min,
+      calories_max: rpcParams.p_calories_max,
+      category_ids: rpcParams.p_category_ids_include ? `[${rpcParams.p_category_ids_include.length} ids]` : null,
+      allergen_ids: rpcParams.p_allergen_ids_exclude ? `[${rpcParams.p_allergen_ids_exclude.length} ids]` : null,
+      diet_tag_ids: rpcParams.p_diet_tag_ids_include ? `[${rpcParams.p_diet_tag_ids_include.length} ids]` : null,
+      keywords: rpcParams.p_keywords_include ? `[${rpcParams.p_keywords_include.length} keywords]` : null,
+      timestamp: new Date().toISOString()
+    });
+
+    return rpcParams;
   }
 
   private async executeRpcSearch(params: Record<string, any>): Promise<MenuItemData[]> {
     try {
+      // Registra los parámetros que se pasan a la función SQL (para debug)
+      this.logger.debug('[SemanticSearcher] Ejecutando RPC match_menu_items con parámetros:', {
+        ...Object.entries(params).reduce((acc, [key, value]) => {
+          if (key !== 'p_query_embedding') { // No logueamos el embedding por seguridad
+            acc[key] = value;
+          } else {
+            acc[key] = `[embedding de ${value.length} dimensiones]`;
+          }
+          return acc;
+        }, {} as Record<string, any>),
+        timestamp: new Date().toISOString()
+      });
+
       const { data, error } = await this.supabaseClient.rpc('match_menu_items', params);
       
       if (error) {
         this.logger.error('[SemanticSearcher] Error en RPC match_menu_items:', {
           error,
           params: {
-            ...params,
-            p_query_embedding: '[REDACTED]' // No logueamos el embedding por seguridad
+            ...Object.entries(params).reduce((acc, [key, value]) => {
+              if (key !== 'p_query_embedding') {
+                acc[key] = value;
+              } else {
+                acc[key] = '[REDACTED]';
+              }
+              return acc;
+            }, {} as Record<string, any>)
           }
         });
         throw new Error(`Error en la búsqueda semántica: ${error.message}`);
@@ -231,9 +287,16 @@ export class SemanticSearcher {
     };
 
     try {
-      this.logger.debug('[SemanticSearcher] Iniciando búsqueda:', {
+      // Log detallado de la consulta y filtros recibidos
+      this.logger.debug('[SemanticSearcher] Iniciando búsqueda con filtros:', {
         query: mainQuery,
-        filters: mappedRpcFilters
+        price_min: mappedRpcFilters.p_price_min,
+        price_max: mappedRpcFilters.p_price_max,
+        item_type: mappedRpcFilters.p_item_type,
+        is_vegetarian: mappedRpcFilters.p_is_vegetarian_base,
+        is_vegan: mappedRpcFilters.p_is_vegan_base,
+        is_gluten_free: mappedRpcFilters.p_is_gluten_free_base,
+        timestamp: new Date().toISOString()
       });
 
       // 1. Búsqueda Semántica (RPC)
@@ -242,7 +305,9 @@ export class SemanticSearcher {
       
       const rpcStartTime = Date.now();
       const rpcResults = await this.executeRpcSearch(rpcParams);
-      metrics.rpcDuration = Date.now() - rpcStartTime;
+      const rpcDuration = Date.now() - rpcStartTime;
+      
+      metrics.rpcDuration = rpcDuration;
       metrics.rpcResultCount = rpcResults.length;
 
       // 2. Fallback FTS si es necesario
@@ -250,7 +315,9 @@ export class SemanticSearcher {
       if (rpcResults.length < CHAT_CONFIG.minRelevantCandidatesThreshold && mainQuery.trim().length > FTS_MIN_TERM_LENGTH) {
         const ftsStartTime = Date.now();
         const ftsResults = await this.executeFtsSearch(mainQuery);
-        metrics.ftsDuration = Date.now() - ftsStartTime;
+        const ftsDuration = Date.now() - ftsStartTime;
+        
+        metrics.ftsDuration = ftsDuration;
         metrics.ftsResultCount = ftsResults.length;
 
         finalResults = this.mergeResults(rpcResults, ftsResults);
@@ -259,17 +326,95 @@ export class SemanticSearcher {
       metrics.finalResultCount = finalResults.length;
       metrics.totalDuration = Date.now() - startTime;
 
-      this.logger.debug('[SemanticSearcher] Métricas de búsqueda:', metrics);
-      this.logger.debug('[SemanticSearcher] Resultados:', {
+      // Información resumida sobre los resultados
+      this.logger.debug('[SemanticSearcher] Resultados de búsqueda:', {
         count: finalResults.length,
-        items: finalResults.map(i => i.name).slice(0, CHAT_CONFIG.maxCandidatesForGptContext)
+        metrics,
+        filters_applied: {
+          price_min: mappedRpcFilters.p_price_min !== null && mappedRpcFilters.p_price_min !== undefined,
+          price_max: mappedRpcFilters.p_price_max !== null && mappedRpcFilters.p_price_max !== undefined,
+          item_type: mappedRpcFilters.p_item_type !== null && mappedRpcFilters.p_item_type !== undefined,
+          category: Array.isArray(mappedRpcFilters.p_category_ids_include) && mappedRpcFilters.p_category_ids_include.length > 0,
+          allergens: Array.isArray(mappedRpcFilters.p_allergen_ids_exclude) && mappedRpcFilters.p_allergen_ids_exclude.length > 0,
+          diet_tags: Array.isArray(mappedRpcFilters.p_diet_tag_ids_include) && mappedRpcFilters.p_diet_tag_ids_include.length > 0
+        },
+        items: finalResults.slice(0, 5).map(i => ({
+          id: i.id,
+          name: i.name,
+          price: i.price
+        }))
       });
 
-      return finalResults;
+      if (rpcResults.length > 0) {
+        this.logger.debug('[SemanticSearcher] RESULTADOS VECTORIALES:', {
+          count: rpcResults.length,
+          items: rpcResults.slice(0, 10).map(i => ({ 
+            name: i.name, 
+            distance: (i as any).similarity 
+          })),
+          timestamp: new Date().toISOString()
+        });
+      }
 
+      // Aplicar filtro adicional de precio después de obtener los resultados (redundante pero por seguridad)
+      if (mappedRpcFilters.p_price_min !== undefined || mappedRpcFilters.p_price_max !== undefined) {
+        const originalCount = finalResults.length;
+        finalResults = await this.filterResultsByPrice(
+          finalResults, 
+          mappedRpcFilters.p_price_min as number | undefined, 
+          mappedRpcFilters.p_price_max as number | undefined
+        );
+        
+        // Registrar cambios en los resultados debido al filtrado de precio
+        if (originalCount !== finalResults.length) {
+          this.logger.debug(`[SemanticSearcher] Filtrado de precio post-búsqueda: ${originalCount} → ${finalResults.length} items`);
+        }
+      }
+
+      return finalResults;
     } catch (error) {
       this.logger.error('[SemanticSearcher] Error en findRelevantItems:', error);
       throw error;
     }
+  }
+
+  /**
+   * Filtra un conjunto de resultados por precio
+   */
+  public async filterResultsByPrice(
+    items: MenuItemData[], 
+    minPrice?: number, 
+    maxPrice?: number
+  ): Promise<MenuItemData[]> {
+    if (!items || items.length === 0) {
+      return [];
+    }
+    
+    // Si no hay restricciones de precio, devolver todos los items
+    if (minPrice === undefined && maxPrice === undefined) {
+      return items;
+    }
+    
+    this.logger.debug(`[SemanticSearcher] Filtrando ${items.length} items por precio: min=${minPrice}, max=${maxPrice}`);
+    
+    // Aplicar filtro
+    const filtered = items.filter(item => {
+      const price = item.price;
+      
+      // No incluir items sin precio definido
+      if (price === undefined || price === null) {
+        return false;
+      }
+      
+      // Aplicar filtros
+      const passesMinFilter = minPrice === undefined || price >= minPrice;
+      const passesMaxFilter = maxPrice === undefined || price <= maxPrice;
+      
+      return passesMinFilter && passesMaxFilter;
+    });
+    
+    this.logger.debug(`[SemanticSearcher] Resultado del filtrado por precio: ${filtered.length} items cumplen los criterios`);
+    
+    return filtered;
   }
 } 

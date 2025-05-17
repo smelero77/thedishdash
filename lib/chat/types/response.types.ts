@@ -115,4 +115,14 @@ export interface ConversationContext {
   currentFilters: Record<string, unknown>;
   lastRecommendations?: Recommendation[];
   error?: ChatError;
+}
+
+// Interfaces para la respuesta del asistente
+export interface AssistantResponse {
+  type: string;
+  content: string;
+  clarification_points?: string[];
+  data?: Recommendation[];
+  product?: ProductDetails;
+  error?: ChatError;
 } 

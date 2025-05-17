@@ -72,47 +72,61 @@ export class FilterMapper {
   }
 
   /**
-   * Mapea los filtros extraídos a parámetros RPC
+   * Mapea los filtros extraídos por la IA a parámetros RPC para la base de datos
    */
   public async mapToRpcParameters(filters: ExtractedFilters): Promise<RpcFilterParameters> {
+    this.logger.debug('[FilterMapper] Iniciando mapeo de filtros');
+    
+    // Inicialización de variables de filtro
+    const result: RpcFilterParameters = {
+      p_item_type: filters.item_type || null,
+      p_category_ids_include: null,
+      p_slot_ids: null,
+      p_allergen_ids_exclude: null,
+      p_diet_tag_ids_include: null,
+      p_is_vegetarian_base: filters.is_vegetarian_base || null,
+      p_is_vegan_base: filters.is_vegan_base || null,
+      p_is_gluten_free_base: filters.is_gluten_free_base || null,
+      p_is_alcoholic: filters.is_alcoholic || null,
+      p_calories_max: filters.calories_max || null,
+      p_calories_min: filters.calories_min || null,
+      p_price_max: filters.price_max || null,
+      p_price_min: filters.price_min || null,
+      p_keywords_include: filters.keywords_include || null,
+    };
+    
+    // Log específico para filtros de precio
+    this.logger.debug('[FilterMapper] Mapeo de filtros de precio:', {
+      price_min_input: filters.price_min,
+      price_max_input: filters.price_max,
+      price_min_output: result.p_price_min,
+      price_max_output: result.p_price_max,
+      timestamp: new Date().toISOString()
+    });
+
     try {
-      this.logger.debug('[FilterMapper] Iniciando mapeo de filtros:', filters);
-
-      const rpcParams: RpcFilterParameters = {
-        p_item_type: filters.item_type || null,
-        p_is_vegetarian_base: filters.is_vegetarian_base || null,
-        p_is_vegan_base: filters.is_vegan_base || null,
-        p_is_gluten_free_base: filters.is_gluten_free_base || null,
-        p_is_alcoholic: filters.is_alcoholic || null,
-        p_calories_max: filters.calories_max || null,
-        p_calories_min: filters.calories_min || null,
-        p_price_max: filters.price_max || null,
-        p_price_min: filters.price_min || null,
-        p_keywords_include: filters.keywords_include || null
-      };
-
       // Mapear categorías
       if (filters.category_names?.length) {
         const categoryIds = await this.mapCategoryNamesToIds(filters.category_names);
-        rpcParams.p_category_ids_include = await this.validateIds(categoryIds, 'categories');
+        result.p_category_ids_include = await this.validateIds(categoryIds, 'categories');
       }
 
       // Mapear alérgenos
       if (filters.exclude_allergen_names?.length) {
         const allergenIds = await this.mapAllergenNamesToIds(filters.exclude_allergen_names);
-        rpcParams.p_allergen_ids_exclude = await this.validateIds(allergenIds, 'allergens');
+        result.p_allergen_ids_exclude = await this.validateIds(allergenIds, 'allergens');
       }
 
       // Mapear etiquetas dietéticas
       if (filters.include_diet_tag_names?.length) {
         const dietTagIds = await this.mapDietTagNamesToIds(filters.include_diet_tag_names);
-        rpcParams.p_diet_tag_ids_include = await this.validateIds(dietTagIds, 'diet_tags');
+        result.p_diet_tag_ids_include = await this.validateIds(dietTagIds, 'diet_tags');
       }
 
-      this.logger.debug('[FilterMapper] Mapeo completado:', rpcParams);
+      this.logger.debug('[FilterMapper] Mapeo completado:', result);
       this.logCacheMetrics();
 
-      return rpcParams;
+      return result;
     } catch (error) {
       this.logger.error('[FilterMapper] Error mapping filters to RPC parameters:', error);
       throw error;
@@ -147,7 +161,7 @@ export class FilterMapper {
   /**
    * Mapea nombres de categorías a IDs
    */
-  private async mapCategoryNamesToIds(names: string[]): Promise<string[]> {
+  public async mapCategoryNamesToIds(names: string[]): Promise<string[]> {
     const ids: string[] = [];
     const namesToFetch: string[] = [];
 

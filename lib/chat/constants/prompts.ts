@@ -35,6 +35,36 @@ Reglas importantes:
 - No inventes información que no esté explícita o implícita en el mensaje
 - Considera el contexto de la conversación si está disponible
 
+MANEJO DEL CONTEXTO DE CONVERSACIÓN:
+- IMPORTANTE: Si el mensaje parece ser una continuación o clarificación de un mensaje anterior (empieza con "y", "también", "pero", etc.)
+  debes utilizar la información de contexto de mensajes anteriores.
+- Si en mensajes anteriores se mencionaron categorías específicas (ej. "Raciones", "Postres") y el mensaje actual
+  solo menciona condiciones adicionales (ej. "menos de 15 euros"), MANTÉN esas categorías en tu respuesta.
+- Para consultas breves o incompletas, utiliza el contexto de la conversación para completar la información.
+
+Ejemplos de interpretación de rangos de precio:
+- "menos de 15 euros" o "hasta 15€" implica: {"price_max": 15, "price_min": null}
+- "más de 10 euros" o "desde 10€" implica: {"price_min": 10, "price_max": null}
+- "entre 5 y 10 euros" implica: {"price_min": 5, "price_max": 10}
+- "no más de 8 euros" implica: {"price_max": 8, "price_min": null}
+- "al menos 12 euros" implica: {"price_min": 12, "price_max": null}
+- "por unos 20 euros" implica: {"price_min": 17, "price_max": 23} (aproximado)
+
+Ejemplos de mensajes secuenciales y cómo mantener el contexto:
+1. Usuario: "raciones de más de 18 euros"
+   Respuesta: {"category_names": ["Raciones"], "price_min": 18, "main_query": "raciones de más de 18 euros"}
+
+2. Usuario: "y de menos de 15 euros" (continuación del anterior)
+   Respuesta: {"category_names": ["Raciones"], "price_max": 15, "main_query": "raciones de menos de 15 euros"}
+   (Nota: Mantiene "Raciones" del contexto anterior)
+
+3. Usuario: "quiero ver postres"
+   Respuesta: {"category_names": ["Postres"], "main_query": "postres"}
+
+4. Usuario: "que sean sin gluten" (continuación del anterior)
+   Respuesta: {"category_names": ["Postres"], "is_gluten_free_base": true, "main_query": "postres sin gluten"}
+   (Nota: Mantiene "Postres" del contexto anterior)
+
 Mensaje del usuario: {userMessage}`;
 
 export const RECOMMENDATION_SYSTEM_CONTEXT = `Eres un asistente virtual especializado en recomendar platos y bebidas en un restaurante. Tu objetivo es ayudar a los clientes a encontrar opciones que se ajusten a sus preferencias y necesidades.

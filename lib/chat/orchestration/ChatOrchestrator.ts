@@ -10,6 +10,7 @@ import { RecommendationGenerator } from '../processing/RecommendationGenerator';
 import { FunctionCallHandler } from '../processing/FunctionCallHandler';
 import { AssistantResponse, ConversationTurn } from '../types/response.types';
 import { MenuItem } from '@/lib/types/menu';
+import { MenuItemData } from '@/types/menu';
 import { ChatSession } from '../types/session.types';
 import { RpcFilterParameters } from '../types/extractedFilters.types';
 import { RECOMMENDATION_SYSTEM_CONTEXT } from '../constants/prompts';
@@ -130,7 +131,7 @@ export class ChatOrchestrator {
     userMessage: string,
     categoryIdFromFrontend?: string
   ): Promise<AssistantResponse> {
-    this.logger.debug(`[ChatOrchestrator] Procesando mensaje para sesión ${session.id}, alias ${session.alias_mesa}`);
+    this.logger.debug(`[ChatOrchestrator] Procesando mensaje para sesión ${session.id}, alias ${session.alias}`);
     
     try {
       // Validación inicial del mensaje
@@ -148,21 +149,67 @@ export class ChatOrchestrator {
         };
       }
 
-      // ETAPA 1: Extracción y Mapeo de Filtros
+      // Extraer filtros del mensaje del usuario
       const extractedFilters = await this.withCircuitBreaker(() =>
         this.withTimeout(
-          this.filterExtractor.extractFilters(userMessage),
+          this.filterExtractor.extractFilters(userMessage, session.conversation_history || []),
           OPERATION_TIMEOUT
         )
       );
+      
+      // Log detallado para depurar filtros extraídos
+      this.logger.debug('[ChatOrchestrator] Filtros extraídos:', {
+        price_min: extractedFilters.price_min,
+        price_max: extractedFilters.price_max,
+        category_names: extractedFilters.category_names,
+        main_query: extractedFilters.main_query,
+        timestamp: new Date().toISOString()
+      });
 
-      const mainQueryForEmbedding = extractedFilters.main_query;
-      const rpcMappedParams = await this.withCircuitBreaker(() =>
+      // Si hay una categoría en el mensaje actual, actualizar el contexto
+      if (extractedFilters.category_names && extractedFilters.category_names.length > 0) {
+        if (!session.filters) {
+          session.filters = {};
+        }
+        session.filters.category_names = extractedFilters.category_names;
+      }
+      // Si no hay categoría en el mensaje actual pero hay una en el contexto, mantenerla
+      else if (session.filters?.category_names && session.filters.category_names.length > 0) {
+        extractedFilters.category_names = session.filters.category_names;
+        
+        // Asegurar que la consulta principal incluya la categoría para la búsqueda semántica
+        if (!extractedFilters.main_query.toLowerCase().includes('racion')) {
+          extractedFilters.main_query = `${session.filters.category_names[0]} ${extractedFilters.main_query}`;
+        }
+      }
+
+      // Mapear los filtros extraídos a parámetros RPC
+      const rpcParameters = await this.withCircuitBreaker(() =>
         this.withTimeout(
           this.filterMapper.mapToRpcParameters(extractedFilters),
           OPERATION_TIMEOUT
         )
       );
+
+      // Asegurar que la categoría se incluya en los parámetros RPC si está en el contexto
+      if (session.filters?.category_names && session.filters.category_names.length > 0) {
+        const categoryIds = await this.filterMapper.mapCategoryNamesToIds(session.filters.category_names);
+        if (categoryIds && categoryIds.length > 0) {
+          rpcParameters.p_category_ids_include = categoryIds;
+        }
+      }
+      
+      // Log detallado para depurar filtros RPC mapeados
+      this.logger.debug('[ChatOrchestrator] Filtros RPC mapeados:', {
+        p_price_min: rpcParameters.p_price_min,
+        p_price_max: rpcParameters.p_price_max,
+        p_item_type: rpcParameters.p_item_type,
+        p_category_ids_include: rpcParameters.p_category_ids_include ? `[${rpcParameters.p_category_ids_include.length} ids]` : null,
+        p_diet_tag_ids_include: rpcParameters.p_diet_tag_ids_include ? `[${rpcParameters.p_diet_tag_ids_include.length} ids]` : null,
+        p_allergen_ids_exclude: rpcParameters.p_allergen_ids_exclude ? `[${rpcParameters.p_allergen_ids_exclude.length} ids]` : null,
+        main_query: extractedFilters.main_query,
+        timestamp: new Date().toISOString()
+      });
 
       // Actualizar estado a RECOMMENDING después de extraer filtros
       await this.chatSessionService.updateState(session.id, {
@@ -174,14 +221,14 @@ export class ChatOrchestrator {
       // ETAPA 2: Búsqueda Semántica con Filtros Mapeados
       let searchedItems = await this.withCircuitBreaker(() =>
         this.withTimeout(
-          this.semanticSearcher.findRelevantItems(mainQueryForEmbedding, rpcMappedParams),
+          this.semanticSearcher.findRelevantItems(extractedFilters.main_query, rpcParameters),
           OPERATION_TIMEOUT
         )
       );
 
       // Manejo de resultados vacíos
       if (searchedItems.length === 0) {
-        const hasActiveFilters = Object.values(rpcMappedParams).some(
+        const hasActiveFilters = Object.values(rpcParameters).some(
           val => val !== null && val !== undefined && (!Array.isArray(val) || val.length > 0)
         );
 
@@ -204,7 +251,63 @@ export class ChatOrchestrator {
       }
 
       // ETAPA 3: Procesamiento de Candidatos y Contexto
-      const rawCartItems = await this.getRawCartItems(session.alias_mesa);
+      const rawCartItems = await this.getRawCartItems(session.alias);
+      
+      // Filtrado adicional para mantener categorías en consultas secuenciales
+      if (session.filters && session.filters.category_names && 
+          session.filters.category_names.length > 0 && session.conversation_history &&
+          session.conversation_history.length > 0) {
+          
+        // Definir estructura para el category_info que sabemos que existe en los datos
+        interface CategoryInfo {
+          id: string;
+          name: string;
+        }
+        
+        // Extender MenuItemData con category_info que sabemos que existe en los datos
+        interface ItemWithCategoryInfo extends MenuItemData {
+          category_info?: CategoryInfo[];
+          similarity?: number;
+        }
+        
+        const previousCategoryNames = session.filters.category_names as string[];
+        this.logger.debug('[ChatOrchestrator] Categorías previas de la consulta anterior:', {
+          previousCategoryNames,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Obtener lista de IDs de categoría basados en nombres previos
+        const categoryIds = await this.filterMapper.mapCategoryNamesToIds(previousCategoryNames);
+        
+        // Filtrar ítems para mantener solo los que pertenecen a las categorías previas
+        const filteredItems = searchedItems.filter(item => {
+          const itemWithCat = item as unknown as ItemWithCategoryInfo;
+          if (!itemWithCat.category_info || !Array.isArray(itemWithCat.category_info)) {
+            return false;
+          }
+          
+          // Verificar si alguna categoría del ítem coincide con las categorías previas
+          return itemWithCat.category_info.some(cat => 
+            categoryIds.includes(cat.id)
+          );
+        });
+        
+        // Si hay resultados después del filtrado, usarlos; si no, mantener los originales
+        if (filteredItems.length > 0) {
+          this.logger.debug('[ChatOrchestrator] Resultados filtrados por categoría previa:', {
+            countBefore: searchedItems.length,
+            countAfter: filteredItems.length,
+            categoriesMaintained: previousCategoryNames,
+            timestamp: new Date().toISOString()
+          });
+          searchedItems = filteredItems;
+        } else {
+          this.logger.debug('[ChatOrchestrator] No hay resultados después de filtrar por categoría previa, manteniendo resultados originales', {
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+      
       const finalCandidates = await this.candidateProcessor.processCandidates(searchedItems, rawCartItems);
 
       if (finalCandidates.length === 0) {

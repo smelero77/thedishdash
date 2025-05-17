@@ -97,11 +97,11 @@ export const OPENAI_FUNCTIONS = [
         },
         price_max: {
           type: "number",
-          description: "Precio máximo"
+          description: "Precio máximo deseado por el usuario. Extraer de frases como 'menos de X', 'hasta X', 'no más de X'. Si se da un rango 'entre A y B', este es B."
         },
         price_min: {
           type: "number",
-          description: "Precio mínimo"
+          description: "Precio mínimo deseado por el usuario. Extraer de frases como 'más de X', 'desde X', 'al menos X'. Si se da un rango 'entre A y B', este es A."
         },
         keywords_include: {
           type: "array",
