@@ -156,16 +156,27 @@ export class FilterExtractor {
               { role: 'system', content: systemMessage },
               { role: 'user', content: userMessage }
             ],
-            functions: [OPENAI_CONFIG.functions[0]]
+            functions: [OPENAI_CONFIG.functions[0]],
+            function_call: { name: 'extract_filters' } // Forzar la llamada a extract_filters
           }),
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error('OpenAI API timeout')), OPENAI_TIMEOUT)
           )
         ]) as OpenAI.Chat.Completions.ChatCompletion;
 
+        // Logging para diagnóstico
+        this.logger.debug('[FilterExtractor] Respuesta de OpenAI:', {
+          response: JSON.stringify(response, null, 2),
+          functionCall: response.choices[0]?.message?.function_call
+        });
+
         // Obtener la respuesta y parsear el JSON
         const functionCall = response.choices[0]?.message?.function_call;
         if (!functionCall || functionCall.name !== 'extract_filters') {
+          this.logger.error('[FilterExtractor] Respuesta inválida:', {
+            functionCall,
+            response: response.choices[0]?.message
+          });
           throw new Error('Invalid function call response');
         }
 

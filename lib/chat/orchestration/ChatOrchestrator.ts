@@ -1,3 +1,6 @@
+console.log('🚨 LLEGAMOS AL INICIO DE ChatOrchestrator.ts');
+console.log('🚨🚨🚨 VERIFICACIÓN: ChatOrchestrator AHORA ESTÁ INTEGRADO EN EL FLUJO PRINCIPAL');
+
 import { SupabaseClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { OpenAIEmbeddingService } from '@/lib/embeddings/services/openai.service';
@@ -56,6 +59,7 @@ export class ChatOrchestrator {
     supabaseClient: SupabaseClient,
     embeddingService: OpenAIEmbeddingService
   ) {
+    console.log('🔍 INICIALIZANDO ChatOrchestrator:', { timestamp: new Date().toISOString() });
     this.openaiApiKey = openaiApiKey;
     this.supabaseClient = supabaseClient;
     this.embeddingService = embeddingService;
@@ -132,12 +136,30 @@ export class ChatOrchestrator {
     userMessage: string,
     categoryIdFromFrontend?: string
   ): Promise<AssistantResponse> {
-    this.logger.debug(`[ChatOrchestrator] Procesando mensaje para sesión ${session.id}, alias ${session.alias}`);
+    // Log muy temprano para verificar que llegamos aquí
+    console.log('🚨 DEBUG - LLEGAMOS A processUserMessage', {
+      sessionId: session.id,
+      userMessage,
+      categoryIdFromFrontend
+    });
     
     try {
+      // Log inicial para verificar que llegamos aquí
+      console.log('🚨 DEBUG - INICIO processUserMessage', {
+        sessionId: session.id,
+        userMessage,
+        categoryIdFromFrontend
+      });
+
       // 1. Cargar TODO el historial de mensajes
       const messageHistory = await this.chatSessionService.getLastConversationTurns(session.id);
       
+      // Log después de cargar el historial
+      console.log('🚨 DEBUG - Historial cargado', {
+        sessionId: session.id,
+        messageCount: messageHistory.length
+      });
+
       // 2. Extraer filtros del mensaje actual
       const extractedFilters = await this.withCircuitBreaker(() =>
         this.withTimeout(
@@ -145,6 +167,12 @@ export class ChatOrchestrator {
           OPERATION_TIMEOUT
         )
       );
+
+      // Log de extractedFilters
+      console.log('🚨 DEBUG - Filtros extraídos', {
+        sessionId: session.id,
+        extractedFilters: JSON.parse(JSON.stringify(extractedFilters))
+      });
 
       // Preparar metadatos del mensaje de usuario
       const userMessageMetadata: MessageMetadata = {
@@ -157,11 +185,21 @@ export class ChatOrchestrator {
         }
       };
 
+      // Log de userMessageMetadata después de inicialización
+      console.log('🚨 DEBUG - userMessageMetadata inicializado', {
+        sessionId: session.id,
+        userMessageMetadata: JSON.parse(JSON.stringify(userMessageMetadata))
+      });
+
       // Si hay un embedding, añadirlo a los metadatos
       if (extractedFilters.main_query) {
         const embedding = await this.embeddingService.getEmbedding(extractedFilters.main_query);
         if (embedding) {
           userMessageMetadata.embedding = embedding;
+          console.log('🚨 DEBUG - Embedding añadido', {
+            sessionId: session.id,
+            hasEmbedding: true
+          });
         }
       }
 
@@ -181,6 +219,12 @@ export class ChatOrchestrator {
         )
       );
 
+      // Log de searchedItems
+      console.log('🚨 DEBUG - Resultados de búsqueda', {
+        sessionId: session.id,
+        itemCount: searchedItems?.length || 0
+      });
+
       // Añadir resultados de búsqueda a la metadata
       if (searchedItems && searchedItems.length > 0) {
         userMessageMetadata.search_results = {
@@ -190,15 +234,37 @@ export class ChatOrchestrator {
             distance: item.similarity || 0
           }))
         };
+        console.log('🚨 DEBUG - Search results añadidos', {
+          sessionId: session.id,
+          resultCount: userMessageMetadata.search_results.items.length
+        });
       }
 
-      this.logger.debug('Guardando mensaje de usuario con metadatos:', {
+      // Log antes de la copia profunda
+      console.log('🚨 DEBUG - Antes de copia profunda', {
         sessionId: session.id,
-        hasMetadata: true,
-        metadataKeys: Object.keys(userMessageMetadata),
-        filters: userMessageMetadata.filters ? 'presentes' : 'no presentes',
-        embedding: userMessageMetadata.embedding ? 'presente' : 'no presente',
-        search_results: userMessageMetadata.search_results ? `${userMessageMetadata.search_results.items.length} items` : 'no presentes'
+        userMessageMetadata: JSON.parse(JSON.stringify(userMessageMetadata))
+      });
+
+      // Crear una copia profunda del objeto de metadata para asegurar que no se modifique
+      const userMessageMetadataToSave = JSON.parse(JSON.stringify(userMessageMetadata));
+
+      // Log después de la copia profunda
+      console.log('🚨 DEBUG - Después de copia profunda', {
+        sessionId: session.id,
+        userMessageMetadataToSave: JSON.parse(JSON.stringify(userMessageMetadataToSave))
+      });
+
+      // Log de las propiedades del objeto
+      console.log('🚨 DEBUG - Propiedades de userMessageMetadataToSave', {
+        sessionId: session.id,
+        properties: Object.keys(userMessageMetadataToSave)
+      });
+
+      // Log antes de llamar a addMessage
+      console.log('🚨 DEBUG - Llamando a addMessage para USER', {
+        sessionId: session.id,
+        metadata: JSON.parse(JSON.stringify(userMessageMetadataToSave))
       });
 
       // 3. Guardar mensaje del usuario con sus metadatos
@@ -206,7 +272,7 @@ export class ChatOrchestrator {
         role: 'user',
         content: userMessage,
         timestamp: new Date()
-      }, userMessageMetadata);
+      }, userMessageMetadataToSave);
 
       // 6. Procesar candidatos y construir contexto
       const rawCartItems = await this.getRawCartItems(session.alias);
@@ -230,10 +296,13 @@ export class ChatOrchestrator {
       // 8. Generar respuesta con OpenAI
       const messages: ChatCompletionMessageParam[] = [
         systemMessage,
-        ...messageHistory.map(msg => ({
-          role: msg.role as 'system' | 'user' | 'assistant',
-          content: msg.content
-        })),
+        ...messageHistory
+          .sort((a, b) => (a.message_index || 0) - (b.message_index || 0))
+          .map(msg => ({
+            role: msg.role as 'system' | 'user' | 'assistant',
+            content: msg.content,
+            metadata: msg.metadata
+          })),
         { role: 'user', content: userMessage }
       ];
 
@@ -243,45 +312,55 @@ export class ChatOrchestrator {
       let assistantResponse: AssistantResponse;
       let assistantMetadata: MessageMetadata = {};
 
+      // Log inicial de assistantMetadata
+      console.log('[ChatOrchestrator] assistantMetadata inicializado', {
+        sessionId: session.id,
+        assistantMetadata: JSON.parse(JSON.stringify(assistantMetadata))
+      });
+
       // Mantener los filtros activos solo si hay alguno
       if (userMessageMetadata.filters && Object.keys(userMessageMetadata.filters).length > 0) {
-        assistantMetadata.filters = userMessageMetadata.filters;
+        assistantMetadata.filters = { ...userMessageMetadata.filters };
+        console.log('[ChatOrchestrator] Filters copiados a assistantMetadata', {
+          sessionId: session.id,
+          assistantMetadata: JSON.parse(JSON.stringify(assistantMetadata))
+        });
       }
 
       if (gptResponseMsg.function_call) {
-        assistantResponse = await this.functionCallHandler.handleFunctionCall(
-          gptResponseMsg.function_call.name,
-          gptResponseMsg.function_call.arguments,
-          { searchedItems }
-        );
-
-        // Guardar metadatos de recomendaciones si las hay
-        if (assistantResponse.type === 'recommendations' && Array.isArray(assistantResponse.data)) {
-          const recommendations = {
-            items: assistantResponse.data.map(item => item.id),
-            reasons: assistantResponse.data.reduce((acc, item) => ({
-              ...acc,
-              [item.id]: item.reason || ''
-            }), {})
+        try {
+          assistantResponse = await this.functionCallHandler.handleFunctionCall(
+            gptResponseMsg.function_call.name,
+            gptResponseMsg.function_call.arguments,
+            { searchedItems }
+          );
+        } catch (error) {
+          console.error('[ChatOrchestrator] Error procesando function_call:', error);
+          // Si falla el procesamiento de la función, intentar usar el contenido como fallback
+          assistantResponse = {
+            type: SYSTEM_MESSAGE_TYPES.ERROR,
+            content: gptResponseMsg.content || "Lo siento, no pude procesar tu solicitud correctamente.",
+            error: {
+              code: 'FUNCTION_CALL_ERROR',
+              message: error instanceof Error ? error.message : 'Error desconocido'
+            }
           };
-          
-          // Solo añadir recomendaciones si hay items
-          if (recommendations.items.length > 0) {
-            assistantMetadata.recommendations = recommendations;
-          }
         }
-
-        this.logger.debug('Guardando respuesta del asistente con metadatos:', {
-          sessionId: session.id,
-          type: assistantResponse.type,
-          recommendations: assistantMetadata.recommendations ? 
-            `${assistantMetadata.recommendations.items.length} items` : 'ninguna',
-          filters: assistantMetadata.filters || 'no presentes'
-        });
-      } else {
+      } else if (gptResponseMsg.content) {
+        // Si no hay function_call pero hay contenido, usarlo como respuesta
         assistantResponse = {
-          type: 'text',
-          content: gptResponseMsg.content || "Lo siento, no pude procesar tu solicitud correctamente."
+          type: SYSTEM_MESSAGE_TYPES.INFO,
+          content: gptResponseMsg.content
+        };
+      } else {
+        // Si no hay ni function_call ni contenido, devolver un mensaje de error
+        assistantResponse = {
+          type: SYSTEM_MESSAGE_TYPES.ERROR,
+          content: "Lo siento, no pude procesar tu solicitud correctamente.",
+          error: {
+            code: 'NO_RESPONSE',
+            message: 'No se recibió respuesta válida del modelo'
+          }
         };
       }
 
@@ -290,15 +369,46 @@ export class ChatOrchestrator {
         const embedding = await this.embeddingService.getEmbedding(assistantResponse.content);
         if (embedding) {
           assistantMetadata.embedding = embedding;
+          console.log('[ChatOrchestrator] Embedding añadido a assistantMetadata', {
+            sessionId: session.id,
+            hasEmbedding: true
+          });
         }
       }
+
+      // Log antes de la copia profunda
+      console.log('[ChatOrchestrator] Antes de copia profunda de assistantMetadata', {
+        sessionId: session.id,
+        assistantMetadata: JSON.parse(JSON.stringify(assistantMetadata))
+      });
+
+      // Crear una copia profunda del objeto de metadata para asegurar que no se modifique
+      const assistantMetadataToSave = JSON.parse(JSON.stringify(assistantMetadata));
+
+      // Log después de la copia profunda
+      console.log('[ChatOrchestrator] Después de copia profunda de assistantMetadata', {
+        sessionId: session.id,
+        assistantMetadataToSave: JSON.parse(JSON.stringify(assistantMetadataToSave))
+      });
+
+      // Log de las propiedades del objeto
+      console.log('[ChatOrchestrator] Propiedades de assistantMetadataToSave', {
+        sessionId: session.id,
+        properties: Object.keys(assistantMetadataToSave)
+      });
+
+      // Log antes de llamar a addMessage
+      console.log('[ChatOrchestrator] Llamando a addMessage para ASSISTANT', {
+        sessionId: session.id,
+        metadata: JSON.parse(JSON.stringify(assistantMetadataToSave))
+      });
 
       // Guardar respuesta del asistente con metadatos
       await this.chatSessionService.addMessage(session.id, {
         role: 'assistant',
         content: assistantResponse.content || '',
         timestamp: new Date()
-      }, assistantMetadata);
+      }, assistantMetadataToSave);
 
       return assistantResponse;
 

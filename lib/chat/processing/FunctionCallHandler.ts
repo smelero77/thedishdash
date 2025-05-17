@@ -96,6 +96,8 @@ export class FunctionCallHandler {
           return await this.handleProvideRecommendations(args);
         case 'get_product_details':
           return await this.handleGetProductDetails(args);
+        case 'recommend_dishes':
+          return await this.handleRecommendDishes(args);
         default:
           throw new Error(`Función no soportada: ${functionName}`);
       }
@@ -155,14 +157,61 @@ export class FunctionCallHandler {
     try {
       const { recommendations } = z.object({
         recommendations: z.array(z.object({
-          item_id: z.string().uuid(),
-          explanation: z.string().min(1)
+          id: z.string().uuid(),
+          reason: z.string().min(1)
         }))
       }).parse(args);
 
+      // Obtener detalles completos de cada plato recomendado
+      const enrichedRecommendations = await Promise.all(
+        recommendations.map(async (rec) => {
+          // Primero obtener el item del menú
+          const { data: menuItem, error: menuItemError } = await supabase
+            .from('menu_items')
+            .select('*')
+            .eq('id', rec.id)
+            .single();
+
+          if (menuItemError || !menuItem) {
+            console.error(`Error obteniendo detalles del plato ${rec.id}:`, menuItemError);
+            return null;
+          }
+
+          // Luego obtener las categorías usando los IDs
+          let categoryInfo: Array<{ id: string; name: string }> = [];
+          if (menuItem.category_ids && menuItem.category_ids.length > 0) {
+            const { data: categories, error: categoriesError } = await supabase
+              .from('categories')
+              .select('id, name')
+              .in('id', menuItem.category_ids);
+
+            if (!categoriesError && categories) {
+              categoryInfo = categories;
+            }
+          }
+
+          return {
+            id: menuItem.id,
+            name: menuItem.name,
+            price: menuItem.price,
+            reason: rec.reason,
+            image_url: menuItem.image_url,
+            category_info: categoryInfo
+          };
+        })
+      );
+
+      // Filtrar recomendaciones nulas
+      const validRecommendations = enrichedRecommendations.filter((rec): rec is NonNullable<typeof rec> => rec !== null);
+
+      if (validRecommendations.length === 0) {
+        throw new Error('No se pudieron obtener los detalles de los platos recomendados');
+      }
+
       return {
         type: SYSTEM_MESSAGE_TYPES.RECOMMENDATION,
-        content: this.formatRecommendations(recommendations)
+        content: this.formatRecommendations(validRecommendations),
+        data: validRecommendations
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -209,6 +258,86 @@ export class FunctionCallHandler {
         throw new Error(ERROR_CODES.INVALID_FILTERS);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Maneja la recomendación de platos
+   */
+  private async handleRecommendDishes(args: any): Promise<AssistantResponse> {
+    try {
+      const parsedArgs = JSON.parse(args);
+      if (!parsedArgs.recommendations || !Array.isArray(parsedArgs.recommendations)) {
+        throw new Error('Argumentos inválidos para recommend_dishes');
+      }
+
+      // Validar cada recomendación
+      for (const rec of parsedArgs.recommendations) {
+        if (!rec.id || !rec.reason) {
+          throw new Error('Recomendación inválida: falta id o razón');
+        }
+      }
+
+      // Obtener detalles completos de cada plato recomendado
+      const enrichedRecommendations = await Promise.all(
+        parsedArgs.recommendations.map(async (rec: { id: string; reason: string }) => {
+          // Primero obtener el item del menú
+          const { data: menuItem, error: menuItemError } = await supabase
+            .from('menu_items')
+            .select('*')
+            .eq('id', rec.id)
+            .single();
+
+          if (menuItemError || !menuItem) {
+            console.error(`Error obteniendo detalles del plato ${rec.id}:`, menuItemError);
+            return null;
+          }
+
+          // Luego obtener las categorías usando los IDs
+          let categoryInfo: Array<{ id: string; name: string }> = [];
+          if (menuItem.category_ids && menuItem.category_ids.length > 0) {
+            const { data: categories, error: categoriesError } = await supabase
+              .from('categories')
+              .select('id, name')
+              .in('id', menuItem.category_ids);
+
+            if (!categoriesError && categories) {
+              categoryInfo = categories;
+            }
+          }
+
+          return {
+            id: menuItem.id,
+            name: menuItem.name,
+            price: menuItem.price,
+            reason: rec.reason,
+            image_url: menuItem.image_url,
+            category_info: categoryInfo
+          };
+        })
+      );
+
+      // Filtrar recomendaciones nulas
+      const validRecommendations = enrichedRecommendations.filter((rec): rec is NonNullable<typeof rec> => rec !== null);
+
+      if (validRecommendations.length === 0) {
+        throw new Error('No se pudieron obtener los detalles de los platos recomendados');
+      }
+
+      // Construir respuesta
+      const response: AssistantResponse = {
+        type: SYSTEM_MESSAGE_TYPES.RECOMMENDATION,
+        content: 'Aquí tienes mis recomendaciones:\n\n' + 
+          validRecommendations.map(rec => 
+            `- ${rec.name} (${rec.price}€): ${rec.reason}`
+          ).join('\n\n'),
+        data: validRecommendations
+      };
+
+      return response;
+    } catch (error) {
+      console.error('[FunctionCallHandler] Error procesando recommend_dishes:', error);
+      throw new Error(ERROR_CODES.RECOMMENDATION_FAILED);
     }
   }
 
@@ -360,7 +489,11 @@ export class FunctionCallHandler {
    */
   private formatRecommendations(recommendations: Recommendation[]): string {
     return recommendations
-      .map(rec => `- ${rec.explanation}`)
+      .map(rec => {
+        const categoryNames = rec.category_info?.map(c => c.name).join(', ') || 'Sin categoría';
+        const priceInfo = rec.price ? ` (${rec.price}€)` : '';
+        return `- ${rec.name || 'Plato'}${priceInfo} - ${categoryNames}\n  ${rec.reason}`;
+      })
       .join('\n\n');
   }
 }

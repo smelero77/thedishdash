@@ -169,7 +169,9 @@ export const OPENAI_FUNCTIONS = [
       },
       required: ["recommendations", "summary"]
     }
-  }
+  },
+  recommendDishesFn,
+  getProductDetailsFn
 ] as const;
 
 export const DEFAULT_FUNCTION_CALL = {

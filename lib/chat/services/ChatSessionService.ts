@@ -185,9 +185,16 @@ export class ChatSessionService {
   public async addMessage(
     sessionId: string,
     message: z.infer<typeof UserMessageSchema | typeof AssistantMessageSchema | typeof SystemMessageSchema>,
-    metadata: Record<string, any> = {}
+    metadataFromOrchestrator?: Record<string, any>
   ): Promise<void> {
     try {
+      // Asegurar que metadataFromOrchestrator es un objeto y no undefined
+      const metadata = metadataFromOrchestrator || {};
+      
+      // Loguear el parámetro CRUDO que llega
+      console.log('[ChatSessionService.addMessage] RAW metadataFromOrchestrator:', 
+                  JSON.parse(JSON.stringify(metadata)));
+
       let session = await this.get(sessionId);
       
       if (!session) {
@@ -212,33 +219,18 @@ export class ChatSessionService {
       const sender = message.role === 'user' ? 'guest' : 
                     message.role === 'assistant' ? 'assistant' : 'system';
 
-      let messageMetadata: Record<string, any> = {};
+      // Construir la variable local messageMetadata usando metadataFromOrchestrator
+      let localMessageMetadata: Record<string, any> = {};
 
-      if (message.role === 'user') {
-        // Para mensajes del usuario
-        messageMetadata = {
-          filters: metadata.filters || {},
-          candidates: metadata.candidates ? metadata.candidates.map((item: any) => item.id) : undefined,
-          search_results: metadata.search_results,
-          embedding: metadata.embedding
-        };
-      } else if (message.role === 'assistant') {
-        // Para mensajes del asistente
-        messageMetadata = {
-          recommendations: metadata.recommendations ? {
-            items: metadata.recommendations.items,
-            reasons: metadata.recommendations.reasons
-          } : undefined,
-          filters: metadata.filters,
-          embedding: metadata.embedding
-        };
-      }
+      // Copiar directamente el metadata del orchestrator
+      localMessageMetadata = { ...metadata };
 
-      console.log('Guardando mensaje con metadatos:', {
+      // Loguear la variable local que se va a insertar
+      console.log('[ChatSessionService.addMessage] Guardando mensaje con metadatos:', {
         sessionId,
         sender,
         role: message.role,
-        metadata: messageMetadata
+        metadata: localMessageMetadata
       });
 
       // Insertar el mensaje en la BD
@@ -247,9 +239,9 @@ export class ChatSessionService {
         .insert({
           session_id: sessionId,
           sender: sender,
-          content: message.content,
+          content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
           created_at: message.timestamp || new Date(),
-          metadata: messageMetadata // Insertamos con la metadata completa
+          metadata: localMessageMetadata
         })
         .select()
         .single();
@@ -279,7 +271,7 @@ export class ChatSessionService {
       .from('messages')
       .select('*')
       .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
+      .order('message_index', { ascending: true })
       .limit(turns * 2);
 
     if (error) {
@@ -294,7 +286,7 @@ export class ChatSessionService {
       timestamp: new Date(msg.created_at),
       metadata: msg.metadata || {},
       message_index: msg.message_index
-    })).reverse();
+    }));
   }
 
   /**

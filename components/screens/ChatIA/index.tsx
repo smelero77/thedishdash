@@ -135,9 +135,10 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
           content: 'Lo siento, recibí una respuesta inesperada del servidor.',
           error: { message: 'Formato de respuesta inválido.' }
         };
-      } else if (legacyAsstResponse.type === "recommendations") {
+      } else if (legacyAsstResponse.type === "recommendation") {
         finalUiAssistantResponse = {
-          type: 'recommendations',
+          type: 'recommendation',
+          content: legacyAsstResponse.content,
           data: legacyAsstResponse.data.map((rec: any) => ({
             id: rec.id,
             name: rec.name,

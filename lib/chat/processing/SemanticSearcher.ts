@@ -176,7 +176,7 @@ export class SemanticSearcher {
       .select(`
         menu_items (
           id, name, description, price, image_url, category_ids, is_available,
-          food_info, origin, pairing_suggestion_general, chef_notes, is_recommended,
+          food_info, origin, pairing_suggestion, chef_notes, is_recommended,
           profit_margin, item_type, keywords, calories_est_min, calories_est_max,
           is_alcoholic, drink_type, drink_subtype, drink_characteristics,
           drink_volume_ml, drink_abv, drink_brand, wine_varietal, wine_region,
@@ -218,7 +218,7 @@ export class SemanticSearcher {
         'image_url' in menuItem &&
         'food_info' in menuItem &&
         'origin' in menuItem &&
-        'pairing_suggestion_general' in menuItem &&
+        'pairing_suggestion' in menuItem &&
         'chef_notes' in menuItem &&
         'is_recommended' in menuItem &&
         'profit_margin' in menuItem &&
@@ -237,7 +237,7 @@ export class SemanticSearcher {
           is_available: Boolean(menuItem.is_available),
           food_info: menuItem.food_info ? String(menuItem.food_info) : null,
           origin: menuItem.origin ? String(menuItem.origin) : null,
-          pairing_suggestion: menuItem.pairing_suggestion_general ? String(menuItem.pairing_suggestion_general) : null,
+          pairing_suggestion: menuItem.pairing_suggestion ? String(menuItem.pairing_suggestion) : null,
           chef_notes: menuItem.chef_notes ? String(menuItem.chef_notes) : null,
           is_recommended: Boolean(menuItem.is_recommended),
           profit_margin: Number(menuItem.profit_margin),
@@ -384,14 +384,14 @@ export class SemanticSearcher {
   public async filterResultsByPrice(
     items: MenuItemData[], 
     minPrice?: number, 
-    maxPrice?: number
+    maxPrice?: number | null
   ): Promise<MenuItemData[]> {
     if (!items || items.length === 0) {
       return [];
     }
     
     // Si no hay restricciones de precio, devolver todos los items
-    if (minPrice === undefined && maxPrice === undefined) {
+    if (minPrice === undefined && (maxPrice === undefined || maxPrice === null)) {
       return items;
     }
     
@@ -399,18 +399,25 @@ export class SemanticSearcher {
     
     // Aplicar filtro
     const filtered = items.filter(item => {
-      const price = item.price;
+      const price = Number(item.price);
       
       // No incluir items sin precio definido
-      if (price === undefined || price === null) {
+      if (price === undefined || price === null || isNaN(price)) {
         return false;
       }
       
       // Aplicar filtros
       const passesMinFilter = minPrice === undefined || price >= minPrice;
-      const passesMaxFilter = maxPrice === undefined || price <= maxPrice;
+      const passesMaxFilter = maxPrice === undefined || maxPrice === null || price <= maxPrice;
       
-      return passesMinFilter && passesMaxFilter;
+      const passes = passesMinFilter && passesMaxFilter;
+      
+      // Log detallado para debugging
+      if (minPrice !== undefined || maxPrice !== undefined) {
+        this.logger.debug(`[SemanticSearcher] Item ${item.name} (${price}€): min=${passesMinFilter}, max=${passesMaxFilter}, passes=${passes}`);
+      }
+      
+      return passes;
     });
     
     this.logger.debug(`[SemanticSearcher] Resultado del filtrado por precio: ${filtered.length} items cumplen los criterios`);

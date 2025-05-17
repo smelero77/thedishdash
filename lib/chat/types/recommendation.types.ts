@@ -1,4 +1,11 @@
 export interface Recommendation {
-  item_id: string;
-  explanation: string;
+  id: string;
+  name: string;
+  price: number;
+  reason: string;
+  image_url: string;
+  category_info: Array<{
+    id: string;
+    name: string;
+  }>;
 } 

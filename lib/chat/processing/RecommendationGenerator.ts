@@ -3,6 +3,7 @@ import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { CHAT_CONFIG } from '../constants/config';
 import { recommendDishesFn, getProductDetailsFn } from '../constants/functions';
 import { ERROR_CODES } from '../constants/config';
+import { RECOMMENDATION_SYSTEM_CONTEXT } from '../constants/prompts';
 
 /**
  * Clase responsable de generar recomendaciones utilizando el modelo de OpenAI
@@ -35,6 +36,10 @@ export class RecommendationGenerator {
     promptMessages: ChatCompletionMessageParam[]
   ): Promise<OpenAI.Chat.Completions.ChatCompletionMessage> {
     try {
+      if (!this.validatePromptMessages(promptMessages)) {
+        throw new Error('Invalid prompt messages');
+      }
+
       console.log('[RecommendationGenerator] Iniciando generación de recomendación...');
       console.log('[RecommendationGenerator] Configuración:', {
         model: CHAT_CONFIG.recommendationModel,
@@ -46,9 +51,14 @@ export class RecommendationGenerator {
 
       const response = await this.openai.chat.completions.create({
         model: CHAT_CONFIG.recommendationModel,
-        messages: promptMessages,
+        messages: [
+          {
+            role: 'system',
+            content: RECOMMENDATION_SYSTEM_CONTEXT
+          },
+          ...promptMessages
+        ],
         functions: [recommendDishesFn, getProductDetailsFn],
-        function_call: "auto",
         temperature: CHAT_CONFIG.temperature,
         max_tokens: CHAT_CONFIG.maxTokensRecommendation,
         top_p: CHAT_CONFIG.topP,
@@ -60,6 +70,30 @@ export class RecommendationGenerator {
       }
 
       const message = response.choices[0].message;
+      
+      // Si hay una llamada a función, validar que sea válida
+      if (message.function_call) {
+        try {
+          const args = JSON.parse(message.function_call.arguments);
+          if (message.function_call.name === 'recommend_dishes') {
+            if (!args.recommendations || !Array.isArray(args.recommendations)) {
+              console.error('[RecommendationGenerator] Error: Argumentos inválidos para recommend_dishes:', args);
+              throw new Error(ERROR_CODES.RECOMMENDATION_FAILED);
+            }
+            // Validar cada recomendación
+            for (const rec of args.recommendations) {
+              if (!rec.id || !rec.reason) {
+                console.error('[RecommendationGenerator] Error: Recomendación inválida:', rec);
+                throw new Error(ERROR_CODES.RECOMMENDATION_FAILED);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[RecommendationGenerator] Error parseando argumentos:', error);
+          throw new Error(ERROR_CODES.RECOMMENDATION_FAILED);
+        }
+      }
+
       console.log('[RecommendationGenerator] Respuesta generada:', {
         role: message.role,
         content: message.content?.substring(0, 100) + '...',

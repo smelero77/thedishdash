@@ -1,5 +1,5 @@
 import { ChatMessageProps } from './types';
-import { ChatResponse } from '@/lib/chat/types/response.types';
+import { ChatResponse, ProductDetails } from '@/lib/chat/types/response.types';
 import { SYSTEM_MESSAGE_TYPES } from '@/lib/chat/constants/config';
 import { ReactNode } from 'react';
 
@@ -31,7 +31,8 @@ export interface ErrorResponse {
 }
 
 export interface RecommendationsResponse {
-  type: 'recommendations';
+  type: 'recommendations' | 'recommendation';
+  content: string;
   data: Recommendation[];
 }
 
@@ -69,11 +70,11 @@ export interface TextResponse {
 }
 
 export type TypedAssistantResponse = 
-  | RecommendationsResponse
-  | ClarificationResponse
-  | ErrorResponse
-  | TextResponse
-  | ProductDetailsResponse;
+  | { type: 'info'; content: string }
+  | { type: 'error'; content: string; error: { message: string } }
+  | { type: 'clarification'; content: string }
+  | { type: 'recommendations' | 'recommendation'; content: string; data: Recommendation[] }
+  | { type: 'product_details'; content: string; product: ProductDetails };
 
 function getInitials(name: string) {
   const words = name.split(' ');
@@ -89,7 +90,8 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
   }
 
   switch (content.type) {
-    case 'recommendations': {
+    case 'recommendations':
+    case 'recommendation': {
       const recommendations = content as RecommendationsResponse;
       return (
         <div className="space-y-4">

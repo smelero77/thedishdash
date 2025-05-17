@@ -55,7 +55,7 @@ export const RecommendationSchema = z.object({
 export const ChatResponseSchema = z.object({
   type: z.enum([
     'text',
-    'recommendations',
+    'recommendation',
     'product_details',
     'error'
   ]),
@@ -107,6 +107,11 @@ export interface ConversationTurn {
   content: string;
   timestamp: Date;
   metadata?: Record<string, unknown>;
+  message_index?: number;
+  function_call?: {
+    name: string;
+    arguments: string;
+  };
 }
 
 export interface ConversationContext {
