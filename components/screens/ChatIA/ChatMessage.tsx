@@ -85,7 +85,7 @@ function getInitials(name: string) {
 
 function renderContent(content: string | TypedAssistantResponse): ReactNode {
   if (typeof content === 'string') {
-    return <p className="text-sm leading-relaxed">{content}</p>;
+    return <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>;
   }
 
   switch (content.type) {
@@ -220,7 +220,7 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
     }
     default: {
       const text = content as TextResponse;
-      return <p className="text-sm leading-relaxed">{text.content}</p>;
+      return <p className="text-sm leading-relaxed whitespace-pre-wrap">{text.content}</p>;
     }
   }
 }
