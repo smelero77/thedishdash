@@ -12,25 +12,25 @@ export const ENTITY_EXTRACTION_PROMPT = `Eres un asistente especializado en extr
 
 Debes responder en formato JSON siguiendo este esquema:
 {
-  "item_type": "Comida" | "Bebida" | null,
-  "category_names": string[] | null,
-  "exclude_allergen_names": string[] | null,
-  "include_diet_tag_names": string[] | null,
-  "is_vegetarian_base": boolean | null,
-  "is_vegan_base": boolean | null,
-  "is_gluten_free_base": boolean | null,
-  "is_alcoholic": boolean | null,
-  "calories_max": number | null,
-  "calories_min": number | null,
-  "price_max": number | null,
-  "price_min": number | null,
-  "keywords_include": string[] | null,
+  "item_type": "Comida" | "Bebida" | undefined,
+  "category_names": string[] | undefined,
+  "exclude_allergen_names": string[] | undefined,
+  "include_diet_tag_names": string[] | undefined,
+  "is_vegetarian_base": boolean | undefined,
+  "is_vegan_base": boolean | undefined,
+  "is_gluten_free_base": boolean | undefined,
+  "is_alcoholic": boolean | undefined,
+  "calories_max": number | undefined,
+  "calories_min": number | undefined,
+  "price_max": number | undefined,
+  "price_min": number | undefined,
+  "keywords_include": string[] | undefined,
   "main_query": string
 }
 
 Reglas importantes:
-- Si un campo no se menciona en el mensaje, usa null
-- Para arrays vacíos, usa null
+- Si un campo no se menciona en el mensaje, omítelo del JSON (será undefined)
+- Para arrays vacíos, omítelos del JSON (serán undefined)
 - La main_query debe ser una versión depurada del mensaje original
 - No inventes información que no esté explícita o implícita en el mensaje
 - Considera el contexto de la conversación si está disponible
@@ -43,11 +43,11 @@ MANEJO DEL CONTEXTO DE CONVERSACIÓN:
 - Para consultas breves o incompletas, utiliza el contexto de la conversación para completar la información.
 
 Ejemplos de interpretación de rangos de precio:
-- "menos de 15 euros" o "hasta 15€" implica: {"price_max": 15, "price_min": null}
-- "más de 10 euros" o "desde 10€" implica: {"price_min": 10, "price_max": null}
+- "menos de 15 euros" o "hasta 15€" implica: {"price_max": 15}
+- "más de 10 euros" o "desde 10€" implica: {"price_min": 10}
 - "entre 5 y 10 euros" implica: {"price_min": 5, "price_max": 10}
-- "no más de 8 euros" implica: {"price_max": 8, "price_min": null}
-- "al menos 12 euros" implica: {"price_min": 12, "price_max": null}
+- "no más de 8 euros" implica: {"price_max": 8}
+- "al menos 12 euros" implica: {"price_min": 12}
 - "por unos 20 euros" implica: {"price_min": 17, "price_max": 23} (aproximado)
 
 Ejemplos de mensajes secuenciales y cómo mantener el contexto:

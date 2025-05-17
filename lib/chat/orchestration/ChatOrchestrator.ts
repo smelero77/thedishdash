@@ -18,6 +18,7 @@ import { CHAT_CONFIG, SYSTEM_MESSAGE_TYPES, CHAT_SESSION_STATES } from '../const
 import { recommendDishesFn, getProductDetailsFn } from '../constants/functions';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { ChatSessionService } from '../services/ChatSessionService';
+import { MessageMetadata } from '../types/session.types';
 
 const OPERATION_TIMEOUT = 30000; // 30 segundos
 const CIRCUIT_BREAKER_THRESHOLD = 5;
@@ -134,56 +135,37 @@ export class ChatOrchestrator {
     this.logger.debug(`[ChatOrchestrator] Procesando mensaje para sesión ${session.id}, alias ${session.alias}`);
     
     try {
-      // Validación inicial del mensaje
-      if (userMessage.trim().length < 3) {
-        await this.chatSessionService.updateState(session.id, {
-          currentState: CHAT_SESSION_STATES.COLLECTING_PREFERENCES,
-          filters: { main_query: userMessage.trim() },
-          conversationHistory: session.conversation_history || []
-        });
-
-        return { 
-          type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
-          content: "Por favor, describe un poco más lo que te apetece.",
-          clarification_points: ["¿Qué tipo de plato te gustaría?", "¿Tienes alguna preferencia o restricción?"]
-        };
-      }
-
-      // Extraer filtros del mensaje del usuario
+      // 1. Cargar TODO el historial de mensajes
+      const messageHistory = await this.chatSessionService.getLastConversationTurns(session.id);
+      
+      // 2. Extraer filtros del mensaje actual
       const extractedFilters = await this.withCircuitBreaker(() =>
         this.withTimeout(
-          this.filterExtractor.extractFilters(userMessage, session.conversation_history || []),
+          this.filterExtractor.extractFilters(userMessage, messageHistory),
           OPERATION_TIMEOUT
         )
       );
-      
-      // Log detallado para depurar filtros extraídos
-      this.logger.debug('[ChatOrchestrator] Filtros extraídos:', {
-        price_min: extractedFilters.price_min,
-        price_max: extractedFilters.price_max,
-        category_names: extractedFilters.category_names,
-        main_query: extractedFilters.main_query,
-        timestamp: new Date().toISOString()
-      });
 
-      // Si hay una categoría en el mensaje actual, actualizar el contexto
-      if (extractedFilters.category_names && extractedFilters.category_names.length > 0) {
-        if (!session.filters) {
-          session.filters = {};
+      // Preparar metadatos del mensaje de usuario
+      const userMessageMetadata: MessageMetadata = {
+        filters: {
+          priceMin: extractedFilters.price_min,
+          priceMax: extractedFilters.price_max,
+          main_query: extractedFilters.main_query,
+          category_names: extractedFilters.category_names,
+          categoryId: categoryIdFromFrontend
         }
-        session.filters.category_names = extractedFilters.category_names;
-      }
-      // Si no hay categoría en el mensaje actual pero hay una en el contexto, mantenerla
-      else if (session.filters?.category_names && session.filters.category_names.length > 0) {
-        extractedFilters.category_names = session.filters.category_names;
-        
-        // Asegurar que la consulta principal incluya la categoría para la búsqueda semántica
-        if (!extractedFilters.main_query.toLowerCase().includes('racion')) {
-          extractedFilters.main_query = `${session.filters.category_names[0]} ${extractedFilters.main_query}`;
+      };
+
+      // Si hay un embedding, añadirlo a los metadatos
+      if (extractedFilters.main_query) {
+        const embedding = await this.embeddingService.getEmbedding(extractedFilters.main_query);
+        if (embedding) {
+          userMessageMetadata.embedding = embedding;
         }
       }
 
-      // Mapear los filtros extraídos a parámetros RPC
+      // 4. Mapear filtros extraídos a parámetros RPC
       const rpcParameters = await this.withCircuitBreaker(() =>
         this.withTimeout(
           this.filterMapper.mapToRpcParameters(extractedFilters),
@@ -191,34 +173,7 @@ export class ChatOrchestrator {
         )
       );
 
-      // Asegurar que la categoría se incluya en los parámetros RPC si está en el contexto
-      if (session.filters?.category_names && session.filters.category_names.length > 0) {
-        const categoryIds = await this.filterMapper.mapCategoryNamesToIds(session.filters.category_names);
-        if (categoryIds && categoryIds.length > 0) {
-          rpcParameters.p_category_ids_include = categoryIds;
-        }
-      }
-      
-      // Log detallado para depurar filtros RPC mapeados
-      this.logger.debug('[ChatOrchestrator] Filtros RPC mapeados:', {
-        p_price_min: rpcParameters.p_price_min,
-        p_price_max: rpcParameters.p_price_max,
-        p_item_type: rpcParameters.p_item_type,
-        p_category_ids_include: rpcParameters.p_category_ids_include ? `[${rpcParameters.p_category_ids_include.length} ids]` : null,
-        p_diet_tag_ids_include: rpcParameters.p_diet_tag_ids_include ? `[${rpcParameters.p_diet_tag_ids_include.length} ids]` : null,
-        p_allergen_ids_exclude: rpcParameters.p_allergen_ids_exclude ? `[${rpcParameters.p_allergen_ids_exclude.length} ids]` : null,
-        main_query: extractedFilters.main_query,
-        timestamp: new Date().toISOString()
-      });
-
-      // Actualizar estado a RECOMMENDING después de extraer filtros
-      await this.chatSessionService.updateState(session.id, {
-        currentState: CHAT_SESSION_STATES.RECOMMENDING,
-        filters: extractedFilters,
-        conversationHistory: session.conversation_history || []
-      });
-
-      // ETAPA 2: Búsqueda Semántica con Filtros Mapeados
+      // 5. Búsqueda semántica con filtros acumulados
       let searchedItems = await this.withCircuitBreaker(() =>
         this.withTimeout(
           this.semanticSearcher.findRelevantItems(extractedFilters.main_query, rpcParameters),
@@ -226,173 +181,146 @@ export class ChatOrchestrator {
         )
       );
 
-      // Manejo de resultados vacíos
-      if (searchedItems.length === 0) {
-        const hasActiveFilters = Object.values(rpcParameters).some(
-          val => val !== null && val !== undefined && (!Array.isArray(val) || val.length > 0)
-        );
-
-        // Volver a COLLECTING_PREFERENCES si no hay resultados
-        await this.chatSessionService.updateState(session.id, {
-          currentState: CHAT_SESSION_STATES.COLLECTING_PREFERENCES,
-          filters: extractedFilters,
-          conversationHistory: session.conversation_history || []
-        });
-
-        return {
-          type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
-          content: hasActiveFilters
-            ? "No he encontrado nada que coincida exactamente con tus criterios. ¿Quieres que intente con menos filtros o una descripción diferente?"
-            : "No he encontrado nada que coincida con tu búsqueda. ¿Podrías describirme qué te apetece de otra manera?",
-          clarification_points: hasActiveFilters
-            ? ["¿Quieres que quite algún filtro?", "¿Prefieres buscar algo diferente?"]
-            : ["¿Qué tipo de plato te gustaría?", "¿Tienes alguna preferencia de sabor?"]
+      // Añadir resultados de búsqueda a la metadata
+      if (searchedItems && searchedItems.length > 0) {
+        userMessageMetadata.search_results = {
+          items: searchedItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            distance: item.similarity || 0
+          }))
         };
       }
 
-      // ETAPA 3: Procesamiento de Candidatos y Contexto
+      this.logger.debug('Guardando mensaje de usuario con metadatos:', {
+        sessionId: session.id,
+        hasMetadata: true,
+        metadataKeys: Object.keys(userMessageMetadata),
+        filters: userMessageMetadata.filters ? 'presentes' : 'no presentes',
+        embedding: userMessageMetadata.embedding ? 'presente' : 'no presente',
+        search_results: userMessageMetadata.search_results ? `${userMessageMetadata.search_results.items.length} items` : 'no presentes'
+      });
+
+      // 3. Guardar mensaje del usuario con sus metadatos
+      await this.chatSessionService.addMessage(session.id, {
+        role: 'user',
+        content: userMessage,
+        timestamp: new Date()
+      }, userMessageMetadata);
+
+      // 6. Procesar candidatos y construir contexto
       const rawCartItems = await this.getRawCartItems(session.alias);
-      
-      // Filtrado adicional para mantener categorías en consultas secuenciales
-      if (session.filters && session.filters.category_names && 
-          session.filters.category_names.length > 0 && session.conversation_history &&
-          session.conversation_history.length > 0) {
-          
-        // Definir estructura para el category_info que sabemos que existe en los datos
-        interface CategoryInfo {
-          id: string;
-          name: string;
-        }
-        
-        // Extender MenuItemData con category_info que sabemos que existe en los datos
-        interface ItemWithCategoryInfo extends MenuItemData {
-          category_info?: CategoryInfo[];
-          similarity?: number;
-        }
-        
-        const previousCategoryNames = session.filters.category_names as string[];
-        this.logger.debug('[ChatOrchestrator] Categorías previas de la consulta anterior:', {
-          previousCategoryNames,
-          timestamp: new Date().toISOString()
-        });
-        
-        // Obtener lista de IDs de categoría basados en nombres previos
-        const categoryIds = await this.filterMapper.mapCategoryNamesToIds(previousCategoryNames);
-        
-        // Filtrar ítems para mantener solo los que pertenecen a las categorías previas
-        const filteredItems = searchedItems.filter(item => {
-          const itemWithCat = item as unknown as ItemWithCategoryInfo;
-          if (!itemWithCat.category_info || !Array.isArray(itemWithCat.category_info)) {
-            return false;
-          }
-          
-          // Verificar si alguna categoría del ítem coincide con las categorías previas
-          return itemWithCat.category_info.some(cat => 
-            categoryIds.includes(cat.id)
-          );
-        });
-        
-        // Si hay resultados después del filtrado, usarlos; si no, mantener los originales
-        if (filteredItems.length > 0) {
-          this.logger.debug('[ChatOrchestrator] Resultados filtrados por categoría previa:', {
-            countBefore: searchedItems.length,
-            countAfter: filteredItems.length,
-            categoriesMaintained: previousCategoryNames,
-            timestamp: new Date().toISOString()
-          });
-          searchedItems = filteredItems;
-        } else {
-          this.logger.debug('[ChatOrchestrator] No hay resultados después de filtrar por categoría previa, manteniendo resultados originales', {
-            timestamp: new Date().toISOString()
-          });
-        }
-      }
-      
       const finalCandidates = await this.candidateProcessor.processCandidates(searchedItems, rawCartItems);
 
-      if (finalCandidates.length === 0) {
-        // Volver a COLLECTING_PREFERENCES si no hay candidatos finales
-        await this.chatSessionService.updateState(session.id, {
-          currentState: CHAT_SESSION_STATES.COLLECTING_PREFERENCES,
-          filters: extractedFilters,
-          conversationHistory: session.conversation_history || []
-        });
-
-        return {
-          type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
-          content: "Parece que los artículos que coinciden ya están en tu carrito o no hay más opciones con esos filtros.",
-          clarification_points: ["¿Quieres ver tu carrito?", "¿Prefieres buscar algo diferente?"]
-        };
-      }
-
-      // ETAPA 4: Construcción de Contexto y Generación de Recomendación
+      // 7. Construir prompt con sistema + historial + usuario
       const cartContext = this.contextBuilder.buildCartContext(rawCartItems);
       const candidatesBlock = this.contextBuilder.buildCandidatesContextBlock(finalCandidates);
 
-      // Actualizar estado a CONFIRMING antes de generar recomendaciones
-      await this.chatSessionService.updateState(session.id, {
-        currentState: CHAT_SESSION_STATES.CONFIRMING,
-        filters: extractedFilters,
-        conversationHistory: session.conversation_history || []
-      });
+      // Construir mensaje de sistema con filtros activos
+      const systemMessage = {
+        role: 'system' as const,
+        content: `Eres un asistente virtual de The Dish Dash. Filtros activos: ${
+          Object.entries(userMessageMetadata.filters || {})
+            .filter(([_, value]) => value !== undefined)
+            .map(([key, value]) => `${key}=${value}`)
+            .join('; ')
+        }. ${cartContext}\n\nCandidatos disponibles:\n${candidatesBlock}`
+      };
 
-      const messagesForRecommendationAI: ChatCompletionMessageParam[] = [
-        { role: 'system', content: RECOMMENDATION_SYSTEM_CONTEXT },
-        { role: 'user', content: `Contexto del carrito:\n${cartContext}\n\nCandidatos disponibles:\n${candidatesBlock}\n\nConsulta del usuario: ${userMessage}` }
+      // 8. Generar respuesta con OpenAI
+      const messages: ChatCompletionMessageParam[] = [
+        systemMessage,
+        ...messageHistory.map(msg => ({
+          role: msg.role as 'system' | 'user' | 'assistant',
+          content: msg.content
+        })),
+        { role: 'user', content: userMessage }
       ];
 
-      const gptResponseMsg = await this.recommendationGenerator.generateResponse(messagesForRecommendationAI);
+      const gptResponseMsg = await this.recommendationGenerator.generateResponse(messages);
 
-      // ETAPA 5: Manejo de Llamadas a Funciones
+      // 9. Procesar y guardar respuesta del asistente
+      let assistantResponse: AssistantResponse;
+      let assistantMetadata: MessageMetadata = {};
+
+      // Mantener los filtros activos solo si hay alguno
+      if (userMessageMetadata.filters && Object.keys(userMessageMetadata.filters).length > 0) {
+        assistantMetadata.filters = userMessageMetadata.filters;
+      }
+
       if (gptResponseMsg.function_call) {
-        const assistantResponse = await this.functionCallHandler.handleFunctionCall(
+        assistantResponse = await this.functionCallHandler.handleFunctionCall(
           gptResponseMsg.function_call.name,
           gptResponseMsg.function_call.arguments,
           { searchedItems }
         );
 
-        // Guardar mensajes en la base de datos
-        const now = new Date();
-        await this.chatSessionService.update(session.id, {
-          conversation_history: [
-            ...session.conversation_history || [],
-            { role: 'user', content: userMessage, timestamp: now },
-            { role: 'assistant', content: String(assistantResponse.content), timestamp: now }
-          ]
-        });
+        // Guardar metadatos de recomendaciones si las hay
+        if (assistantResponse.type === 'recommendations' && Array.isArray(assistantResponse.data)) {
+          const recommendations = {
+            items: assistantResponse.data.map(item => item.id),
+            reasons: assistantResponse.data.reduce((acc, item) => ({
+              ...acc,
+              [item.id]: item.reason || ''
+            }), {})
+          };
+          
+          // Solo añadir recomendaciones si hay items
+          if (recommendations.items.length > 0) {
+            assistantMetadata.recommendations = recommendations;
+          }
+        }
 
-        return assistantResponse;
+        this.logger.debug('Guardando respuesta del asistente con metadatos:', {
+          sessionId: session.id,
+          type: assistantResponse.type,
+          recommendations: assistantMetadata.recommendations ? 
+            `${assistantMetadata.recommendations.items.length} items` : 'ninguna',
+          filters: assistantMetadata.filters || 'no presentes'
+        });
+      } else {
+        assistantResponse = {
+          type: 'text',
+          content: gptResponseMsg.content || "Lo siento, no pude procesar tu solicitud correctamente."
+        };
       }
 
-      // Si no hay llamada a función, devolver respuesta directa
-      const response: AssistantResponse = {
-        type: SYSTEM_MESSAGE_TYPES.RECOMMENDATION,
-        content: gptResponseMsg.content || "Lo siento, no pude procesar tu solicitud correctamente."
-      };
+      // Si hay un embedding para la respuesta, añadirlo a los metadatos
+      if (assistantResponse.content) {
+        const embedding = await this.embeddingService.getEmbedding(assistantResponse.content);
+        if (embedding) {
+          assistantMetadata.embedding = embedding;
+        }
+      }
 
-      // Guardar mensajes en la base de datos
-      const now = new Date();
-      await this.chatSessionService.update(session.id, {
-        conversation_history: [
-          ...session.conversation_history || [],
-          { role: 'user', content: userMessage, timestamp: now },
-          { role: 'assistant', content: String(response.content), timestamp: now }
-        ]
-      });
+      // Guardar respuesta del asistente con metadatos
+      await this.chatSessionService.addMessage(session.id, {
+        role: 'assistant',
+        content: assistantResponse.content || '',
+        timestamp: new Date()
+      }, assistantMetadata);
 
-      return response;
+      return assistantResponse;
 
-    } catch (error: any) {
-      // Actualizar estado a ERROR en caso de error
-      await this.chatSessionService.updateState(session.id, {
-        currentState: CHAT_SESSION_STATES.ERROR,
-        filters: { main_query: userMessage.trim() },
-        conversationHistory: session.conversation_history || []
-      });
-
+    } catch (error) {
       this.logger.error('[ChatOrchestrator] Error procesando mensaje:', error);
+      
+      // Guardar mensaje de error como sistema con metadatos de error
+      await this.chatSessionService.addMessage(session.id, {
+        role: 'system',
+        content: 'Error procesando mensaje: ' + (error instanceof Error ? error.message : 'Unknown error'),
+        timestamp: new Date()
+      }, { 
+        error: true,
+        errorDetails: {
+          code: 'PROCESSING_ERROR',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
+        }
+      });
+
       return {
-        type: SYSTEM_MESSAGE_TYPES.ERROR,
+        type: 'error',
         content: "Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo.",
         error: {
           code: 'PROCESSING_ERROR',

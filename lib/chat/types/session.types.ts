@@ -6,7 +6,7 @@ import { ConversationTurn } from './response.types';
 // Esquema para el mensaje del asistente con function calls
 export const AssistantMessageSchema = z.object({
   role: z.literal('assistant'),
-  content: z.string().nullable(),
+  content: z.string().default(''),
   function_call: z.object({
     name: z.string(),
     arguments: z.string()
@@ -89,5 +89,27 @@ export interface SessionResponse {
   error?: {
     code: string;
     message: string;
+  };
+}
+
+export interface MessageMetadata {
+  filters?: {
+    categoryId?: string;
+    priceMin?: number;
+    priceMax?: number;
+    main_query?: string;
+    category_names?: string[];
+  };
+  recommendations?: {
+    items: string[];
+    reasons: Record<string, string>;
+  };
+  embedding?: number[];
+  search_results?: {
+    items: Array<{
+      id: string;
+      name: string;
+      distance: number;
+    }>;
   };
 } 

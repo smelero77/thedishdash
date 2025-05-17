@@ -184,7 +184,8 @@ export class ChatSessionService {
    */
   public async addMessage(
     sessionId: string,
-    message: z.infer<typeof UserMessageSchema | typeof AssistantMessageSchema | typeof SystemMessageSchema>
+    message: z.infer<typeof UserMessageSchema | typeof AssistantMessageSchema | typeof SystemMessageSchema>,
+    metadata: Record<string, any> = {}
   ): Promise<void> {
     try {
       let session = await this.get(sessionId);
@@ -192,7 +193,6 @@ export class ChatSessionService {
       if (!session) {
         console.log(`Sesión no encontrada en addMessage, intentando recuperar o crear: ${sessionId}`);
         
-        // Intentamos obtener información de algún mensaje existente
         const { data: existingMessage, error: messageError } = await supabase
           .from('messages')
           .select('session_id, sender')
@@ -200,62 +200,68 @@ export class ChatSessionService {
           .limit(1)
           .single();
 
-        if (messageError && messageError.code !== 'PGRST116') {
-          console.error('Error al buscar mensaje existente:', messageError);
-          throw new Error(`Error searching for existing message: ${messageError.message}`);
+        if (!messageError && existingMessage) {
+          session = await this.get(sessionId);
         }
-
-        if (existingMessage) {
-          // Si encontramos un mensaje, la sesión debería existir
-          console.error(`Inconsistencia: mensaje encontrado pero sesión no existe: ${sessionId}`);
-          throw new Error(`Session inconsistency: message exists but session not found: ${sessionId}`);
-        }
-
-        // Si no hay mensajes, creamos una sesión con valores predeterminados
-        const tableNumber = 0; // Valor predeterminado - se debe actualizar según el contexto
-        const userAlias = message.role === 'user' ? 'guest' : 'assistant';
         
-        // Crear nueva sesión con valores predeterminados
-        session = await this.create(
-          tableNumber,
-          userAlias,
-          {
-            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon'
-          },
-          sessionId
-        );
-
         if (!session) {
-          throw new Error('No se pudo crear la sesión para el mensaje');
+          throw new Error(`No se pudo encontrar o crear la sesión ${sessionId}`);
         }
       }
 
-      // Determinar el sender correcto para la base de datos
-      // La tabla messages espera 'guest' en lugar de 'user'
-      const dbSender = message.role === 'user' ? 'guest' : message.role;
-      
-      // Asegurar que content nunca sea null
-      const dbContent = message.content !== null ? message.content : '';
+      const sender = message.role === 'user' ? 'guest' : 
+                    message.role === 'assistant' ? 'assistant' : 'system';
 
-      // Insertar el mensaje
-      const { error: insertError } = await supabase
+      let messageMetadata: Record<string, any> = {};
+
+      if (message.role === 'user') {
+        // Para mensajes del usuario
+        messageMetadata = {
+          filters: metadata.filters || {},
+          candidates: metadata.candidates ? metadata.candidates.map((item: any) => item.id) : undefined,
+          search_results: metadata.search_results,
+          embedding: metadata.embedding
+        };
+      } else if (message.role === 'assistant') {
+        // Para mensajes del asistente
+        messageMetadata = {
+          recommendations: metadata.recommendations ? {
+            items: metadata.recommendations.items,
+            reasons: metadata.recommendations.reasons
+          } : undefined,
+          filters: metadata.filters,
+          embedding: metadata.embedding
+        };
+      }
+
+      console.log('Guardando mensaje con metadatos:', {
+        sessionId,
+        sender,
+        role: message.role,
+        metadata: messageMetadata
+      });
+
+      // Insertar el mensaje en la BD
+      const { data: insertedMessage, error: insertError } = await supabase
         .from('messages')
         .insert({
           session_id: sessionId,
-          sender: dbSender,
-          content: dbContent,
-          created_at: message.timestamp || new Date()
-        });
+          sender: sender,
+          content: message.content,
+          created_at: message.timestamp || new Date(),
+          metadata: messageMetadata // Insertamos con la metadata completa
+        })
+        .select()
+        .single();
 
       if (insertError) {
         console.error('Error al insertar mensaje:', insertError);
         throw new Error(`Error inserting message: ${insertError.message}`);
       }
 
-      // Actualizar updated_at de la sesión
-      await this.update(sessionId, {
-        updated_at: new Date()
-      });
+      // Actualizar timestamp de última actividad de la sesión
+      await this.update(sessionId, { updated_at: new Date() });
+
     } catch (error) {
       console.error('Error en addMessage:', error);
       throw error;
@@ -281,21 +287,14 @@ export class ChatSessionService {
     }
 
     // Convertir los mensajes al formato esperado
-    return (messages || []).map(msg => {
-      if (msg.sender === 'guest') {
-        return {
-          role: 'user' as const,
-          content: msg.content,
-          timestamp: new Date(msg.created_at)
-        };
-      } else {
-        return {
-          role: 'assistant' as const,
-          content: msg.content,
-          timestamp: new Date(msg.created_at)
-        };
-      }
-    }).reverse();
+    return (messages || []).map(msg => ({
+      role: msg.sender === 'guest' ? 'user' as const : 
+            msg.sender === 'assistant' ? 'assistant' as const : 'system' as const,
+      content: msg.content,
+      timestamp: new Date(msg.created_at),
+      metadata: msg.metadata || {},
+      message_index: msg.message_index
+    })).reverse();
   }
 
   /**

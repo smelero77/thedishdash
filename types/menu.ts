@@ -51,6 +51,7 @@ export interface MenuItemData {
   menu_item_allergens?: {
     allergens: Allergen;
   }[];
+  similarity?: number;
 }
 
 export interface DietTag {
