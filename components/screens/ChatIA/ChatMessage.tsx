@@ -107,7 +107,7 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
                 )}
                 <div className="flex-1">
                   <h3 className="font-bold text-lg">{rec.name}</h3>
-                  <p className="text-sm text-[#1ce3cf]">{rec.price}€</p>
+                  <p className="text-sm font-semibold text-[#0a8a7c]">{rec.price}€</p>
                   <p className="text-sm mt-2">{rec.reason}</p>
                   {rec.category_info?.length > 0 && (
                     <div className="flex gap-2 mt-2">
@@ -145,11 +145,8 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
                 />
               )}
               <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-bold text-lg">{item.name}</h3>
-                  <p className="text-sm text-[#1ce3cf]">{item.price}€</p>
-                </div>
-                
+                <h3 className="font-bold text-lg">{item.name}</h3>
+                <p className="text-sm font-semibold text-[#0a8a7c]">{item.price}€</p>
                 <p className="text-sm mt-2">{item.description}</p>
                 
                 {item.food_info && (
