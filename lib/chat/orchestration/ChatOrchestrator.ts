@@ -347,11 +347,33 @@ export class ChatOrchestrator {
           };
         }
       } else if (gptResponseMsg.content) {
-        // Si no hay function_call pero hay contenido, usarlo como respuesta
-        assistantResponse = {
-          type: SYSTEM_MESSAGE_TYPES.INFO,
-          content: gptResponseMsg.content
-        };
+        // Si no hay function_call pero hay contenido, verificar si hay un artículo específico
+        const foundItem = searchedItems?.find(item => 
+          gptResponseMsg.content.toLowerCase().includes(item.name.toLowerCase())
+        );
+
+        if (foundItem) {
+          // Si encontramos un artículo específico, usar getProductDetailsFn
+          try {
+            assistantResponse = await this.functionCallHandler.handleFunctionCall(
+              'get_product_details',
+              { product_id: foundItem.id },
+              { searchedItems }
+            );
+          } catch (error) {
+            console.error('[ChatOrchestrator] Error obteniendo detalles del producto:', error);
+            assistantResponse = {
+              type: 'text',
+              content: gptResponseMsg.content
+            };
+          }
+        } else {
+          // Si no hay artículo específico, usar el contenido como respuesta de texto
+          assistantResponse = {
+            type: 'text',
+            content: gptResponseMsg.content
+          };
+        }
       } else {
         // Si no hay ni function_call ni contenido, devolver un mensaje de error
         assistantResponse = {

@@ -6,8 +6,11 @@ import { ExtractedFilters } from '../types/extractedFilters.types';
 import { SYSTEM_MESSAGE_TYPES, ERROR_CODES } from '../constants/config';
 import { OPENAI_FUNCTIONS } from '../constants/functions';
 import { supabase } from '@/lib/supabase';
-import { MenuItemData } from '@/types/menu';
+import { MenuItemData, SupabaseMenuItem } from '@/types/menu';
+import { Allergen } from '@/types/modifiers';
 import { CHAT_CONFIG } from '../constants/config';
+import { getMenuItemById } from '@/lib/data';
+import { processMenuItem } from '@/utils/menu';
 
 // Esquemas de validación con Zod
 const PriceRangeSchema = z.object({
@@ -31,7 +34,8 @@ const ExtractedFiltersSchema = z.object({
 });
 
 const ProductDetailsSchema = z.object({
-  item_id: z.string().uuid()
+  product_id: z.string().uuid(),
+  is_price_query: z.boolean().optional().default(false)
 });
 
 interface CategoryInfo {
@@ -39,8 +43,19 @@ interface CategoryInfo {
   name: string;
 }
 
-interface EnrichedMenuItem extends MenuItemData {
+interface EnrichedMenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image_url: string;
   category_info?: CategoryInfo[];
+  food_info?: string | null;
+  origin?: string | null;
+  pairing_suggestion?: string | null;
+  chef_notes?: string;
+  calories_est_min?: number;
+  calories_est_max?: number;
   is_vegetarian_base?: boolean;
   is_vegan_base?: boolean;
   is_gluten_free_base?: boolean;
@@ -50,6 +65,12 @@ interface EnrichedMenuItem extends MenuItemData {
   is_alcoholic?: boolean;
   drink_type?: string;
   drink_volume_ml?: number;
+  profit_margin?: number;
+  allergens?: Allergen[];
+  diet_tags?: string[];
+  modifiers?: any[];
+  is_available?: boolean;
+  is_recommended?: boolean;
 }
 
 /**
@@ -97,7 +118,7 @@ export class FunctionCallHandler {
         case 'get_product_details':
           return await this.handleGetProductDetails(args);
         case 'recommend_dishes':
-          return await this.handleRecommendDishes(args);
+          return await this.handleProvideRecommendations(args);
         default:
           throw new Error(`Función no soportada: ${functionName}`);
       }
@@ -155,12 +176,24 @@ export class FunctionCallHandler {
    */
   private async handleProvideRecommendations(args: any): Promise<AssistantResponse> {
     try {
+      // Primero intentamos parsear los argumentos si vienen como string
+      let parsedArgs = args;
+      if (typeof args === 'string') {
+        try {
+          parsedArgs = JSON.parse(args);
+        } catch (e) {
+          console.error('[FunctionCallHandler] Error parsing function call arguments:', args, e);
+          throw new Error(ERROR_CODES.INVALID_FILTERS);
+        }
+      }
+
+      // Validar argumentos con Zod
       const { recommendations } = z.object({
         recommendations: z.array(z.object({
           id: z.string().uuid(),
           reason: z.string().min(1)
         }))
-      }).parse(args);
+      }).parse(parsedArgs);
 
       // Obtener detalles completos de cada plato recomendado
       const enrichedRecommendations = await Promise.all(
@@ -223,34 +256,93 @@ export class FunctionCallHandler {
   }
 
   /**
+   * Transforma un SupabaseMenuItem a EnrichedMenuItem
+   */
+  private transformToEnrichedMenuItem(menuItem: SupabaseMenuItem): EnrichedMenuItem {
+    // Primero procesamos el item base usando la función existente
+    const baseItem = processMenuItem(menuItem);
+    
+    // Luego añadimos los campos enriquecidos
+    const enrichedItem: EnrichedMenuItem = {
+      ...baseItem,
+      description: baseItem.description || undefined,
+      image_url: baseItem.image_url || '',
+      chef_notes: baseItem.chef_notes || undefined,
+      category_info: [],
+      is_vegetarian_base: menuItem.food_info?.includes('vegetarian') || false,
+      is_vegan_base: menuItem.food_info?.includes('vegan') || false,
+      is_gluten_free_base: menuItem.food_info?.includes('gluten_free') || false,
+      is_new_item: menuItem.food_info?.includes('new') || false,
+      is_seasonal: menuItem.food_info?.includes('seasonal') || false,
+      item_type: menuItem.food_info?.includes('drink') ? 'Bebida' : 'Comida',
+      is_alcoholic: menuItem.food_info?.includes('alcoholic') || false,
+      drink_type: menuItem.food_info?.includes('drink') ? 'Bebida' : undefined,
+      drink_volume_ml: menuItem.food_info?.includes('drink') ? 330 : undefined,
+      profit_margin: menuItem.profit_margin || undefined,
+      allergens: baseItem.allergens,
+      diet_tags: baseItem.diet_tags,
+      modifiers: baseItem.modifiers,
+      is_available: baseItem.is_available,
+      is_recommended: baseItem.is_recommended
+    };
+
+    return enrichedItem;
+  }
+
+  /**
    * Maneja la obtención de detalles de un producto
    */
   private async handleGetProductDetails(args: any): Promise<AssistantResponse> {
     try {
-      const { item_id } = ProductDetailsSchema.parse(args);
+      let parsedArgs: any;
 
-      // Obtener detalles del producto de la base de datos
-      const { data: menuItem, error } = await supabase
-        .from('menu_items')
-        .select(`
-          *,
-          category_info:categories(id, name),
-          allergens:menu_item_allergens(allergens(name)),
-          diet_tags:menu_item_diet_tags(diet_tags(name))
-        `)
-        .eq('id', item_id)
-        .single();
+      try {
+        if (typeof args === 'string') {
+          parsedArgs = JSON.parse(args);
+        } else {
+          parsedArgs = args;
+        }
+      } catch (e) {
+        console.error('[FunctionCallHandler] Error parsing function call arguments:', args, e);
+        throw new Error(ERROR_CODES.INVALID_FILTERS);
+      }
+      
+      // Validar argumentos con Zod
+      const { product_id, is_price_query } = ProductDetailsSchema.parse(parsedArgs);
 
-      if (error || !menuItem) {
-        throw new Error(ERROR_CODES.UNKNOWN_ERROR);
+      // Obtener detalles del producto usando la función getMenuItemById
+      const { menuItem, error: dbError } = await getMenuItemById(product_id);
+
+      if (dbError || !menuItem) {
+        console.error(`[FunctionCallHandler] Could not retrieve or menuItem is null for ID: ${product_id}. DB Error:`, dbError);
+        throw new Error(ERROR_CODES.DB_ERROR);
       }
 
-      // Generar una explicación detallada usando IA
-      const explanation = await this.generateProductExplanation(menuItem as EnrichedMenuItem);
+      // Transformar el menuItem a EnrichedMenuItem
+      const enrichedMenuItem = this.transformToEnrichedMenuItem(menuItem);
+
+      // Si la consulta es específicamente sobre el precio, simplificar la respuesta
+      if (is_price_query) {
+        return {
+          type: 'product_details',
+          content: `Las ${enrichedMenuItem.name} cuestan ${enrichedMenuItem.price}€.`,
+          product: {
+            item: enrichedMenuItem,
+            explanation: `Las ${enrichedMenuItem.name} cuestan ${enrichedMenuItem.price}€.`
+          }
+        };
+      }
+
+      // Generar una explicación concisa usando IA
+      const explanation = await this.generateProductExplanation(enrichedMenuItem);
 
       return {
-        type: SYSTEM_MESSAGE_TYPES.INFO,
-        content: explanation
+        type: 'product_details',
+        content: explanation,
+        product: {
+          item: enrichedMenuItem,
+          explanation: explanation
+        }
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -262,87 +354,7 @@ export class FunctionCallHandler {
   }
 
   /**
-   * Maneja la recomendación de platos
-   */
-  private async handleRecommendDishes(args: any): Promise<AssistantResponse> {
-    try {
-      const parsedArgs = JSON.parse(args);
-      if (!parsedArgs.recommendations || !Array.isArray(parsedArgs.recommendations)) {
-        throw new Error('Argumentos inválidos para recommend_dishes');
-      }
-
-      // Validar cada recomendación
-      for (const rec of parsedArgs.recommendations) {
-        if (!rec.id || !rec.reason) {
-          throw new Error('Recomendación inválida: falta id o razón');
-        }
-      }
-
-      // Obtener detalles completos de cada plato recomendado
-      const enrichedRecommendations = await Promise.all(
-        parsedArgs.recommendations.map(async (rec: { id: string; reason: string }) => {
-          // Primero obtener el item del menú
-          const { data: menuItem, error: menuItemError } = await supabase
-            .from('menu_items')
-            .select('*')
-            .eq('id', rec.id)
-            .single();
-
-          if (menuItemError || !menuItem) {
-            console.error(`Error obteniendo detalles del plato ${rec.id}:`, menuItemError);
-            return null;
-          }
-
-          // Luego obtener las categorías usando los IDs
-          let categoryInfo: Array<{ id: string; name: string }> = [];
-          if (menuItem.category_ids && menuItem.category_ids.length > 0) {
-            const { data: categories, error: categoriesError } = await supabase
-              .from('categories')
-              .select('id, name')
-              .in('id', menuItem.category_ids);
-
-            if (!categoriesError && categories) {
-              categoryInfo = categories;
-            }
-          }
-
-          return {
-            id: menuItem.id,
-            name: menuItem.name,
-            price: menuItem.price,
-            reason: rec.reason,
-            image_url: menuItem.image_url,
-            category_info: categoryInfo
-          };
-        })
-      );
-
-      // Filtrar recomendaciones nulas
-      const validRecommendations = enrichedRecommendations.filter((rec): rec is NonNullable<typeof rec> => rec !== null);
-
-      if (validRecommendations.length === 0) {
-        throw new Error('No se pudieron obtener los detalles de los platos recomendados');
-      }
-
-      // Construir respuesta
-      const response: AssistantResponse = {
-        type: SYSTEM_MESSAGE_TYPES.RECOMMENDATION,
-        content: 'Aquí tienes mis recomendaciones:\n\n' + 
-          validRecommendations.map(rec => 
-            `- ${rec.name} (${rec.price}€): ${rec.reason}`
-          ).join('\n\n'),
-        data: validRecommendations
-      };
-
-      return response;
-    } catch (error) {
-      console.error('[FunctionCallHandler] Error procesando recommend_dishes:', error);
-      throw new Error(ERROR_CODES.RECOMMENDATION_FAILED);
-    }
-  }
-
-  /**
-   * Genera una explicación detallada del producto usando IA
+   * Genera una explicación concisa del producto usando IA
    */
   private async generateProductExplanation(menuItem: EnrichedMenuItem): Promise<string> {
     try {
@@ -353,7 +365,7 @@ export class FunctionCallHandler {
         messages: [
           {
             role: 'system',
-            content: 'Eres un experto en gastronomía y servicio al cliente. Tu tarea es generar una explicación detallada y atractiva de un producto del menú, destacando sus características más relevantes y haciendo énfasis en los aspectos que podrían interesar al cliente.'
+            content: 'Eres un experto en gastronomía y servicio al cliente. Tu tarea es generar una explicación concisa y atractiva de un producto del menú, destacando sus características más relevantes en máximo 3 líneas.'
           },
           {
             role: 'user',
@@ -361,7 +373,7 @@ export class FunctionCallHandler {
           }
         ],
         temperature: CHAT_CONFIG.productExplanationTemperature,
-        max_tokens: CHAT_CONFIG.maxTokensProductExplanation
+        max_tokens: 150 // Reducimos el número máximo de tokens para respuestas más concisas
       });
 
       return response.choices[0].message.content || 'No se pudo generar una explicación detallada.';
@@ -381,7 +393,7 @@ export class FunctionCallHandler {
     const dietTags = menuItem.diet_tags?.join(', ') || 'Ninguno';
 
     return `
-      Genera una explicación detallada y atractiva para el siguiente producto:
+      Genera una explicación concisa y atractiva para el siguiente producto:
       
       Nombre: ${menuItem.name}
       Precio: ${menuItem.price}€
@@ -402,18 +414,7 @@ export class FunctionCallHandler {
    */
   private generateFallbackExplanation(menuItem: EnrichedMenuItem): string {
     const characteristics = this.getMenuItemCharacteristics(menuItem);
-    const categories = menuItem.category_info?.map(c => c.name).join(', ') || 'N/A';
-
-    return `
-      ${menuItem.name} (${menuItem.price}€)
-      
-      ${menuItem.description || ''}
-      
-      Categorías: ${categories}
-      ${characteristics ? `Características: ${characteristics}` : ''}
-      ${menuItem.chef_notes ? `\nNotas del chef: ${menuItem.chef_notes}` : ''}
-      ${menuItem.pairing_suggestion ? `\nSugerencias de maridaje: ${menuItem.pairing_suggestion}` : ''}
-    `.trim();
+    return `${menuItem.name} (${menuItem.price}€) - ${menuItem.description || ''} ${characteristics ? `(${characteristics})` : ''}`;
   }
 
   /**

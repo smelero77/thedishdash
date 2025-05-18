@@ -35,8 +35,22 @@ export interface ProductDetails {
     is_vegetarian_base?: boolean;
     is_vegan_base?: boolean;
     is_gluten_free_base?: boolean;
+    is_available?: boolean;
+    is_recommended?: boolean;
+    profit_margin?: number;
+    modifiers?: any[];
+    item_type?: string;
+    is_alcoholic?: boolean;
+    is_new_item?: boolean;
+    is_seasonal?: boolean;
   };
   explanation: string;
+}
+
+export interface ProductDetailsResponse {
+  type: 'product_details';
+  content: string;
+  product: ProductDetails;
 }
 
 // Nuevos esquemas y tipos para el sistema modular

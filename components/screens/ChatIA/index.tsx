@@ -160,8 +160,9 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
         };
       } else if (legacyAsstResponse.type === "product_details") {
         finalUiAssistantResponse = {
-          type: SYSTEM_MESSAGE_TYPES.INFO,
-          content: `${legacyAsstResponse.product.item.name}: ${legacyAsstResponse.product.explanation}`
+          type: "product_details",
+          content: legacyAsstResponse.content,
+          product: legacyAsstResponse.product
         };
       } else {
         console.error('Tipo de respuesta no manejado:', legacyAsstResponse.type);

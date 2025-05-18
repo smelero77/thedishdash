@@ -127,10 +127,14 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
     }
     case 'product_details': {
       const productDetails = content as ProductDetailsResponse;
-      const { item, explanation } = productDetails.product;
+      const { item } = productDetails.product;
       
       return (
         <div className="space-y-4">
+          {/* Mensaje del asistente */}
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{productDetails.content}</p>
+          
+          {/* Ficha del artículo */}
           <div className="bg-white/10 rounded-lg p-4">
             <div className="flex items-start gap-4">
               {item.image_url && (
@@ -141,34 +145,24 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
                 />
               )}
               <div className="flex-1">
-                <h3 className="font-bold text-lg">{item.name}</h3>
-                <p className="text-sm text-[#1ce3cf]">{item.price}€</p>
-                <p className="text-sm mt-2">{explanation || item.description}</p>
+                <div className="flex justify-between items-start">
+                  <h3 className="font-bold text-lg">{item.name}</h3>
+                  <p className="text-sm text-[#1ce3cf]">{item.price}€</p>
+                </div>
+                
+                <p className="text-sm mt-2">{item.description}</p>
                 
                 {item.food_info && (
-                  <div className="mt-3 text-xs text-white/80 dark:text-white/70">
-                    <p>{item.food_info}</p>
-                  </div>
+                  <p className="text-sm mt-2">{item.food_info}</p>
                 )}
                 
-                {/* Mostrar etiquetas dietéticas */}
-                <div className="flex gap-2 mt-3">
-                  {item.is_vegetarian_base && (
-                    <span className="text-xs bg-green-600/20 text-green-600 dark:text-green-400 px-2 py-1 rounded">
-                      Vegetariano
-                    </span>
-                  )}
-                  {item.is_vegan_base && (
-                    <span className="text-xs bg-green-700/20 text-green-700 dark:text-green-500 px-2 py-1 rounded">
-                      Vegano
-                    </span>
-                  )}
-                  {item.is_gluten_free_base && (
-                    <span className="text-xs bg-yellow-600/20 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded">
-                      Sin Gluten
-                    </span>
-                  )}
-                </div>
+                {item.chef_notes && (
+                  <p className="text-sm mt-2 italic">{item.chef_notes}</p>
+                )}
+                
+                {item.pairing_suggestion && (
+                  <p className="text-sm mt-2">{item.pairing_suggestion}</p>
+                )}
                 
                 {item.category_info?.length > 0 && (
                   <div className="flex gap-2 mt-2">
@@ -178,12 +172,6 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
                       </span>
                     ))}
                   </div>
-                )}
-                
-                {item.calories_est_min && item.calories_est_max && (
-                  <p className="text-xs mt-2 text-white/70">
-                    Calorías estimadas: {item.calories_est_min}-{item.calories_est_max} kcal
-                  </p>
                 )}
               </div>
             </div>

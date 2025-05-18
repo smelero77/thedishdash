@@ -206,6 +206,80 @@ export async function getTableCodes(): Promise<{ id: string; table_number: numbe
   return data || [];
 }
 
+/** Obtiene un ítem del menú por su ID */
+export async function getMenuItemById(itemId: string): Promise<{ menuItem: SupabaseMenuItem | null; error: any }> {
+  if (!itemId) {
+    return { menuItem: null, error: 'Item ID is required' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select(`
+        id,
+        name,
+        description,
+        price,
+        image_url,
+        is_available,
+        is_recommended,
+        profit_margin,
+        category_ids,
+        food_info,
+        origin,
+        pairing_suggestion,
+        chef_notes,
+        menu_item_diet_tags (
+          diet_tags (
+            id,
+            name
+          )
+        ),
+        menu_item_allergens (
+          allergens (
+            id,
+            name,
+            icon_url
+          )
+        ),
+        modifiers (
+          id,
+          name,
+          description,
+          required,
+          multi_select,
+          modifier_options (
+            id,
+            name,
+            extra_price,
+            is_default,
+            icon_url,
+            related_menu_item_id,
+            modifier_options_allergens (
+              allergens (
+                id,
+                name,
+                icon_url
+              )
+            )
+          )
+        )
+      `)
+      .eq('id', itemId)
+      .single();
+
+    if (error) {
+      console.error(`[lib/data] Error fetching menu item ${itemId}:`, error);
+      return { menuItem: null, error };
+    }
+
+    return { menuItem: data as SupabaseMenuItem, error: null };
+  } catch (e) {
+    console.error(`[lib/data] Exception fetching menu item ${itemId}:`, e);
+    return { menuItem: null, error: e };
+  }
+}
+
 // ----------------------------------------------------------------
 // Escrituras / Validaciones
 // ----------------------------------------------------------------

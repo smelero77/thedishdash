@@ -38,6 +38,10 @@ export const getProductDetailsFn = {
       product_id: {
         type: "string",
         description: "ID del producto a consultar en el menú"
+      },
+      is_price_query: {
+        type: "boolean",
+        description: "Indica si la consulta es específicamente sobre el precio del producto"
       }
     },
     required: ["product_id"]
