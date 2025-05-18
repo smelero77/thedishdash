@@ -255,282 +255,271 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
     }
 
     console.log('[StartScreen Effect 2] Iniciando carga de fondo...');
-    let timer: NodeJS.Timeout;
-    const imageLoader = new Image();
-    imageLoader.src = "https://cdn.usegalileo.ai/sdxl10/36e7ee59-417b-aa5a-9480957baf30.png"; // Usar URL correcta
+    let timer: NodeJS.Timeout;
+    const imageLoader = new Image();
+    imageLoader.src = "https://cdn.usegalileo.ai/sdxl10/36e7e026-ee59-417b-aa5a-9480957baf30.png";
 
-    const handleLoad = () => {
-      console.log('🖼️ FONDO CARGADO (Handler)');
-      setBackgroundLoaded(true);
-      // Si estábamos en 'idle' cuando cargó el fondo, y no encontramos código en Efecto 1,
-      // ahora podemos pasar a mostrar el QR.
-      if (screenState === 'idle') {
-        console.log('[StartScreen Effect 2] Fondo cargado en estado idle, dispatch NO_CODE_FOUND.');
-        dispatch({ type: 'NO_CODE_FOUND' });
-      }
-    };
+    const handleLoad = () => {
+      console.log('🖼️ FONDO CARGADO (Handler)');
+      setBackgroundLoaded(true);
+      // Si estábamos en 'idle' cuando cargó el fondo, y no encontramos código en Efecto 1,
+      // ahora podemos pasar a mostrar el QR.
+      if (screenState === 'idle') {
+        console.log('[StartScreen Effect 2] Fondo cargado en estado idle, dispatch NO_CODE_FOUND.');
+        dispatch({ type: 'NO_CODE_FOUND' });
+      }
+    };
 
-    imageLoader.onload = handleLoad;
-    imageLoader.onerror = (err) => {
-      console.error('🖼️ ERROR CARGANDO FONDO:', err);
-      // Aunque falle, marcamos como cargado (o manejamos un estado de fondo fallido)
-      setBackgroundLoaded(true); 
-      if (screenState === 'idle') {
-        dispatch({ type: 'NO_CODE_FOUND' }); // Procedemos como si no hubiera código, pero sin fondo
-      }
-    };
+    imageLoader.onload = handleLoad;
+    imageLoader.onerror = (err) => {
+      console.error('🖼️ ERROR CARGANDO FONDO:', err);
+      // No marcamos como cargado si hay error
+      if (screenState === 'idle') {
+        dispatch({ type: 'NO_CODE_FOUND' });
+      }
+    };
 
+    // Timeout de respaldo reducido a 1 segundo
+    timer = setTimeout(() => {
+      if (!backgroundLoaded) {
+        console.log('🖼️ FONDO CARGADO (TIMEOUT)');
+        setBackgroundLoaded(true);
+        if (screenState === 'idle') {
+          dispatch({ type: 'NO_CODE_FOUND' });
+        }
+      }
+    }, 1000);
 
-    // Timeout de respaldo
-    timer = setTimeout(() => {
-      if (!backgroundLoaded) {
-        console.log('🖼️ FONDO CARGADO (TIMEOUT)');
-        setBackgroundLoaded(true);
-        if (screenState === 'idle') {
-          dispatch({ type: 'NO_CODE_FOUND' });
-        }
-      }
-    }, 3000); // Aumentado timeout por si acaso
+    return () => {
+      console.log('[StartScreen Effect 2] Cleanup');
+      clearTimeout(timer);
+      imageLoader.onload = null;
+      imageLoader.onerror = null;
+    };
 
-    return () => {
-      console.log('[StartScreen Effect 2] Cleanup');
-      clearTimeout(timer);
-      imageLoader.onload = null;
-      imageLoader.onerror = null;
-    };
-
-    // Dependencias: dispatch (estable), backgroundLoaded (estado que cambia),
-    // screenState (para la guardia 'idle' y la lógica de dispatch)
-  }, [dispatch, backgroundLoaded, screenState]);
+    // Dependencias: dispatch (estable), backgroundLoaded (estado que cambia),
+    // screenState (para la guardia 'idle' y la lógica de dispatch)
+  }, [dispatch, backgroundLoaded, screenState]);
 
 
-  // Efecto 3: Manejar la inicialización del carrito y navegación después de guardar alias
-  useEffect(() => {
-    console.log('[StartScreen Effect 3] Manejando estado:', screenState);
+  // Efecto 3: Manejar la inicialización del carrito y navegación después de guardar alias
+  useEffect(() => {
+    console.log('[StartScreen Effect 3] Manejando estado:', screenState);
 
-    if (screenState === 'success-navigate') {
-      console.log('[StartScreen Effect 3] Estado success-navigate, inicializando carrito...');
+    if (screenState === 'success-navigate') {
+      console.log('[StartScreen Effect 3] Estado success-navigate, inicializando carrito...');
 
-      // Usamos una función async inmediatamente invocada (IIFE)
-      (async () => {
-        const currentTableNumberStr = localStorage.getItem('tableNumber');
+      // Usamos una función async inmediatamente invocada (IIFE)
+      (async () => {
+        const currentTableNumberStr = localStorage.getItem('tableNumber');
 
-        if (currentTableNumberStr) {
-          const currentTableNumber = parseInt(currentTableNumberStr, 10);
+        if (currentTableNumberStr) {
+          const currentTableNumber = parseInt(currentTableNumberStr, 10);
 
-          // Validar que el número de mesa es un número válido
-          if (!isNaN(currentTableNumber)) {
-            try {
-              console.log('[StartScreen Effect 3] Llamando initializeCart con:', currentTableNumber);
-              await initializeCart(currentTableNumber);
-              console.log('[StartScreen Effect 3] Carrito inicializado. Navegando...');
+          // Validar que el número de mesa es un número válido
+          if (!isNaN(currentTableNumber)) {
+            try {
+              console.log('[StartScreen Effect 3] Llamando initializeCart con:', currentTableNumber);
+              await initializeCart(currentTableNumber);
+              console.log('[StartScreen Effect 3] Carrito inicializado. Navegando...');
 
-              // Navegar después de inicializar carrito
-              const code = localStorage.getItem('tableCode');
-              if (code) {
-                router.replace(`/menu?code=${code}`); // Usar replace para no volver a StartScreen
-              } else {
-                router.replace('/menu');
-              }
-              // Opcional: dispatch({ type: 'NAVIGATION_COMPLETE' }); si necesitas un estado final aquí
+              // Navegar después de inicializar carrito
+              const code = localStorage.getItem('tableCode');
+              if (code) {
+                router.replace(`/menu?code=${code}`); // Usar replace para no volver a StartScreen
+              } else {
+                router.replace('/menu');
+              }
+              // Opcional: dispatch({ type: 'NAVIGATION_COMPLETE' }); si necesitas un estado final aquí
 
-            } catch (cartError: any) { // Captura de error más específica
-              console.error('[StartScreen Effect 3] Error al inicializar carrito:', cartError);
-              dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: cartError?.message || 'Error desconocido al inicializar carrito' } });
-            }
-          } else {
-            console.error('[StartScreen Effect 3] Número de mesa de localStorage no es un número válido:', currentTableNumberStr);
-            dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: 'Error al obtener número de mesa válido' } });
-          }
-        } else {
-          console.error('[StartScreen Effect 3] No se encontró número de mesa en localStorage.');
-          dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: 'Número de mesa no encontrado' } });
-        }
-      })(); // Invocar la función async inmediatamente
-    }
+            } catch (cartError: any) { // Captura de error más específica
+              console.error('[StartScreen Effect 3] Error al inicializar carrito:', cartError);
+              dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: cartError?.message || 'Error desconocido al inicializar carrito' } });
+            }
+          } else {
+            console.error('[StartScreen Effect 3] Número de mesa de localStorage no es un número válido:', currentTableNumberStr);
+            dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: 'Error al obtener número de mesa válido' } });
+          }
+        } else {
+          console.error('[StartScreen Effect 3] No se encontró número de mesa en localStorage.');
+          dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: 'Número de mesa no encontrado' } });
+        }
+      })(); // Invocar la función async inmediatamente
+    }
 
-    // Dependencias: screenState (para activarse), initializeCart (estable), router (estable), dispatch (estable)
-    // No necesitamos localStorage aquí como dependencia, lo leemos dentro del efecto cuando el estado es 'success-navigate'.
-  }, [screenState, initializeCart, router, dispatch]);
-
-
-  // --- Handlers de Eventos ---
-
-  // Handler que se llama cuando termina la transición de pantalla
-  const handleTransitionComplete = useCallback(() => {
-    console.log('[StartScreen Handler] Transición completada. Estado actual:', screenState);
-
-    // Pasamos el estado actual para que el reducer sepa de dónde venimos
-    dispatch({ type: 'TRANSITION_COMPLETE', payload: { fromState: screenState } });
-
-  }, [screenState, dispatch]); // Depende de screenState y dispatch
-
-  // Función para manejar la confirmación del alias en el modal
-  const handleAliasConfirm = useCallback(async (alias: string): Promise<boolean> => {
-    console.log('[StartScreen Handler] Alias confirmado:', { alias });
-    dispatch({ type: 'START_SAVE_ALIAS' });
-
-    const success = await saveAlias(alias);
-    console.log('[StartScreen Handler] Resultado guardado:', { success });
-
-    if (success) {
-      dispatch({ type: 'SAVE_ALIAS_SUCCESS' });
-      return true;
-    } else {
-      console.error('[StartScreen Handler] Error al guardar alias (saveAlias falló)');
-      // Puedes obtener un mensaje de error más detallado de saveAlias si lo proporciona
-      dispatch({ type: 'SAVE_ALIAS_ERROR', payload: { message: 'No se pudo guardar el alias.' } });
-      return false;
-    }
-  }, [saveAlias, dispatch]); // Depende de saveAlias y dispatch
-
-  // Función para cerrar el modal de alias (ej. si se cancela)
-  const handleAliasModalClose = useCallback(() => {
-    console.log('[StartScreen Handler] Modal de alias cerrado (Cancelado).');
-    dispatch({ type: 'CANCEL_ALIAS_MODAL' });
-  }, [dispatch]); // Depende solo de dispatch
+    // Dependencias: screenState (para activarse), initializeCart (estable), router (estable), dispatch (estable)
+    // No necesitamos localStorage aquí como dependencia, lo leemos dentro del efecto cuando el estado es 'success-navigate'.
+  }, [screenState, initializeCart, router, dispatch]);
 
 
-  // Handler para reintentar (ej. desde la pantalla de error)
-  const handleRetry = useCallback(() => {
-    console.log('[StartScreen Handler] Reintentando...');
-    dispatch({ type: 'RETRY' }); // Resetea al estado inicial para empezar de nuevo
-  }, [dispatch]); // Depende solo de dispatch
+  // --- Handlers de Eventos ---
+
+  // Handler que se llama cuando termina la transición de pantalla
+  const handleTransitionComplete = useCallback(() => {
+    console.log('[StartScreen Handler] Transición completada. Estado actual:', screenState);
+
+    // Pasamos el estado actual para que el reducer sepa de dónde venimos
+    dispatch({ type: 'TRANSITION_COMPLETE', payload: { fromState: screenState } });
+
+  }, [screenState, dispatch]); // Depende de screenState y dispatch
+
+  // Función para manejar la confirmación del alias en el modal
+  const handleAliasConfirm = useCallback(async (alias: string): Promise<boolean> => {
+    console.log('[StartScreen Handler] Alias confirmado:', { alias });
+    dispatch({ type: 'START_SAVE_ALIAS' });
+
+    const success = await saveAlias(alias);
+    console.log('[StartScreen Handler] Resultado guardado:', { success });
+
+    if (success) {
+      dispatch({ type: 'SAVE_ALIAS_SUCCESS' });
+      return true;
+    } else {
+      console.error('[StartScreen Handler] Error al guardar alias (saveAlias falló)');
+      // Puedes obtener un mensaje de error más detallado de saveAlias si lo proporciona
+      dispatch({ type: 'SAVE_ALIAS_ERROR', payload: { message: 'No se pudo guardar el alias.' } });
+      return false;
+    }
+  }, [saveAlias, dispatch]); // Depende de saveAlias y dispatch
+
+  // Función para cerrar el modal de alias (ej. si se cancela)
+  const handleAliasModalClose = useCallback(() => {
+    console.log('[StartScreen Handler] Modal de alias cerrado (Cancelado).');
+    dispatch({ type: 'CANCEL_ALIAS_MODAL' });
+  }, [dispatch]); // Depende solo de dispatch
 
 
-  // --- Renderizado Condicional basado ÚNICAMENTE en screenState ---
-
-  // Usamos useMemo para renderizar el contenido principal basado en screenState
-  const mainContent = useMemo(() => {
-    console.log('[StartScreen useMemo] Recalculando mainContent. Estado:', screenState);
-
-    switch (screenState) {
-      case 'idle':
-        // No renderizamos nada en 'idle' con initial={false} en AnimatePresence
-        return null;
-
-      case 'initial-qr':
-        // Mostrar el Lottie QR solo si el fondo ha cargado
-        return (
-          backgroundLoaded ? (
-            // Contenido del estado initial-qr
-            <motion.div // motion.div aquí para que AnimatePresence pueda animar su entrada/salida
-              key="initial-qr-content" // Key para AnimatePresence
-              className="flex flex-col items-center justify-center grow relative z-10 w-full"
-            >
-              <div className="w-32 h-32 mb-8">
-                <MemoizedLoggedLottie
-                  name="LOTTIE_QR_INITIAL"
-                  src="https://lottie.host/64d2a522-5b74-4170-867f-5325128d3d8e/6M1Hh4xBSr.lottie"
-                  loop
-                  autoplay
-                />
-              </div>
-              <p className="text-white text-center text-xl px-4">Escanea el código QR de tu mesa para comenzar.</p>
-            </motion.div>
-          ) : (
-            // Mostrar un cargador simple si estamos en initial-qr pero el fondo no ha cargado
-            <motion.div key="loading-bg" className="flex items-center justify-center grow relative z-10 text-white w-full">
-              <p>Cargando fondo...</p>
-            </motion.div>
-          )
-        );
+  // Handler para reintentar (ej. desde la pantalla de error)
+  const handleRetry = useCallback(() => {
+    console.log('[StartScreen Handler] Reintentando...');
+    dispatch({ type: 'RETRY' }); // Resetea al estado inicial para empezar de nuevo
+  }, [dispatch]); // Depende solo de dispatch
 
 
-      case 'validating':
-        return <CodeValidationLoader key="validating-loader" message="Validando código de mesa..." />;
+  // --- Renderizado Condicional basado ÚNICAMENTE en screenState ---
 
-      case 'transition-success':
-        return <TransitionScreen key="transition-success" onComplete={handleTransitionComplete} />;
+  // Usamos useMemo para renderizar el contenido principal basado en screenState
+  const mainContent = useMemo(() => {
+    console.log('[StartScreen useMemo] Recalculando mainContent. Estado:', screenState);
 
-      case 'transition-error':
-        // Mostramos la transición de error
-        return <TransitionScreen key="transition-error" onComplete={handleTransitionComplete} /* puedes pasar un prop de error si TransitionScreen lo soporta */ />;
+    switch (screenState) {
+      case 'idle':
+        // No renderizamos nada en 'idle' con initial={false} en AnimatePresence
+        return null;
 
-
-      case 'alias-modal':
-        // El modal se renderiza fuera del switch, controlado por el estado.
-        // Este caso aquí es para lo que se muestra en el fondo, si aplica.
-        return (
-          <motion.div key="alias-modal-bg" className="flex items-center justify-center grow relative z-10 text-white w-full">
-            {/* Contenido de fondo mientras el modal está abierto */}
-          </motion.div>
-        );
-
-
-      case 'saving-alias':
-        return <CodeValidationLoader key="saving-loader" message="Guardando alias..." />;
-
-      case 'error':
-        // Pasar el handler de reintento a la pantalla de error
-        return <CodeValidationError key="validation-error" message={`Error: ${validationError || 'Ha ocurrido un error desconocido'}`} onRetry={handleRetry} />;
-
-      case 'success-navigate':
-        return (
-          <motion.div key="success-navigating" className="flex items-center justify-center grow relative z-10 text-white w-full">
-            <p>Completado, redirigiendo al menú...</p>
-          </motion.div>
-        );
+      case 'initial-qr':
+        // Mostrar el Lottie QR solo si el fondo ha cargado
+        return (
+          backgroundLoaded ? (
+              // Contenido del estado initial-qr
+              <motion.div // motion.div aquí para que AnimatePresence pueda animar su entrada/salida
+                key="initial-qr-content" // Key para AnimatePresence
+                className="flex flex-col items-center justify-center grow relative z-10 w-full"
+              >
+              </motion.div>
+            ) : (
+              // Mostrar un cargador simple si estamos en initial-qr pero el fondo no ha cargado
+              <motion.div key="loading-bg" className="flex items-center justify-center grow relative z-10 text-white w-full">
+                <p>Cargando fondo...</p>
+              </motion.div>
+            )
+        );
 
 
-      default:
-        console.warn('[StartScreen useMemo] Estado de pantalla desconocido:', screenState);
-        return (
-          <motion.div key="unknown-state-error" className="flex items-center justify-center grow relative z-10 text-red-500 w-full">
-            <p>Estado de pantalla inesperado. Por favor, recargue.</p>
-          </motion.div>
-        );
-    }
-  }, [screenState, validationError, backgroundLoaded, handleTransitionComplete, handleRetry]);
+      case 'validating':
+        return <CodeValidationLoader key="validating-loader" message="Validando código de mesa..." />;
+
+      case 'transition-success':
+        return <TransitionScreen key="transition-success" onComplete={handleTransitionComplete} />;
+
+      case 'transition-error':
+        // Mostramos la transición de error
+        return <TransitionScreen key="transition-error" onComplete={handleTransitionComplete} /* puedes pasar un prop de error si TransitionScreen lo soporta */ />;
 
 
-  // Efecto para loguear cambios de estado principal (debugging)
-  useEffect(() => {
-      console.log('[StartScreen Effect State Log] ESTADO PRINCIPAL CAMBIADO:', screenState);
-   }, [screenState]);
+      case 'alias-modal':
+        // El modal se renderiza fuera del switch, controlado por el estado.
+        // Este caso aquí es para lo que se muestra en el fondo, si aplica.
+        return (
+          <motion.div key="alias-modal-bg" className="flex items-center justify-center grow relative z-10 text-white w-full">
+            {/* Contenido de fondo mientras el modal está abierto */}
+          </motion.div>
+        );
 
 
-  // --- Renderizado Principal ---
+      case 'saving-alias':
+        return <CodeValidationLoader key="saving-loader" message="Guardando alias..." />;
 
-  return (
-    <div className="relative flex size-full min-h-screen flex-col bg-black group/design-root overflow-hidden">
-      {/* Imagen de fondo con filtro */}
-      {/* La animación de opacidad inicial de la capa de fondo */}
-      <motion.div
-        className="absolute inset-0 z-0 w-full h-full"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: backgroundLoaded ? 1 : 0 }} // Animamos la opacidad al cargar el fondo
-        transition={{ duration: 0.5 }}
-      >
-        <div
-          className="w-full h-full bg-center bg-no-repeat bg-cover mix-blend-overlay brightness-75"
-          style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/sdxl10/36e7e026-ee59-417b-aa5a-9480957baf30.png")' }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/70" />
-      </motion.div>
+      case 'error':
+        // Pasar el handler de reintento a la pantalla de error
+        return <CodeValidationError key="validation-error" message={`Error: ${validationError || 'Ha ocurrido un error desconocido'}`} onRetry={handleRetry} />;
+
+      case 'success-navigate':
+        return (
+          <motion.div key="success-navigating" className="flex items-center justify-center grow relative z-10 text-white w-full">
+            <p>Completado, redirigiendo al menú...</p>
+          </motion.div>
+        );
 
 
-      {/* Contenido principal basado en el estado */}
-      {/* AnimatePresence permite animaciones al cambiar el contenido del switch */}
-      {/* initial={false} evita la animación en el montaje inicial, útil cuando idle renderiza null */}
-      <AnimatePresence mode='wait' initial={false}>
-        {/* El motion.div interno es el que AnimatePresence anima cuando cambia su key */}
-        {mainContent} {/* Renderiza el contenido calculado por useMemo */}
-      </AnimatePresence>
+      default:
+        console.warn('[StartScreen useMemo] Estado de pantalla desconocido:', screenState);
+        return (
+          <motion.div key="unknown-state-error" className="flex items-center justify-center grow relative z-10 text-red-500 w-full">
+            <p>Estado de pantalla inesperado. Por favor, recargue.</p>
+          </motion.div>
+        );
+    }
+  }, [screenState, validationError, backgroundLoaded, handleTransitionComplete, handleRetry]);
 
 
-      {/* Modal de Alias - Se renderiza siempre pero su visibilidad se controla con 'isOpen' */}
-      {/* Controlado por screenState === 'alias-modal' */}
-      <AliasModal
-        isOpen={screenState === 'alias-modal'}
-        onClose={handleAliasModalClose}
-        onConfirm={handleAliasConfirm}
-        // Pasamos las props isLoading y error al modal
-        isLoading={isSavingAliasHook}
-        error={screenState === 'alias-modal' ? validationError : null} // Pasamos el error solo si estamos en este estado
-      />
-    </div>
-  );
+  // Efecto para loguear cambios de estado principal (debugging)
+  useEffect(() => {
+      console.log('[StartScreen Effect State Log] ESTADO PRINCIPAL CAMBIADO:', screenState);
+    }, [screenState]);
+
+
+  // --- Renderizado Principal ---
+
+  return (
+    <div className="relative flex size-full min-h-screen flex-col bg-black group/design-root overflow-hidden">
+      {/* Imagen de fondo con filtro */}
+      {/* La animación de opacidad inicial de la capa de fondo */}
+      <motion.div
+        className="absolute inset-0 z-0 w-full h-full"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: backgroundLoaded ? 1 : 0 }} // Animamos la opacidad al cargar el fondo
+        transition={{ duration: 0.5 }}
+      >
+        <div
+          className="w-full h-full bg-center bg-no-repeat bg-cover mix-blend-overlay brightness-75"
+          style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/sdxl10/36e7e026-ee59-417b-aa5a-9480957baf30.png")' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/70" />
+      </motion.div>
+
+
+      {/* Contenido principal basado en el estado */}
+      {/* AnimatePresence permite animaciones al cambiar el contenido del switch */}
+      {/* initial={false} evita la animación en el montaje inicial, útil cuando idle renderiza null */}
+      <AnimatePresence mode='wait' initial={false}>
+        {/* El motion.div interno es el que AnimatePresence anima cuando cambia su key */}
+        {mainContent} {/* Renderiza el contenido calculado por useMemo */}
+      </AnimatePresence>
+
+
+      {/* Modal de Alias - Se renderiza siempre pero su visibilidad se controla con 'isOpen' */}
+      {/* Controlado por screenState === 'alias-modal' */}
+      <AliasModal
+        isOpen={screenState === 'alias-modal'}
+        onClose={handleAliasModalClose}
+        onConfirm={handleAliasConfirm}
+        // Pasamos las props isLoading y error al modal
+        isLoading={isSavingAliasHook}
+        error={screenState === 'alias-modal' ? validationError : null} // Pasamos el error solo si estamos en este estado
+      />
+    </div>
+  );
 });
 
 StartScreenComponent.displayName = "StartScreen";

@@ -1,4 +1,4 @@
-import React, { useContext, forwardRef, useCallback, useState } from 'react';
+import React, { useContext, forwardRef, useCallback, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft } from 'lucide-react';
 import MenuItem from '../MenuItem';
@@ -33,6 +33,20 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(({
   const { alias } = useCustomer();
   const [showCartModal, setShowCartModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Efecto para controlar el estado de búsqueda
+  useEffect(() => {
+    if (searchQuery.trim().length >= 3) {
+      setIsSearching(true);
+      const timer = setTimeout(() => {
+        setIsSearching(false);
+      }, 300); // Mismo tiempo que el debounce
+      return () => clearTimeout(timer);
+    } else {
+      setIsSearching(false);
+    }
+  }, [searchQuery]);
 
   const handleAddToCart = useCallback((itemId: string) => {
     if (cartActions && typeof cartActions === 'object' && 'handleAddToCart' in cartActions) {
@@ -95,7 +109,20 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(({
             <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-20">
               {searchQuery && searchQuery.trim().length >= 3 ? (
                 <div className="pt-4">
-                  {filteredItems.length > 0 ? (
+                  {isSearching ? (
+                    <div className="flex flex-col items-center justify-center h-full py-8 px-4">
+                      <div className="w-64 h-64">
+                        <DotLottieReact
+                          src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
+                          loop
+                          autoplay
+                        />
+                      </div>
+                      <p className="text-[#4f968f] text-center mt-4 text-base font-medium">
+                        Buscando...
+                      </p>
+                    </div>
+                  ) : filteredItems.length > 0 ? (
                     <div className="space-y-2">
                       {filteredItems.map((item) => {
                         const quantity = getCartQuantityForItem(item.id);
@@ -121,7 +148,14 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(({
                       })}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full py-8">
+                    <div className="flex flex-col items-center justify-center h-full py-8 px-4">
+                      <div className="w-64 h-64">
+                        <DotLottieReact
+                          src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
+                          loop
+                          autoplay
+                        />
+                      </div>
                       <p className="text-[#4f968f] text-center mb-4">
                         No se encontraron resultados para "{searchQuery}"
                       </p>
@@ -144,9 +178,6 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(({
                       autoplay
                     />
                   </div>
-                  <p className="text-[#4f968f] text-center mt-4 text-base font-medium">
-                    Search the menu
-                  </p>
                 </div>
               )}
             </div>

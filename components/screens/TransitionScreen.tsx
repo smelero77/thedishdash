@@ -10,6 +10,7 @@ interface TransitionScreenProps {
 
 export default function TransitionScreen({ onComplete }: TransitionScreenProps) {
   const [text, setText] = useState('')
+  const [backgroundLoaded, setBackgroundLoaded] = useState(false)
   const fullText = "Preparando tu experiencia"
 
   useEffect(() => {
@@ -28,22 +29,33 @@ export default function TransitionScreen({ onComplete }: TransitionScreenProps) 
       }
     }, 100)
 
+    // Precargar la imagen de fondo
+    const imageLoader = new Image()
+    imageLoader.src = "https://cdn.usegalileo.ai/sdxl10/36e7e026-ee59-417b-aa5a-9480957baf30.png"
+    imageLoader.onload = () => setBackgroundLoaded(true)
+
     return () => {
       clearTimeout(timer)
       clearInterval(textInterval)
+      imageLoader.onload = null
     }
   }, [onComplete])
 
   return (
     <div className="relative flex size-full min-h-screen flex-col bg-black group/design-root overflow-hidden" style={{ fontFamily: 'Epilogue, "Noto Sans", sans-serif' }}>
       {/* Imagen de fondo con filtro */}
-      <div className="absolute inset-0 z-0">
+      <motion.div 
+        className="absolute inset-0 z-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: backgroundLoaded ? 1 : 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <div
           className="w-full h-full bg-center bg-no-repeat bg-cover mix-blend-overlay brightness-75"
           style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/sdxl10/36e7e026-ee59-417b-aa5a-9480957baf30.png")' }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/70" />
-      </div>
+      </motion.div>
       
       <div className="flex flex-col items-center pt-16 pb-8 relative z-10">
         <motion.h2 
