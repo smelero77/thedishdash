@@ -312,7 +312,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
         )}
 
         {/* Input */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-[#f5fefe] dark:bg-[#0f1b1a] border-t border-[#c7f0ec]/30">
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-[#f5fefe] dark:bg-[#0f1b1a]">
           <ChatInput onSend={handleSend} isLoading={isLoading} alias={userAlias} />
         </div>
       </div>
