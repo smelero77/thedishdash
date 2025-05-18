@@ -47,11 +47,11 @@ export class FilterMapper {
     const now = Date.now();
     
     [this.categoryCache, this.allergenCache, this.dietTagCache].forEach(cache => {
-      for (const [key, entry] of cache.entries()) {
+      Array.from(cache.entries()).forEach(([key, entry]) => {
         if (now - entry.timestamp > CACHE_MAX_AGE) {
           cache.delete(key);
         }
-      }
+      });
     });
 
     this.logger.debug('[FilterMapper] Cache cleanup completed');
@@ -79,20 +79,21 @@ export class FilterMapper {
     
     // Inicialización de variables de filtro
     const result: RpcFilterParameters = {
-      p_item_type: filters.item_type || null,
-      p_category_ids_include: null,
-      p_slot_ids: null,
-      p_allergen_ids_exclude: null,
-      p_diet_tag_ids_include: null,
-      p_is_vegetarian_base: filters.is_vegetarian_base || null,
-      p_is_vegan_base: filters.is_vegan_base || null,
-      p_is_gluten_free_base: filters.is_gluten_free_base || null,
-      p_is_alcoholic: filters.is_alcoholic || null,
-      p_calories_max: filters.calories_max || null,
-      p_calories_min: filters.calories_min || null,
-      p_price_max: filters.price_max || null,
-      p_price_min: filters.price_min || null,
-      p_keywords_include: filters.keywords_include || null,
+      p_item_type: filters.item_type || undefined,
+      p_category_ids_include: undefined,
+      p_slot_ids: undefined,
+      p_allergen_ids_exclude: undefined,
+      p_diet_tag_ids_include: undefined,
+      p_is_vegetarian_base: filters.is_vegetarian_base || undefined,
+      p_is_vegan_base: filters.is_vegan_base || undefined,
+      p_is_gluten_free_base: filters.is_gluten_free_base || undefined,
+      p_is_alcoholic: filters.is_alcoholic || undefined,
+      p_calories_max: filters.calories_max || undefined,
+      p_calories_min: filters.calories_min || undefined,
+      p_price_max: filters.price_max || undefined,
+      p_price_min: filters.price_min || undefined,
+      p_keywords_include: filters.keywords_include || undefined,
+      main_query: filters.main_query || undefined
     };
     
     // Log específico para filtros de precio
@@ -113,7 +114,7 @@ export class FilterMapper {
 
       // Mapear alérgenos
       if (filters.exclude_allergen_names?.length) {
-        const allergenIds = await this.mapAllergenNamesToIds(filters.exclude_allergen_names);
+        const allergenIds = await this.mapAllergenFilters(filters);
         result.p_allergen_ids_exclude = await this.validateIds(allergenIds, 'allergens');
       }
 
@@ -162,6 +163,11 @@ export class FilterMapper {
    * Mapea nombres de categorías a IDs
    */
   public async mapCategoryNamesToIds(names: string[]): Promise<string[]> {
+    console.log('[FilterMapper] Iniciando mapeo de nombres de categorías:', {
+      category_names: names,
+      timestamp: new Date().toISOString()
+    });
+
     const ids: string[] = [];
     const namesToFetch: string[] = [];
 
@@ -170,22 +176,46 @@ export class FilterMapper {
       const cachedEntry = this.categoryCache.get(name.toLowerCase());
       if (cachedEntry) {
         this.cacheMetrics.categoryHits++;
+        console.log('[FilterMapper] Categoría encontrada en caché:', {
+          name,
+          id: cachedEntry.id,
+          timestamp: new Date().toISOString()
+        });
         ids.push(cachedEntry.id);
       } else {
         this.cacheMetrics.categoryMisses++;
         namesToFetch.push(name);
+        console.log('[FilterMapper] Categoría no encontrada en caché:', {
+          name,
+          timestamp: new Date().toISOString()
+        });
       }
     }
 
     if (namesToFetch.length > 0) {
+      console.log('[FilterMapper] Buscando categorías en base de datos:', {
+        names_to_fetch: namesToFetch,
+        timestamp: new Date().toISOString()
+      });
+
       const { data, error } = await supabase
         .from('categories')
         .select('id, name')
-        .in('name', namesToFetch);
+        .or(namesToFetch.map(name => `name.ilike.${name}`).join(','));
 
       if (error) {
+        console.error('[FilterMapper] Error al buscar categorías:', {
+          error,
+          names_to_fetch: namesToFetch,
+          timestamp: new Date().toISOString()
+        });
         throw new Error(`Error fetching category IDs: ${error.message}`);
       }
+
+      console.log('[FilterMapper] Resultados de búsqueda en base de datos:', {
+        found_categories: data?.map(c => ({ id: c.id, name: c.name })),
+        timestamp: new Date().toISOString()
+      });
 
       // Actualizar caché y recopilar IDs
       data?.forEach(category => {
@@ -195,47 +225,33 @@ export class FilterMapper {
       });
     }
 
+    console.log('[FilterMapper] Mapeo de categorías completado:', {
+      input_names: names,
+      output_ids: ids,
+      cache_hits: this.cacheMetrics.categoryHits,
+      cache_misses: this.cacheMetrics.categoryMisses,
+      timestamp: new Date().toISOString()
+    });
+
     return ids;
   }
 
   /**
    * Mapea nombres de alérgenos a IDs
    */
-  private async mapAllergenNamesToIds(names: string[]): Promise<string[]> {
-    const ids: string[] = [];
-    const namesToFetch: string[] = [];
-
-    // Verificar caché primero
-    for (const name of names) {
-      const cachedEntry = this.allergenCache.get(name.toLowerCase());
-      if (cachedEntry) {
-        this.cacheMetrics.allergenHits++;
-        ids.push(cachedEntry.id);
-      } else {
-        this.cacheMetrics.allergenMisses++;
-        namesToFetch.push(name);
+  private async mapAllergenFilters(filters: ExtractedFilters): Promise<string[]> {
+    const allergenIds: string[] = [];
+    
+    if (filters.exclude_allergen_names?.length) {
+      for (const allergenName of filters.exclude_allergen_names) {
+        const allergenId = await this.getAllergenId(allergenName);
+        if (allergenId) {
+          allergenIds.push(allergenId);
+        }
       }
     }
-
-    if (namesToFetch.length > 0) {
-      const { data, error } = await supabase
-        .from('allergens')
-        .select('id, name')
-        .in('name', namesToFetch);
-
-      if (error) {
-        throw new Error(`Error fetching allergen IDs: ${error.message}`);
-      }
-
-      // Actualizar caché y recopilar IDs
-      data?.forEach(allergen => {
-        const entry: CacheEntry = { id: allergen.id, timestamp: Date.now() };
-        this.allergenCache.set(allergen.name.toLowerCase(), entry);
-        ids.push(allergen.id);
-      });
-    }
-
-    return ids;
+    
+    return allergenIds;
   }
 
   /**
@@ -261,7 +277,7 @@ export class FilterMapper {
       const { data, error } = await supabase
         .from('diet_tags')
         .select('id, name')
-        .in('name', namesToFetch);
+        .or(namesToFetch.map(name => `name.ilike.${name}`).join(','));
 
       if (error) {
         throw new Error(`Error fetching diet tag IDs: ${error.message}`);
@@ -276,6 +292,36 @@ export class FilterMapper {
     }
 
     return ids;
+  }
+
+  private async getAllergenId(name: string): Promise<string | null> {
+    // Verificar caché primero
+    const cachedEntry = this.allergenCache.get(name.toLowerCase());
+    if (cachedEntry) {
+      this.cacheMetrics.allergenHits++;
+      return cachedEntry.id;
+    }
+
+    this.cacheMetrics.allergenMisses++;
+    
+    // Si no está en caché, buscar en la base de datos
+    const { data, error } = await supabase
+      .from('allergens')
+      .select('id, name')
+      .ilike('name', name);
+
+    if (error) {
+      console.error('[FilterMapper] Error fetching allergen ID:', error);
+      return null;
+    }
+
+    if (data && data.length > 0) {
+      const entry: CacheEntry = { id: data[0].id, timestamp: Date.now() };
+      this.allergenCache.set(data[0].name.toLowerCase(), entry);
+      return data[0].id;
+    }
+
+    return null;
   }
 
   /**

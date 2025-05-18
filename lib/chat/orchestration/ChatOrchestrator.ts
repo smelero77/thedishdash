@@ -160,7 +160,7 @@ export class ChatOrchestrator {
         messageCount: messageHistory.length
       });
 
-      // 2. Extraer filtros del mensaje actual
+      // 2. Extraer filtros del mensaje actual (usando el mensaje original)
       const extractedFilters = await this.withCircuitBreaker(() =>
         this.withTimeout(
           this.filterExtractor.extractFilters(userMessage, messageHistory),
@@ -168,19 +168,22 @@ export class ChatOrchestrator {
         )
       );
 
+      // Normalizar los filtros extraídos antes de mapearlos
+      const normalizedFilters = this.filterExtractor.normalizeFilters(extractedFilters);
+
       // Log de extractedFilters
-      console.log('🚨 DEBUG - Filtros extraídos', {
+      console.log('🚨 DEBUG - Filtros extraídos y normalizados', {
         sessionId: session.id,
-        extractedFilters: JSON.parse(JSON.stringify(extractedFilters))
+        extractedFilters: JSON.parse(JSON.stringify(normalizedFilters))
       });
 
       // Preparar metadatos del mensaje de usuario
       const userMessageMetadata: MessageMetadata = {
         filters: {
-          priceMin: extractedFilters.price_min,
-          priceMax: extractedFilters.price_max,
-          main_query: extractedFilters.main_query,
-          category_names: extractedFilters.category_names,
+          priceMin: normalizedFilters.price_min,
+          priceMax: normalizedFilters.price_max,
+          main_query: normalizedFilters.main_query,
+          category_names: normalizedFilters.category_names,
           categoryId: categoryIdFromFrontend
         }
       };
@@ -192,8 +195,8 @@ export class ChatOrchestrator {
       });
 
       // Si hay un embedding, añadirlo a los metadatos
-      if (extractedFilters.main_query) {
-        const embedding = await this.embeddingService.getEmbedding(extractedFilters.main_query);
+      if (normalizedFilters.main_query) {
+        const embedding = await this.embeddingService.getEmbedding(normalizedFilters.main_query);
         if (embedding) {
           userMessageMetadata.embedding = embedding;
           console.log('🚨 DEBUG - Embedding añadido', {
@@ -206,7 +209,7 @@ export class ChatOrchestrator {
       // 4. Mapear filtros extraídos a parámetros RPC
       const rpcParameters = await this.withCircuitBreaker(() =>
         this.withTimeout(
-          this.filterMapper.mapToRpcParameters(extractedFilters),
+          this.filterMapper.mapToRpcParameters(normalizedFilters),
           OPERATION_TIMEOUT
         )
       );
@@ -214,7 +217,7 @@ export class ChatOrchestrator {
       // 5. Búsqueda semántica con filtros acumulados
       let searchedItems = await this.withCircuitBreaker(() =>
         this.withTimeout(
-          this.semanticSearcher.findRelevantItems(extractedFilters.main_query, rpcParameters),
+          this.semanticSearcher.findRelevantItems(normalizedFilters.main_query, rpcParameters),
           OPERATION_TIMEOUT
         )
       );
@@ -297,11 +300,9 @@ export class ChatOrchestrator {
       const messages: ChatCompletionMessageParam[] = [
         systemMessage,
         ...messageHistory
-          .sort((a, b) => (a.message_index || 0) - (b.message_index || 0))
           .map(msg => ({
             role: msg.role as 'system' | 'user' | 'assistant',
-            content: msg.content,
-            metadata: msg.metadata
+            content: msg.content
           })),
         { role: 'user', content: userMessage }
       ];
@@ -346,10 +347,10 @@ export class ChatOrchestrator {
             }
           };
         }
-      } else if (gptResponseMsg.content) {
+      } else if (gptResponseMsg.content != null) {
         // Si no hay function_call pero hay contenido, verificar si hay un artículo específico
         const foundItem = searchedItems?.find(item => 
-          gptResponseMsg.content.toLowerCase().includes(item.name.toLowerCase())
+          gptResponseMsg.content && gptResponseMsg.content.toLowerCase().includes(item.name.toLowerCase())
         );
 
         if (foundItem) {
@@ -364,14 +365,14 @@ export class ChatOrchestrator {
             console.error('[ChatOrchestrator] Error obteniendo detalles del producto:', error);
             assistantResponse = {
               type: 'text',
-              content: gptResponseMsg.content
+              content: gptResponseMsg.content || ''
             };
           }
         } else {
           // Si no hay artículo específico, usar el contenido como respuesta de texto
           assistantResponse = {
             type: 'text',
-            content: gptResponseMsg.content
+            content: gptResponseMsg.content || ''
           };
         }
       } else {

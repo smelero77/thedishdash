@@ -126,6 +126,19 @@ export class CandidateProcessor {
       return marginB - marginA;
     });
   }
+
+  public processCandidates(candidates: MenuItem[]): MenuItem[] {
+    if (!candidates.length) return [];
+
+    // Ordenar por relevancia (distance)
+    const sortedCandidates = [...candidates].sort((a, b) => 
+      (a.distance || 0) - (b.distance || 0)
+    );
+
+    // Mantener al menos 4 candidatos si hay suficientes
+    const minCandidates = Math.min(4, candidates.length);
+    return sortedCandidates.slice(0, minCandidates);
+  }
 }
 
 // Exportar una instancia singleton

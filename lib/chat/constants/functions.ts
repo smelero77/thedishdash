@@ -2,7 +2,7 @@ import { CHAT_CONFIG } from './config';
 
 export const recommendDishesFn = {
   name: "recommend_dishes",
-  description: "Elige 2–3 platos de la lista de candidatos proporcionada y explica por qué los recomiendas. DEBES usar EXACTAMENTE los IDs que aparecen en la lista de candidatos. Para cada plato, asegúrate de que la razón de recomendación se base ÚNICAMENTE en los detalles de ese plato específico.",
+  description: "Elige 3-4 platos de la lista de candidatos proporcionada y explica por qué los recomiendas. DEBES usar EXACTAMENTE los IDs que aparecen en la lista de candidatos. Para cada plato, asegúrate de que la razón de recomendación se base ÚNICAMENTE en los detalles de ese plato específico. IMPORTANTE: SIEMPRE debes devolver entre 3 y 4 recomendaciones, a menos que haya menos candidatos disponibles.",
   parameters: {
     type: "object",
     properties: {
@@ -22,7 +22,9 @@ export const recommendDishesFn = {
             }
           },
           required: ["id", "reason"]
-        }
+        },
+        minItems: 3,
+        maxItems: 4
       }
     },
     required: ["recommendations"]

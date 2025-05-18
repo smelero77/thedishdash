@@ -2,6 +2,7 @@ import { OpenAI } from 'openai';
 import { ExtractedFilters, ExtractedFiltersSchema } from '../types/extractedFilters.types';
 import { ENTITY_EXTRACTION_PROMPT } from '../constants/prompts';
 import { OPENAI_CONFIG } from '../constants/functions';
+import { buildPromptContext, buildSystemPrompt } from '../../context/promptContextBuilder';
 
 const OPENAI_TIMEOUT = 10000; // 10 segundos
 const MAX_RETRIES = 3;
@@ -100,15 +101,18 @@ export class FilterExtractor {
           ? conversationHistory.slice(-5) 
           : [];
         
-        // Preparar el mensaje del sistema con el historial de conversación
-        let systemMessage = ENTITY_EXTRACTION_PROMPT;
+        // Obtener contexto y construir prompt dinámico
+        const context = await buildPromptContext();
+        let systemMessage = buildSystemPrompt(context);
+        this.logger.info('[FilterExtractor] PROMPT GENERADO PARA GPT (primera llamada):');
+        this.logger.info(systemMessage);
+        this.logger.info('[FilterExtractor] userMessage:', userMessage);
         
         if (limitedHistory && limitedHistory.length > 0) {
           const historyText = limitedHistory
             .map(msg => `${msg.role}: ${msg.content}`)
             .join('\n');
-            
-          systemMessage = `${ENTITY_EXTRACTION_PROMPT}\n\nHistorial de conversación (MUY IMPORTANTE - UTILIZA ESTE CONTEXTO):\n${historyText}`;
+          systemMessage += `\n\nHistorial de conversación (MUY IMPORTANTE - UTILIZA ESTE CONTEXTO):\n${historyText}`;
           
           // Detectar si parece una consulta de seguimiento
           const isFollowUpQuery = 
@@ -165,10 +169,7 @@ export class FilterExtractor {
         ]) as OpenAI.Chat.Completions.ChatCompletion;
 
         // Logging para diagnóstico
-        this.logger.debug('[FilterExtractor] Respuesta de OpenAI:', {
-          response: JSON.stringify(response, null, 2),
-          functionCall: response.choices[0]?.message?.function_call
-        });
+        this.logger.info('[FilterExtractor] RESPUESTA CRUDA DE GPT:', JSON.stringify(response, null, 2));
 
         // Obtener la respuesta y parsear el JSON
         const functionCall = response.choices[0]?.message?.function_call;
@@ -181,6 +182,30 @@ export class FilterExtractor {
         }
 
         const extractedData = JSON.parse(functionCall.arguments);
+        this.logger.info('[FilterExtractor] JSON extraído de GPT:', extractedData);
+        
+        // 🚨 Corrección manual para "Cerdo"
+        if (Array.isArray(extractedData.exclude_allergen_names)) {
+          const hasCerdo = extractedData.exclude_allergen_names.includes("Cerdo");
+
+          if (hasCerdo) {
+            // Eliminar "Cerdo" de los alérgenos
+            extractedData.exclude_allergen_names = extractedData.exclude_allergen_names.filter(
+              (item: string) => item.toLowerCase() !== "cerdo"
+            );
+
+            // Asegurar que "Sin Cerdo" está en include_diet_tag_names
+            if (!Array.isArray(extractedData.include_diet_tag_names)) {
+              extractedData.include_diet_tag_names = [];
+            }
+
+            if (!extractedData.include_diet_tag_names.includes("Sin Cerdo")) {
+              extractedData.include_diet_tag_names.push("Sin Cerdo");
+            }
+
+            this.logger.warn("[FilterExtractor] Corrección aplicada: 'Cerdo' movido de alérgeno a dieta");
+          }
+        }
         
         // Mostrar en el log lo que devuelve GPT para cada artículo
         console.log('🤖 RESPUESTA GPT PARA ARTÍCULO:', {

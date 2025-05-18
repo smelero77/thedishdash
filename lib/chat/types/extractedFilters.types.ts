@@ -34,4 +34,5 @@ export interface RpcFilterParameters {
   p_price_max?: number;
   p_price_min?: number;
   p_keywords_include?: string[];
+  main_query?: string;
 } 

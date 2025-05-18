@@ -3,9 +3,9 @@
  */
 export const CHAT_CONFIG = {
   // Modelos de OpenAI
-  entityExtractionModel: "gpt-3.5-turbo-0125",    // Modelo para extracción de entidades/filtros
-  recommendationModel: "gpt-4o-mini",             // Modelo para recomendaciones/respuestas
-  productExplanationModel: "gpt-3.5-turbo-0125",  // Modelo para explicaciones de productos
+  entityExtractionModel: "gpt-3.5-turbo-1106",    // Modelo para extracción de entidades/filtros
+  recommendationModel: "gpt-4o",      // Modelo para recomendaciones/respuestas
+  productExplanationModel: "gpt-4o",  // Modelo para explicaciones de productos
   
   // Parámetros de generación
   temperature: 0.4,                              // Para recomendación (0.3-0.5)

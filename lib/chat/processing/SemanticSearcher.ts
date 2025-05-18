@@ -51,71 +51,33 @@ export class SemanticSearcher {
     queryEmbedding: number[],
     mappedRpcFilters: RpcFilterParameters
   ): Record<string, any> {
-    // Parámetros base requeridos
-    const baseParams = {
+    // Parámetros requeridos y opcionales en el orden exacto de la función SQL
+    return {
       p_query_embedding: queryEmbedding,
       p_match_threshold: CHAT_CONFIG.semanticSearchMatchThreshold,
-      p_match_count: CHAT_CONFIG.semanticSearchMatchCount
-    } as const;
-
-    // Crear una copia de los parámetros RPC para procesamiento
-    const rpcParams: Record<string, any> = { ...baseParams };
-    
-    // IMPORTANTE: Procesar y agregar SIEMPRE los parámetros de precio si existen
-    if (mappedRpcFilters.p_price_min !== undefined) {
-      rpcParams.p_price_min = mappedRpcFilters.p_price_min;
-    }
-    
-    if (mappedRpcFilters.p_price_max !== undefined) {
-      rpcParams.p_price_max = mappedRpcFilters.p_price_max;
-    }
-    
-    // Procesar el resto de parámetros
-    Object.entries(mappedRpcFilters).forEach(([key, value]) => {
-      // Saltar los parámetros de precio que ya fueron procesados
-      if (key === 'p_price_min' || key === 'p_price_max') {
-        return;
-      }
-      
-      if (value !== null && value !== undefined) {
-        if (Array.isArray(value)) {
-          if (value.length > 0) rpcParams[key] = value;
-        } else if (typeof value === 'boolean') {
-          rpcParams[key] = value;
-        } else if (typeof value === 'string' && value.trim() !== '') {
-          rpcParams[key] = value;
-        } else if (typeof value === 'number' && !isNaN(value)) {
-          rpcParams[key] = value;
-        }
-      }
-    });
-
-    // Log detallado de todos los parámetros antes de la llamada a la función RPC
-    this.logger.debug('[SemanticSearcher] PARÁMETROS RPC match_menu_items:', {
-      query_embedding_length: queryEmbedding.length,
-      match_threshold: rpcParams.p_match_threshold,
-      match_count: rpcParams.p_match_count,
-      price_min: rpcParams.p_price_min,
-      price_max: rpcParams.p_price_max,
-      item_type: rpcParams.p_item_type,
-      is_vegetarian: rpcParams.p_is_vegetarian_base,
-      is_vegan: rpcParams.p_is_vegan_base,
-      is_gluten_free: rpcParams.p_is_gluten_free_base,
-      is_alcoholic: rpcParams.p_is_alcoholic,
-      calories_min: rpcParams.p_calories_min,
-      calories_max: rpcParams.p_calories_max,
-      category_ids: rpcParams.p_category_ids_include ? `[${rpcParams.p_category_ids_include.length} ids]` : null,
-      allergen_ids: rpcParams.p_allergen_ids_exclude ? `[${rpcParams.p_allergen_ids_exclude.length} ids]` : null,
-      diet_tag_ids: rpcParams.p_diet_tag_ids_include ? `[${rpcParams.p_diet_tag_ids_include.length} ids]` : null,
-      keywords: rpcParams.p_keywords_include ? `[${rpcParams.p_keywords_include.length} keywords]` : null,
-      timestamp: new Date().toISOString()
-    });
-
-    return rpcParams;
+      p_match_count: CHAT_CONFIG.semanticSearchMatchCount,
+      p_item_type: mappedRpcFilters.p_item_type ?? null,
+      p_category_ids_include: mappedRpcFilters.p_category_ids_include ?? null,
+      p_slot_ids: mappedRpcFilters.p_slot_ids ?? null,
+      p_allergen_ids_exclude: mappedRpcFilters.p_allergen_ids_exclude ?? null,
+      p_diet_tag_ids_include: mappedRpcFilters.p_diet_tag_ids_include ?? null,
+      p_is_vegetarian_base: mappedRpcFilters.p_is_vegetarian_base ?? null,
+      p_is_vegan_base: mappedRpcFilters.p_is_vegan_base ?? null,
+      p_is_gluten_free_base: mappedRpcFilters.p_is_gluten_free_base ?? null,
+      p_is_alcoholic: mappedRpcFilters.p_is_alcoholic ?? null,
+      p_calories_max: mappedRpcFilters.p_calories_max ?? null,
+      p_calories_min: mappedRpcFilters.p_calories_min ?? null,
+      p_price_max: mappedRpcFilters.p_price_max ?? null,
+      p_price_min: mappedRpcFilters.p_price_min ?? null,
+      p_keywords_include: mappedRpcFilters.p_keywords_include ?? null
+    };
   }
 
   private async executeRpcSearch(params: Record<string, any>): Promise<MenuItemData[]> {
     try {
+      // Aumentamos el número de resultados iniciales para tener más opciones
+      params.p_match_count = 20; // Aumentamos de 10 a 20 para tener más candidatos
+
       // Registra los parámetros que se pasan a la función SQL (para debug)
       this.logger.debug('[SemanticSearcher] Ejecutando RPC match_menu_items con parámetros:', {
         ...Object.entries(params).reduce((acc, [key, value]) => {
@@ -267,9 +229,19 @@ export class SemanticSearcher {
     });
 
     // Ordenar por relevancia (profit_margin como proxy)
-    return mergedResults
-      .sort((a, b) => (b.profit_margin || 0) - (a.profit_margin || 0))
-      .slice(0, CHAT_CONFIG.semanticSearchMatchCount);
+    const sortedResults = mergedResults
+      .sort((a, b) => (b.profit_margin || 0) - (a.profit_margin || 0));
+
+    // Asegurar que devolvemos entre 3 y 4 resultados
+    const targetCount = Math.min(4, Math.max(3, sortedResults.length));
+    
+    this.logger.debug('[SemanticSearcher] Ajustando número de resultados:', {
+      originalCount: sortedResults.length,
+      targetCount,
+      timestamp: new Date().toISOString()
+    });
+
+    return sortedResults.slice(0, targetCount);
   }
 
   async findRelevantItems(
@@ -287,9 +259,15 @@ export class SemanticSearcher {
     };
 
     try {
+      // Detectar si la búsqueda es por ingrediente específico
+      const isIngredientSearch = mainQuery.toLowerCase().includes('con ') || 
+                               mainQuery.toLowerCase().includes('de ') ||
+                               mainQuery.toLowerCase().includes('tienes algo');
+
       // Log detallado de la consulta y filtros recibidos
       this.logger.debug('[SemanticSearcher] Iniciando búsqueda con filtros:', {
         query: mainQuery,
+        isIngredientSearch,
         price_min: mappedRpcFilters.p_price_min,
         price_max: mappedRpcFilters.p_price_max,
         item_type: mappedRpcFilters.p_item_type,
@@ -304,15 +282,12 @@ export class SemanticSearcher {
       const rpcParams = this.prepareRpcParams(queryEmbedding, mappedRpcFilters);
       
       const rpcStartTime = Date.now();
-      const rpcResults = await this.executeRpcSearch(rpcParams);
+      let rpcResults = await this.executeRpcSearch(rpcParams);
       const rpcDuration = Date.now() - rpcStartTime;
-      
-      metrics.rpcDuration = rpcDuration;
-      metrics.rpcResultCount = rpcResults.length;
 
       // 2. Fallback FTS si es necesario
       let finalResults = rpcResults;
-      if (rpcResults.length < CHAT_CONFIG.minRelevantCandidatesThreshold && mainQuery.trim().length > FTS_MIN_TERM_LENGTH) {
+      if (rpcResults.length < 3 && mainQuery.trim().length > FTS_MIN_TERM_LENGTH) {
         const ftsStartTime = Date.now();
         const ftsResults = await this.executeFtsSearch(mainQuery);
         const ftsDuration = Date.now() - ftsStartTime;
@@ -323,6 +298,8 @@ export class SemanticSearcher {
         finalResults = this.mergeResults(rpcResults, ftsResults);
       }
 
+      metrics.rpcDuration = rpcDuration;
+      metrics.rpcResultCount = rpcResults.length;
       metrics.finalResultCount = finalResults.length;
       metrics.totalDuration = Date.now() - startTime;
 
@@ -424,4 +401,4 @@ export class SemanticSearcher {
     
     return filtered;
   }
-} 
+}

@@ -88,6 +88,15 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <p className="text-[#0e1b19] text-lg font-bold leading-tight tracking-[-0.015em] truncate">{name}</p>
             <div className="flex items-center gap-2 flex-wrap"> {/* Añadido flex-wrap por si hay muchos alérgenos */}
+              {/* Renderiza las etiquetas dietéticas */}
+              {diet_tags?.map((tag) => (
+                <div
+                  key={tag}
+                  className="px-2 py-1 bg-[#1ce3cf] rounded-full text-xs text-[#0e1b19] font-medium"
+                >
+                  {tag}
+                </div>
+              ))}
               {/* Renderiza los iconos de alérgenos */}
               {allergens?.map((a) => ( // Añadido optional chaining por si allergens es undefined
                 <div

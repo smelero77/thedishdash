@@ -132,6 +132,53 @@ export class RecommendationGenerator {
       'content' in message
     );
   }
+
+  private async generateRecommendationResponse(
+    candidates: MenuItem[],
+    userMessage: string,
+    filters: ExtractedFilters
+  ): Promise<RecommendationResponse> {
+    const prompt = this.buildRecommendationPrompt(candidates, userMessage, filters);
+    
+    const response = await this.openai.chat.completions.create({
+      model: CHAT_CONFIG.recommendationModel,
+      temperature: CHAT_CONFIG.recommendationTemperature,
+      max_tokens: CHAT_CONFIG.maxTokensRecommendation,
+      top_p: 0.9,
+      presence_penalty: 0.2,
+      messages: [
+        {
+          role: 'system',
+          content: 'Eres un asistente experto en gastronomía que ayuda a los usuarios a encontrar platos que se ajusten a sus preferencias. SIEMPRE debes devolver entre 3 y 4 recomendaciones diferentes, a menos que haya menos candidatos disponibles.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      functions: [recommendDishesFn],
+      function_call: { name: 'recommend_dishes' }
+    });
+
+    const functionCall = response.choices[0]?.message?.function_call;
+    if (!functionCall || functionCall.name !== 'recommend_dishes') {
+      throw new Error('Invalid function call response');
+    }
+
+    const recommendations = JSON.parse(functionCall.arguments).recommendations;
+    if (!Array.isArray(recommendations) || recommendations.length < 3) {
+      throw new Error('Invalid recommendations format');
+    }
+
+    return {
+      type: 'recommendation',
+      content: this.formatRecommendations(recommendations, candidates),
+      recommendations: recommendations.map(rec => ({
+        id: rec.id,
+        reason: rec.reason
+      }))
+    };
+  }
 }
 
 // Exportar una instancia singleton
