@@ -208,112 +208,103 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
   if (!isVisible && !isOpen) return null;
 
   return (
-    <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center ${
-        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-      } transition-opacity duration-300`}
-    >
-      {/* Overlay con blur */}
-      <div 
-        className={`absolute inset-0 backdrop-blur-sm ${
-          isOpen ? 'opacity-100' : 'opacity-0'
-        } transition-opacity duration-300`}
-      />
-
-      {/* Contenedor principal */}
-      <div 
-        className={`
-          relative w-full max-w-2xl h-[80vh] mx-4 
-          bg-[#f5fefe] dark:bg-[#0f1b1a]
-          rounded-3xl shadow-2xl overflow-hidden border border-[#c7f0ec]/30
-          ${isOpen ? 'fade-in' : 'opacity-0'}
-        `}
-      >
-        {/* Partículas flotantes */}
-        {isOpen && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(20)].map((_, i) => (
-              <div
-                key={i}
-                className="particle absolute w-2 h-2 bg-[#1ce3cf]/20 rounded-full"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 2}s`,
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Header */}
-        <div className={`absolute top-0 left-0 right-0 h-16 bg-[#1ce3cf] dark:bg-[#1ce3cf]/90 backdrop-blur-md border-b border-[#c7f0ec]/30 ${isOpen ? 'slide-in' : ''}`}>
-          <div className="flex items-center justify-between h-full px-6">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <div className="absolute -inset-1 bg-white/20 rounded-full blur opacity-30 animate-pulse" />
-                <ChefHat className="h-6 w-6 text-white relative z-10" />
-              </div>
-              <h2 className="text-xl font-semibold text-white">Don Gourmetón</h2>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-white/20 active:scale-95 transition-all duration-200"
-            >
-              <X className="h-6 w-6 text-white" />
-            </button>
-          </div>
-        </div>
-
-        {/* Mensajes */}
+    <div className={`fixed inset-0 z-[200] ${isOpen ? 'block' : 'hidden'}`}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 flex items-center justify-center p-4">
         <div 
-          ref={messagesContainerRef}
           className={`
-            absolute top-16 bottom-20 left-0 right-0
-            overflow-y-auto px-4 py-6
-            scrollbar-thin scrollbar-thumb-[#1ce3cf]/40 scrollbar-track-transparent
-            touch-pan-y overscroll-contain
-            -webkit-overflow-scrolling: touch
-            [&::-webkit-scrollbar]:w-2
-            [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb]:bg-[#1ce3cf]/40
-            [&::-webkit-scrollbar-track]:bg-transparent
-            [&::-webkit-scrollbar-track]:rounded-full
-            [&::-webkit-scrollbar-track]:my-2
+            relative w-full max-w-2xl h-[80vh] 
+            bg-[#f5fefe] dark:bg-[#0f1b1a]
+            rounded-3xl shadow-2xl overflow-hidden border border-[#c7f0ec]/30
+            ${isOpen ? 'fade-in' : 'opacity-0'}
           `}
         >
-          {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} alias={userAlias} />
-          ))}
-          {isTyping && (
-            <div className="flex items-center space-x-3">
-              <span className="w-10 h-10 flex items-center justify-center rounded-full bg-[#1ce3cf] text-white text-xl">
-                👨‍🍳
-              </span>
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-[#1ce3cf] rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-[#1ce3cf] rounded-full animate-bounce delay-100" />
-                <div className="w-2 h-2 bg-[#1ce3cf] rounded-full animate-bounce delay-200" />
-              </div>
+          {/* Partículas flotantes */}
+          {isOpen && (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="particle absolute w-2 h-2 bg-[#1ce3cf]/20 rounded-full"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 2}s`,
+                  }}
+                />
+              ))}
             </div>
           )}
-          <div ref={messagesEndRef} />
-        </div>
 
-        {/* Botón de scroll */}
-        {showScrollButton && (
-          <button
-            onClick={scrollToBottom}
-            className="fixed bottom-24 right-4 p-4 rounded-full bg-[#1ce3cf] text-white shadow-lg hover:bg-[#1ce3cf]/90 active:scale-95 transition-all duration-200 z-10 touch-manipulation"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
+          {/* Header */}
+          <div className={`absolute top-0 left-0 right-0 h-16 bg-[#1ce3cf] dark:bg-[#1ce3cf]/90 backdrop-blur-md border-b border-[#c7f0ec]/30 ${isOpen ? 'slide-in' : ''}`}>
+            <div className="flex items-center justify-between h-full px-6">
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <div className="absolute -inset-1 bg-white/20 rounded-full blur opacity-30 animate-pulse" />
+                  <ChefHat className="h-6 w-6 text-white relative z-10" />
+                </div>
+                <h2 className="text-xl font-semibold text-white">Don Gourmetón</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-full hover:bg-white/20 active:scale-95 transition-all duration-200"
+              >
+                <X className="h-6 w-6 text-white" />
+              </button>
+            </div>
+          </div>
+
+          {/* Mensajes */}
+          <div 
+            ref={messagesContainerRef}
+            className={`
+              absolute top-16 bottom-20 left-0 right-0
+              overflow-y-auto px-4 py-6
+              scrollbar-thin scrollbar-thumb-[#1ce3cf]/40 scrollbar-track-transparent
+              touch-pan-y overscroll-contain
+              -webkit-overflow-scrolling: touch
+              [&::-webkit-scrollbar]:w-2
+              [&::-webkit-scrollbar-thumb]:rounded-full
+              [&::-webkit-scrollbar-thumb]:bg-[#1ce3cf]/40
+              [&::-webkit-scrollbar-track]:bg-transparent
+              [&::-webkit-scrollbar-track]:rounded-full
+              [&::-webkit-scrollbar-track]:my-2
+            `}
           >
-            <ArrowDown className="h-6 w-6" />
-          </button>
-        )}
+            {messages.map((message) => (
+              <ChatMessage key={message.id} message={message} alias={userAlias} />
+            ))}
+            {isTyping && (
+              <div className="flex items-center space-x-3">
+                <span className="w-10 h-10 flex items-center justify-center rounded-full bg-[#1ce3cf] text-white text-xl">
+                  👨‍🍳
+                </span>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-[#1ce3cf] rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-[#1ce3cf] rounded-full animate-bounce delay-100" />
+                  <div className="w-2 h-2 bg-[#1ce3cf] rounded-full animate-bounce delay-200" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-        {/* Input */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-[#f5fefe] dark:bg-[#0f1b1a]">
-          <ChatInput onSend={handleSend} isLoading={isLoading} alias={userAlias} />
+          {/* Botón de scroll */}
+          {showScrollButton && (
+            <button
+              onClick={scrollToBottom}
+              className="fixed bottom-24 right-4 p-4 rounded-full bg-[#1ce3cf] text-white shadow-lg hover:bg-[#1ce3cf]/90 active:scale-95 transition-all duration-200 z-10 touch-manipulation"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              <ArrowDown className="h-6 w-6" />
+            </button>
+          )}
+
+          {/* Input */}
+          <div className="absolute bottom-0 left-0 right-0 h-20 bg-[#f5fefe] dark:bg-[#0f1b1a]">
+            <ChatInput onSend={handleSend} isLoading={isLoading} alias={userAlias} />
+          </div>
         </div>
       </div>
     </div>
