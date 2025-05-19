@@ -122,7 +122,7 @@ export class FunctionCallHandler {
         default:
           throw new Error(`Función no soportada: ${functionName}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[FunctionCallHandler] Error procesando llamada a función:', error);
       throw new Error(ERROR_CODES.UNKNOWN_ERROR);
     }
@@ -140,7 +140,7 @@ export class FunctionCallHandler {
         type: SYSTEM_MESSAGE_TYPES.INFO,
         content: this.formatExtractedFilters(validatedArgs),
       };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         console.error('[FunctionCallHandler] Error de validación:', error.errors);
         throw new Error(ERROR_CODES.INVALID_FILTERS);
@@ -164,7 +164,7 @@ export class FunctionCallHandler {
         type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
         content: question,
       };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         console.error('[FunctionCallHandler] Error de validación:', error.errors);
         throw new Error(ERROR_CODES.INVALID_FILTERS);
@@ -183,7 +183,7 @@ export class FunctionCallHandler {
       if (typeof args === 'string') {
         try {
           parsedArgs = JSON.parse(args);
-        } catch (e) {
+        } catch (e: any) {
           console.error('[FunctionCallHandler] Error parsing function call arguments:', args, e);
           throw new Error(ERROR_CODES.INVALID_FILTERS);
         }

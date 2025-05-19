@@ -113,7 +113,7 @@ export class ChatSessionService {
       }
 
       return createdSession as ChatSession;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error inesperado en create:', error);
       throw error;
     }
@@ -140,7 +140,7 @@ export class ChatSessionService {
       }
 
       return data as ChatSession;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error inesperado al obtener sesión ${sessionId}:`, error);
       throw error;
     }
@@ -150,25 +150,30 @@ export class ChatSessionService {
    * Actualiza una sesión existente
    */
   public async update(sessionId: string, updates: Partial<ChatSession>): Promise<ChatSession> {
-    const dbUpdates = {
-      table_number: updates.table_number,
-      alias: updates.alias,
-      started_at: updates.started_at,
-      updated_at: new Date(),
-    };
+    try {
+      const dbUpdates = {
+        table_number: updates.table_number,
+        alias: updates.alias,
+        started_at: updates.started_at,
+        updated_at: new Date(),
+      };
 
-    const { data, error } = await supabase
-      .from('sessions')
-      .update(dbUpdates)
-      .eq('id', sessionId)
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from('sessions')
+        .update(dbUpdates)
+        .eq('id', sessionId)
+        .select()
+        .single();
 
-    if (error) {
-      throw new Error(`Error updating session: ${error.message}`);
+      if (error) {
+        throw new Error(`Error updating session: ${error.message}`);
+      }
+
+      return data as ChatSession;
+    } catch (error: any) {
+      console.error(`Error inesperado al actualizar sesión ${sessionId}:`, error);
+      throw error;
     }
-
-    return data as ChatSession;
   }
 
   /**
@@ -261,8 +266,8 @@ export class ChatSessionService {
 
       // Actualizar timestamp de última actividad de la sesión
       await this.update(sessionId, { updated_at: new Date() });
-    } catch (error) {
-      console.error('Error en addMessage:', error);
+    } catch (error: any) {
+      console.error(`Error inesperado al añadir mensaje a la sesión ${sessionId}:`, error);
       throw error;
     }
   }
