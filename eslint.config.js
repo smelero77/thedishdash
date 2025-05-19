@@ -9,9 +9,19 @@ import nextPlugin from '@next/eslint-plugin-next';
 
 export default [
   {
-    ignores: ['node_modules/', 'build/', '.next/', 'eslint.config.js', 'next.config.js'],
+    ignores: [
+      'node_modules/',
+      'build/',
+      '.next/',
+      'eslint.config.js',
+      'next.config.js',
+    ],
   },
+
+  // Config base JS
   js.configs.recommended,
+
+  // ✅ BLOQUE GENERAL para todos los .ts y .tsx
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -21,9 +31,7 @@ export default [
         tsconfigRootDir: process.cwd(),
         ecmaVersion: 2020,
         sourceType: 'module',
-        ecmaFeatures: {
-          jsx: true,
-        },
+        ecmaFeatures: { jsx: true },
       },
     },
     plugins: {
@@ -34,20 +42,15 @@ export default [
       '@next/next': nextPlugin,
     },
     settings: {
-      react: {
-        version: 'detect',
-      },
+      react: { version: 'detect' },
     },
     rules: {
       // TypeScript
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-        },
-      ],
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      }],
 
       // React
       'react/prop-types': 'off',
@@ -66,6 +69,33 @@ export default [
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-unused-vars': 'off',
+    },
+  },
+
+  // ✅ BLOQUE EXCLUSIVO PARA SERVER (Node.js) — `lib`, `utils`, `scripts`, etc.
+  {
+    files: ['lib/**/*.ts', 'utils/**/*.ts', 'scripts/**/*.ts'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        Buffer: 'readonly',
+      },
+    },
+  },
+
+  // ✅ BLOQUE EXCLUSIVO PARA CLIENTE — archivos que usan `'use client'`
+  {
+    files: ['app/**/*.tsx', 'components/**/*.tsx'],
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+      },
     },
   },
 ];
