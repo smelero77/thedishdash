@@ -6,6 +6,7 @@ import { Plus, Minus, ShoppingCart } from "lucide-react";
 import { MenuItemAllergen as Allergen } from "@/types/modifiers";
 import Image from "next/image";
 import { formatPrice } from '@/utils/format';
+import ProductQuantityControls from './MenuScreen/ProductQuantityControls';
 
 interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   id: string;
@@ -107,59 +108,14 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
           </div>
 
           {/* Price and buttons */}
-          <div className="flex items-center justify-between w-[8.5rem]">
-            {quantity > 0 ? (
-              // Si hay cantidad en el carrito, mostrar botones +/- o carrito
-              <div className="flex items-center justify-between w-[8.5rem]">
-                {hasModifiers ? (
-                  <button
-                    onClick={onOpenCart}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
-                    aria-label="Open cart"
-                    type="button"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={onRemoveFromCart}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
-                    aria-label="Remove one from cart"
-                    type="button"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                )}
-                <p className="text-[#0e1b19] text-sm font-normal text-center min-w-[4ch]">
-                  {formatPrice(price)}
-                </p>
-                <button
-                  onClick={onAddToCart}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
-                  aria-label="Add one more to cart"
-                  type="button"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              // Si no hay cantidad, mostrar solo el botón +
-              <div className="flex items-center justify-between w-[8.5rem]">
-                <div className="w-8" />
-                <p className="text-[#0e1b19] text-sm font-normal text-center min-w-[4ch]">
-                  {formatPrice(price)}
-                </p>
-                <button
-                  onClick={onAddToCart}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
-                  aria-label="Add to cart"
-                  type="button"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
+          <ProductQuantityControls
+            quantity={quantity}
+            price={price}
+            hasModifiers={hasModifiers}
+            onAdd={onAddToCart}
+            onRemove={onRemoveFromCart}
+            onOpenCart={onOpenCart}
+          />
         </div>
 
         {/* Description */}

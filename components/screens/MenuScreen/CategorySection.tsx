@@ -15,9 +15,9 @@ import ProductOrigin from './ProductOrigin';
 import ProductPairingSuggestion from './ProductPairingSuggestion';
 import ProductChefNotes from './ProductChefNotes';
 import ProductNutrition from './ProductNutrition';
-import ProductActions from './ProductActions';
 import Image from "next/image";
 import React from 'react';
+import ProductQuantityControls from './ProductQuantityControls';
 
 interface CategorySectionProps {
   category: Category & {
@@ -119,6 +119,16 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
           <>
             <ProductImage imageUrl={selectedProduct.image_url ?? ''} alt={selectedProduct.name ?? ''} quantity={getItemQuantity(selectedProduct.id)} />
             <ProductTitle name={selectedProduct.name ?? ''} price={selectedProduct.price} />
+            <div className="px-4 pb-2">
+              <ProductQuantityControls
+                quantity={getItemQuantity(selectedProduct.id)}
+                price={selectedProduct.price}
+                hasModifiers={selectedProduct.modifiers?.length > 0}
+                onAdd={() => onAddToCart(selectedProduct.id)}
+                onRemove={() => onRemoveFromCart(selectedProduct.id)}
+                onOpenCart={() => onOpenCart()}
+              />
+            </div>
             <ProductDescription description={selectedProduct.description ?? ''} />
             <ProductIngredients ingredients={selectedProduct.ingredients} />
             <ProductAllergens allergens={selectedProduct.allergens ?? []} />
@@ -126,7 +136,6 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
             <ProductPairingSuggestion suggestion={selectedProduct.pairing_suggestion ?? ''} />
             <ProductChefNotes notes={selectedProduct.chef_notes ?? ''} />
             <ProductNutrition nutrition={selectedProduct.nutrition} />
-            <ProductActions onAddToCart={() => onAddToCart(selectedProduct.id)} hasModifiers={selectedProduct.modifiers?.length > 0} />
           </>
         )}
       </ProductDetailSheet>

@@ -367,7 +367,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
         ))}
       </div>
 
-      <div className="fixed bottom-4 left-4 right-4 flex items-center gap-4">
+      <div className="fixed bottom-4 left-4 right-4 flex items-center gap-4 z-[300]">
         <FloatingCartButton {...floatingCartButtonProps} />
         <ChatButton onClick={() => setShowChatModal(true)} />
       </div>
