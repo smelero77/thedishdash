@@ -81,6 +81,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
   const [showChatModal, setShowChatModal] = useState(false);
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [isAnyDetailOpen, setIsAnyDetailOpen] = useState(false);
 
   const cart = useContext(CartItemsContext);
   const cartTotal = useContext(CartTotalContext);
@@ -344,7 +345,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
 
   return (
     <div className="relative min-h-screen bg-gray-50 overflow-hidden">
-      <MenuHeader {...menuHeaderProps} />
+      <MenuHeader {...menuHeaderProps} style={{ display: isAnyDetailOpen ? 'none' : undefined }} />
 
       <div
         ref={menuScrollRef}
@@ -361,6 +362,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
             onRemoveFromCart={handleDecrementItem}
             onOpenCart={() => setShowCartModal(true)}
             ref={(el) => categoryRefs.current[category.id] = el}
+            setIsAnyDetailOpen={setIsAnyDetailOpen}
           />
         ))}
       </div>

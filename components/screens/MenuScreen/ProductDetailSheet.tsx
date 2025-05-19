@@ -1,0 +1,62 @@
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import ReactDOM from 'react-dom';
+
+interface ProductDetailSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  product: any; // Cambia a MenuItemData o el tipo correcto cuando lo integres
+  children?: React.ReactNode;
+}
+
+const sheetVariants = {
+  hidden: { y: '100%', opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 200, damping: 25 } },
+  exit: { y: '100%', opacity: 0, transition: { duration: 0.2 } },
+};
+
+export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, onClose, product, children }) => {
+  const sheet = (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40"
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          variants={sheetVariants}
+          onClick={onClose}
+        >
+          <motion.div
+            className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative max-h-[98vh] -mt-16"
+            onClick={e => e.stopPropagation()}
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+          >
+            {/* Botón de cerrar */}
+            <button
+              onClick={onClose}
+              aria-label="Cerrar ficha"
+              className="absolute top-12 left-1 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/60 text-[#0e1b19] hover:bg-white/80 shadow-md focus:outline-none focus:ring-2 focus:ring-[#1ce3cf]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            {/* Aquí irán los subcomponentes modulares */}
+            {children}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  if (typeof window !== 'undefined') {
+    return ReactDOM.createPortal(sheet, document.body);
+  }
+  return null;
+};
+
+export default ProductDetailSheet; 

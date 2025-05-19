@@ -1,9 +1,21 @@
 "use client";
 
-import { forwardRef, useMemo } from 'react';
+import { forwardRef, useMemo, useState } from 'react';
 import { Category, MenuItemData } from '@/types/menu';
 import type { SelectedModifiers } from '@/types/modifiers';
 import MenuItem from '@/components/screens/MenuItem';
+import ProductDetailSheet from './ProductDetailSheet';
+import ProductImage from './ProductImage';
+import ProductTitle from './ProductTitle';
+import ProductDescription from './ProductDescription';
+import ProductIngredients from './ProductIngredients';
+import ProductAllergens from './ProductAllergens';
+import ProductDietTags from './ProductDietTags';
+import ProductOrigin from './ProductOrigin';
+import ProductPairingSuggestion from './ProductPairingSuggestion';
+import ProductChefNotes from './ProductChefNotes';
+import ProductNutrition from './ProductNutrition';
+import ProductActions from './ProductActions';
 import Image from "next/image";
 import React from 'react';
 
@@ -16,6 +28,7 @@ interface CategorySectionProps {
   onAddToCart: (itemId: string) => void;
   onRemoveFromCart: (itemId: string, modifiers?: SelectedModifiers | null) => void;
   onOpenCart: () => void;
+  setIsAnyDetailOpen?: (open: boolean) => void;
 }
 
 const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps>(({
@@ -23,8 +36,12 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
   itemQuantities,
   onAddToCart,
   onRemoveFromCart,
-  onOpenCart
+  onOpenCart,
+  setIsAnyDetailOpen
 }, ref) => {
+  const [selectedProduct, setSelectedProduct] = useState<MenuItemData | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
   // Calcular la cantidad total para cada item
   const getItemQuantity = (itemId: string) => {
     return Object.entries(itemQuantities).reduce((total, [key, quantity]) => {
@@ -33,6 +50,20 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
       }
       return total;
     }, 0);
+  };
+
+  // Handler para abrir la ficha
+  const handleOpenDetail = (item: MenuItemData) => {
+    setSelectedProduct(item);
+    setIsDetailOpen(true);
+    setIsAnyDetailOpen && setIsAnyDetailOpen(true);
+  };
+
+  // Handler para cerrar la ficha
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    setSelectedProduct(null);
+    setIsAnyDetailOpen && setIsAnyDetailOpen(false);
   };
 
   return (
@@ -60,7 +91,7 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
         </div>
       )}
       {category.items.map((item) => (
-        <div key={item.id} className="px-4 py-6">
+        <div key={item.id} className="px-4 py-6 cursor-pointer" onClick={() => handleOpenDetail(item)}>
           <MenuItem
             id={item.id}
             name={item.name ?? ''}
@@ -76,13 +107,29 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
             is_recommended={item.is_recommended ?? false}
             is_available={item.is_available ?? true}
             quantity={getItemQuantity(item.id)}
-            onAddToCart={() => onAddToCart(item.id)}
-            onRemoveFromCart={() => onRemoveFromCart(item.id)}
+            onAddToCart={e => { e.stopPropagation(); onAddToCart(item.id); }}
+            onRemoveFromCart={e => { e.stopPropagation(); onRemoveFromCart(item.id); }}
             hasModifiers={item.modifiers?.length > 0}
-            onOpenCart={onOpenCart}
+            onOpenCart={e => { e.stopPropagation(); onOpenCart(); }}
           />
         </div>
       ))}
+      <ProductDetailSheet isOpen={isDetailOpen} onClose={handleCloseDetail} product={selectedProduct}>
+        {selectedProduct && (
+          <>
+            <ProductImage imageUrl={selectedProduct.image_url ?? ''} alt={selectedProduct.name ?? ''} quantity={getItemQuantity(selectedProduct.id)} />
+            <ProductTitle name={selectedProduct.name ?? ''} price={selectedProduct.price} />
+            <ProductDescription description={selectedProduct.description ?? ''} />
+            <ProductIngredients ingredients={selectedProduct.ingredients} />
+            <ProductAllergens allergens={selectedProduct.allergens ?? []} />
+            <ProductOrigin origin={selectedProduct.origin ?? ''} />
+            <ProductPairingSuggestion suggestion={selectedProduct.pairing_suggestion ?? ''} />
+            <ProductChefNotes notes={selectedProduct.chef_notes ?? ''} />
+            <ProductNutrition nutrition={selectedProduct.nutrition} />
+            <ProductActions onAddToCart={() => onAddToCart(selectedProduct.id)} hasModifiers={selectedProduct.modifiers?.length > 0} />
+          </>
+        )}
+      </ProductDetailSheet>
     </div>
   );
 });
