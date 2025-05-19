@@ -3,7 +3,7 @@
 
 import React, { HTMLAttributes, forwardRef } from "react"; // Importación explícita de React
 import { Plus, Minus, ShoppingCart } from "lucide-react";
-import { MenuItemAllergen as Allergen } from "../../types/menu"; // Asegúrate que la ruta sea correcta
+import { MenuItemAllergen as Allergen } from "@/types/modifiers";
 import Image from "next/image";
 import { formatPrice } from '@/utils/format';
 
@@ -85,10 +85,9 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
         {/* Name, allergens, and buttons row */}
         <div className="flex items-center justify-between gap-4">
           {/* Name and allergens */}
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            <p className="text-[#0e1b19] text-lg font-bold leading-tight tracking-[-0.015em] truncate">{name}</p>
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Renderiza los iconos de alérgenos */}
+          <div className="flex flex-col flex-1 min-w-0">
+            <p className="text-[#0e1b19] text-lg font-bold leading-tight tracking-[-0.015em] break-words whitespace-normal w-full">{name}</p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               {allergens?.map((a) => (
                 <div
                   key={a.id}
