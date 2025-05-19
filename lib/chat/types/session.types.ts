@@ -7,30 +7,32 @@ import { ConversationTurn } from './response.types';
 export const AssistantMessageSchema = z.object({
   role: z.literal('assistant'),
   content: z.string().default(''),
-  function_call: z.object({
-    name: z.string(),
-    arguments: z.string()
-  }).optional(),
-  timestamp: z.date()
+  function_call: z
+    .object({
+      name: z.string(),
+      arguments: z.string(),
+    })
+    .optional(),
+  timestamp: z.date(),
 });
 
 // Esquema para el mensaje del usuario
 export const UserMessageSchema = z.object({
   role: z.literal('user'),
   content: z.string(),
-  timestamp: z.date()
+  timestamp: z.date(),
 });
 
 // Esquema para el mensaje del sistema
 export const SystemMessageSchema = z.object({
   role: z.literal('system'),
   content: z.string(),
-  timestamp: z.date()
+  timestamp: z.date(),
 });
 
 // Esquema para el historial de conversación
 export const ConversationHistorySchema = z.array(
-  z.union([UserMessageSchema, AssistantMessageSchema, SystemMessageSchema])
+  z.union([UserMessageSchema, AssistantMessageSchema, SystemMessageSchema]),
 );
 
 // Esquema para la sesión de chat
@@ -47,7 +49,7 @@ export const ChatSessionSchema = z.object({
   rejected_items: z.array(z.string()).default([]),
   conversation_history: z.array(z.any()).optional(),
   filters: z.any().optional(),
-  alias_mesa: z.string().optional()
+  alias_mesa: z.string().optional(),
 });
 
 // Tipo derivado del esquema
@@ -55,7 +57,7 @@ export type ChatSession = z.infer<typeof ChatSessionSchema>;
 
 // Interfaces adicionales para el manejo de sesiones
 export interface SessionState {
-  currentState: typeof CHAT_SESSION_STATES[keyof typeof CHAT_SESSION_STATES];
+  currentState: (typeof CHAT_SESSION_STATES)[keyof typeof CHAT_SESSION_STATES];
   filters: ExtractedFilters;
   conversationHistory: ConversationTurn[];
   lastRecommendations?: string[];
@@ -112,4 +114,4 @@ export interface MessageMetadata {
       distance: number;
     }>;
   };
-} 
+}

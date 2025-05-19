@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -10,10 +10,7 @@ interface CodeValidationErrorProps {
   onRetry?: () => void;
 }
 
-export function CodeValidationError({ 
-  message,
-  onRetry 
-}: CodeValidationErrorProps) {
+export function CodeValidationError({ message, onRetry }: CodeValidationErrorProps) {
   const router = useRouter();
 
   return (
@@ -27,22 +24,18 @@ export function CodeValidationError({
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
           <X className="w-8 h-8 text-red-500" />
         </div>
-        <h3 className="text-xl font-semibold text-[#0e1b19] text-center">
-          Código no válido
-        </h3>
-        <p className="text-gray-600 text-center text-sm">
-          {message}
-        </p>
+        <h3 className="text-xl font-semibold text-[#0e1b19] text-center">Código no válido</h3>
+        <p className="text-gray-600 text-center text-sm">{message}</p>
         <div className="flex gap-2 pt-2 w-full">
           {onRetry && (
-            <Button 
+            <Button
               className="w-full h-10 rounded-full bg-gray-200 text-[#0e1b19] hover:bg-gray-300"
               onClick={onRetry}
             >
               Reintentar
             </Button>
           )}
-          <Button 
+          <Button
             className="w-full h-10 rounded-full bg-[#1ce3cf] text-[#0e1b19] hover:bg-[#1ce3cf]/90"
             onClick={() => router.push('/')}
           >

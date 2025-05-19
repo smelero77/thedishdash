@@ -21,4 +21,4 @@ const ProductActions: React.FC<ProductActionsProps> = ({ onAddToCart, hasModifie
   </div>
 );
 
-export default ProductActions; 
+export default ProductActions;

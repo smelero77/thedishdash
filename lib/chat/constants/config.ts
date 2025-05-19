@@ -3,25 +3,25 @@
  */
 export const CHAT_CONFIG = {
   // Modelos de OpenAI
-  entityExtractionModel: "gpt-3.5-turbo-1106",    // Modelo para extracción de entidades/filtros
-  recommendationModel: "gpt-4o",      // Modelo para recomendaciones/respuestas
-  productExplanationModel: "gpt-4o",  // Modelo para explicaciones de productos
-  
+  entityExtractionModel: 'gpt-3.5-turbo-1106', // Modelo para extracción de entidades/filtros
+  recommendationModel: 'gpt-4o', // Modelo para recomendaciones/respuestas
+  productExplanationModel: 'gpt-4o', // Modelo para explicaciones de productos
+
   // Parámetros de generación
-  temperature: 0.4,                              // Para recomendación (0.3-0.5)
-  entityExtractionTemperature: 0.1,              // Para extracción, muy determinista
-  productExplanationTemperature: 0.3,            // Para explicaciones de productos (0.2-0.5)
-  maxTokensRecommendation: 1000,                 // Para la respuesta final
-  maxTokensExtraction: 500,                      // Para la extracción de JSON
-  maxTokensProductExplanation: 300,              // Para explicaciones de productos
+  temperature: 0.4, // Para recomendación (0.3-0.5)
+  entityExtractionTemperature: 0.1, // Para extracción, muy determinista
+  productExplanationTemperature: 0.3, // Para explicaciones de productos (0.2-0.5)
+  maxTokensRecommendation: 1000, // Para la respuesta final
+  maxTokensExtraction: 500, // Para la extracción de JSON
+  maxTokensProductExplanation: 300, // Para explicaciones de productos
   topP: 0.9,
   presencePenalty: 0.2,
-  
+
   // Parámetros de búsqueda semántica
-  semanticSearchMatchThreshold: 0.3,             // Ajustar después de pruebas
-  semanticSearchMatchCount: 10,                  // Items iniciales de la búsqueda semántica
-  maxCandidatesForGptContext: 5,                 // Máximo de items en el candidatesBlock
-  minRelevantCandidatesThreshold: 3,             // Si la búsqueda devuelve menos, intentar fallback FTS
+  semanticSearchMatchThreshold: 0.3, // Ajustar después de pruebas
+  semanticSearchMatchCount: 10, // Items iniciales de la búsqueda semántica
+  maxCandidatesForGptContext: 5, // Máximo de items en el candidatesBlock
+  minRelevantCandidatesThreshold: 3, // Si la búsqueda devuelve menos, intentar fallback FTS
 } as const;
 
 /**
@@ -31,7 +31,7 @@ export const SYSTEM_MESSAGE_TYPES = {
   CLARIFICATION: 'clarification',
   RECOMMENDATION: 'recommendation',
   ERROR: 'error',
-  INFO: 'info'
+  INFO: 'info',
 } as const;
 
 /**
@@ -39,15 +39,15 @@ export const SYSTEM_MESSAGE_TYPES = {
  */
 export const DB_CONFIG = {
   // Tiempos máximos en horas
-  maxSessionAge: 24,                          // Sesiones más antiguas se limpian
-  maxMessageAge: 72,                          // Mensajes más antiguos se limpian
-  
+  maxSessionAge: 24, // Sesiones más antiguas se limpian
+  maxMessageAge: 72, // Mensajes más antiguos se limpian
+
   // Límites
-  maxMessagesPerSession: 50,                  // Máximo de mensajes por sesión
-  maxActiveSessions: 1000,                    // Máximo de sesiones activas
-  
+  maxMessagesPerSession: 50, // Máximo de mensajes por sesión
+  maxActiveSessions: 1000, // Máximo de sesiones activas
+
   // Intervalos de limpieza (en minutos)
-  cleanupInterval: 60,                        // Cada hora
+  cleanupInterval: 60, // Cada hora
 } as const;
 
 /**
@@ -55,12 +55,12 @@ export const DB_CONFIG = {
  */
 export const CACHE_CONFIG = {
   // Tiempos de expiración (en segundos)
-  categoryCacheTTL: 3600,                     // 1 hora
-  allergenCacheTTL: 3600,                     // 1 hora
-  dietTagCacheTTL: 3600,                      // 1 hora
-  
+  categoryCacheTTL: 3600, // 1 hora
+  allergenCacheTTL: 3600, // 1 hora
+  dietTagCacheTTL: 3600, // 1 hora
+
   // Tamaños máximos
-  maxCacheSize: 1000,                         // Máximo de entradas en caché
+  maxCacheSize: 1000, // Máximo de entradas en caché
 } as const;
 
 /**
@@ -70,42 +70,42 @@ export const ERROR_CODES = {
   // Errores de extracción
   EXTRACTION_FAILED: 'EXTRACTION_FAILED',
   INVALID_FILTERS: 'INVALID_FILTERS',
-  
+
   // Errores de recomendación
   NO_CANDIDATES: 'NO_CANDIDATES',
   RECOMMENDATION_FAILED: 'RECOMMENDATION_FAILED',
-  
+
   // Errores de sesión
   SESSION_EXPIRED: 'SESSION_EXPIRED',
   SESSION_NOT_FOUND: 'SESSION_NOT_FOUND',
-  
+
   // Errores de base de datos
   DB_ERROR: 'DB_ERROR',
   CACHE_ERROR: 'CACHE_ERROR',
-  
+
   // Errores generales
   UNKNOWN_ERROR: 'UNKNOWN_ERROR',
 } as const;
 
 // Estados de la sesión de chat
 export const CHAT_SESSION_STATES = {
-  INITIAL: "initial",
-  COLLECTING_PREFERENCES: "collecting_preferences",
-  RECOMMENDING: "recommending",
-  CONFIRMING: "confirming",
-  COMPLETED: "completed",
-  ERROR: "error",
+  INITIAL: 'initial',
+  COLLECTING_PREFERENCES: 'collecting_preferences',
+  RECOMMENDING: 'recommending',
+  CONFIRMING: 'confirming',
+  COMPLETED: 'completed',
+  ERROR: 'error',
 } as const;
 
 // Tipos de filtros soportados
 export const SUPPORTED_FILTER_TYPES = {
-  ITEM_TYPE: "item_type",
-  CATEGORY: "category",
-  ALLERGEN: "allergen",
-  DIET_TAG: "diet_tag",
-  CALORIES: "calories",
-  PRICE: "price",
-  KEYWORDS: "keywords",
+  ITEM_TYPE: 'item_type',
+  CATEGORY: 'category',
+  ALLERGEN: 'allergen',
+  DIET_TAG: 'diet_tag',
+  CALORIES: 'calories',
+  PRICE: 'price',
+  KEYWORDS: 'keywords',
 } as const;
 
 export const SYSTEM_CONTEXT = `Eres Don Gourmetón, asistente virtual de un restaurante.
@@ -133,4 +133,4 @@ Usuario: Muéstrame la ficha del artículo tostada-aguacate
 Asistente: {/* llama a get_product_details con el ID exacto */}
 
 Usuario: ¿Cuál es el horóscopo de hoy?  
-Asistente: Lo siento, eso está fuera de mi especialidad. ¿En qué puedo ayudarte hoy con nuestro menú?`; 
+Asistente: Lo siento, eso está fuera de mi especialidad. ¿En qué puedo ayudarte hoy con nuestro menú?`;

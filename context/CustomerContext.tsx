@@ -1,6 +1,14 @@
-'use client'
+'use client';
 
-import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
 
 interface CustomerContextType {
   alias: string | null;
@@ -41,24 +49,25 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     setAlias(null);
   }, []);
 
-  const value = useMemo(() => ({
-    alias,
-    isLoading,
-    saveAlias,
-    clearCustomerAlias
-  }), [alias, isLoading, saveAlias, clearCustomerAlias]);
-
-  return (
-    <CustomerContext.Provider value={value}>
-      {children}
-    </CustomerContext.Provider>
+  const value = useMemo(
+    () => ({
+      alias,
+      isLoading,
+      saveAlias,
+      clearCustomerAlias,
+    }),
+    [alias, isLoading, saveAlias, clearCustomerAlias],
   );
+
+  return <CustomerContext.Provider value={value}>{children}</CustomerContext.Provider>;
 }
 
 export function useCustomer() {
   const context = useContext(CustomerContext);
   if (!context) {
-    throw new Error('useCustomer must be used within a <CustomerProvider>. Please wrap your component tree with <CustomerProvider>.');
+    throw new Error(
+      'useCustomer must be used within a <CustomerProvider>. Please wrap your component tree with <CustomerProvider>.',
+    );
   }
   return context;
 }

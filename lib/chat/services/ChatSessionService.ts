@@ -1,5 +1,12 @@
 import { supabase } from '@/lib/supabase';
-import { ChatSession, SessionState, SessionMetadata, AssistantMessageSchema, UserMessageSchema, SystemMessageSchema } from '../types/session.types';
+import {
+  ChatSession,
+  SessionState,
+  SessionMetadata,
+  AssistantMessageSchema,
+  UserMessageSchema,
+  SystemMessageSchema,
+} from '../types/session.types';
 import { CHAT_SESSION_STATES } from '../constants/config';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
@@ -30,14 +37,14 @@ export class ChatSessionService {
       lastActive?: Date;
       sessionDuration?: number;
     } = {},
-    sessionId?: string
+    sessionId?: string,
   ): Promise<ChatSession> {
     try {
       console.log('Creando/actualizando sesión:', {
         tableNumber,
         userAlias,
         options,
-        sessionId
+        sessionId,
       });
 
       // Si tenemos un sessionId, intentamos recuperar la sesión existente
@@ -60,7 +67,7 @@ export class ChatSessionService {
             .update({
               table_number: tableNumber,
               alias: userAlias,
-              updated_at: new Date()
+              updated_at: new Date(),
             })
             .eq('id', sessionId)
             .select()
@@ -86,7 +93,7 @@ export class ChatSessionService {
         table_number: tableNumber,
         alias: userAlias,
         started_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       };
 
       console.log('Insertando nueva sesión:', newSession);
@@ -142,15 +149,12 @@ export class ChatSessionService {
   /**
    * Actualiza una sesión existente
    */
-  public async update(
-    sessionId: string,
-    updates: Partial<ChatSession>
-  ): Promise<ChatSession> {
+  public async update(sessionId: string, updates: Partial<ChatSession>): Promise<ChatSession> {
     const dbUpdates = {
       table_number: updates.table_number,
       alias: updates.alias,
       started_at: updates.started_at,
-      updated_at: new Date()
+      updated_at: new Date(),
     };
 
     const { data, error } = await supabase
@@ -170,12 +174,9 @@ export class ChatSessionService {
   /**
    * Actualiza el estado de una sesión
    */
-  public async updateState(
-    sessionId: string,
-    state: SessionState
-  ): Promise<ChatSession> {
+  public async updateState(sessionId: string, state: SessionState): Promise<ChatSession> {
     return this.update(sessionId, {
-      updated_at: new Date()
+      updated_at: new Date(),
     });
   }
 
@@ -184,22 +185,28 @@ export class ChatSessionService {
    */
   public async addMessage(
     sessionId: string,
-    message: z.infer<typeof UserMessageSchema | typeof AssistantMessageSchema | typeof SystemMessageSchema>,
-    metadataFromOrchestrator?: Record<string, any>
+    message: z.infer<
+      typeof UserMessageSchema | typeof AssistantMessageSchema | typeof SystemMessageSchema
+    >,
+    metadataFromOrchestrator?: Record<string, any>,
   ): Promise<void> {
     try {
       // Asegurar que metadataFromOrchestrator es un objeto y no undefined
       const metadata = metadataFromOrchestrator || {};
-      
+
       // Loguear el parámetro CRUDO que llega
-      console.log('[ChatSessionService.addMessage] RAW metadataFromOrchestrator:', 
-                  JSON.parse(JSON.stringify(metadata)));
+      console.log(
+        '[ChatSessionService.addMessage] RAW metadataFromOrchestrator:',
+        JSON.parse(JSON.stringify(metadata)),
+      );
 
       let session = await this.get(sessionId);
-      
+
       if (!session) {
-        console.log(`Sesión no encontrada en addMessage, intentando recuperar o crear: ${sessionId}`);
-        
+        console.log(
+          `Sesión no encontrada en addMessage, intentando recuperar o crear: ${sessionId}`,
+        );
+
         const { data: existingMessage, error: messageError } = await supabase
           .from('messages')
           .select('session_id, sender')
@@ -210,14 +217,14 @@ export class ChatSessionService {
         if (!messageError && existingMessage) {
           session = await this.get(sessionId);
         }
-        
+
         if (!session) {
           throw new Error(`No se pudo encontrar o crear la sesión ${sessionId}`);
         }
       }
 
-      const sender = message.role === 'user' ? 'guest' : 
-                    message.role === 'assistant' ? 'assistant' : 'system';
+      const sender =
+        message.role === 'user' ? 'guest' : message.role === 'assistant' ? 'assistant' : 'system';
 
       // Construir la variable local messageMetadata usando metadataFromOrchestrator
       let localMessageMetadata: Record<string, any> = {};
@@ -230,7 +237,7 @@ export class ChatSessionService {
         sessionId,
         sender,
         role: message.role,
-        metadata: localMessageMetadata
+        metadata: localMessageMetadata,
       });
 
       // Insertar el mensaje en la BD
@@ -239,9 +246,10 @@ export class ChatSessionService {
         .insert({
           session_id: sessionId,
           sender: sender,
-          content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
+          content:
+            typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
           created_at: message.timestamp || new Date(),
-          metadata: localMessageMetadata
+          metadata: localMessageMetadata,
         })
         .select()
         .single();
@@ -253,7 +261,6 @@ export class ChatSessionService {
 
       // Actualizar timestamp de última actividad de la sesión
       await this.update(sessionId, { updated_at: new Date() });
-
     } catch (error) {
       console.error('Error en addMessage:', error);
       throw error;
@@ -265,8 +272,10 @@ export class ChatSessionService {
    */
   public async getLastConversationTurns(
     sessionId: string,
-    turns: number = 3
-  ): Promise<z.infer<typeof UserMessageSchema | typeof AssistantMessageSchema | typeof SystemMessageSchema>[]> {
+    turns: number = 3,
+  ): Promise<
+    z.infer<typeof UserMessageSchema | typeof AssistantMessageSchema | typeof SystemMessageSchema>[]
+  > {
     const { data: messages, error } = await supabase
       .from('messages')
       .select('*')
@@ -279,13 +288,17 @@ export class ChatSessionService {
     }
 
     // Convertir los mensajes al formato esperado
-    return (messages || []).map(msg => ({
-      role: msg.sender === 'guest' ? 'user' as const : 
-            msg.sender === 'assistant' ? 'assistant' as const : 'system' as const,
+    return (messages || []).map((msg) => ({
+      role:
+        msg.sender === 'guest'
+          ? ('user' as const)
+          : msg.sender === 'assistant'
+            ? ('assistant' as const)
+            : ('system' as const),
       content: msg.content,
       timestamp: new Date(msg.created_at),
       metadata: msg.metadata || {},
-      message_index: msg.message_index
+      message_index: msg.message_index,
     }));
   }
 
@@ -296,7 +309,7 @@ export class ChatSessionService {
     const { error } = await supabase
       .from('sessions')
       .update({
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .eq('id', sessionId);
 
@@ -345,4 +358,4 @@ export class ChatSessionService {
 }
 
 // Exportar una instancia singleton
-export const chatSessionService = ChatSessionService.getInstance(); 
+export const chatSessionService = ChatSessionService.getInstance();

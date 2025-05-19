@@ -44,4 +44,4 @@ export interface SessionState {
   is_active: boolean;
   current_slot?: string;
   last_interaction: string;
-} 
+}

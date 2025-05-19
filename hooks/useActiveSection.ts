@@ -13,7 +13,7 @@ function useActiveSection(setActiveTab: (id: string) => void) {
           }
         });
       },
-      { threshold: 0.5 } // Adjust threshold as needed
+      { threshold: 0.5 }, // Adjust threshold as needed
     );
 
     const elements = document.querySelectorAll('[id^="category-"]');
@@ -25,4 +25,4 @@ function useActiveSection(setActiveTab: (id: string) => void) {
   }, [setActiveTab]);
 }
 
-export default useActiveSection; 
+export default useActiveSection;

@@ -5,18 +5,16 @@ export async function saveDailyPrompt(prompt: string, response?: string): Promis
     // Obtener la fecha actual en formato YYYY-MM-DD
     const today = new Date().toISOString().split('T')[0];
 
-    const { error } = await supabase
-      .from('gpt_daily_prompts')
-      .upsert(
-        {
-          date: today,
-          prompt,
-          ...(response && { response })
-        },
-        {
-          onConflict: 'date'
-        }
-      );
+    const { error } = await supabase.from('gpt_daily_prompts').upsert(
+      {
+        date: today,
+        prompt,
+        ...(response && { response }),
+      },
+      {
+        onConflict: 'date',
+      },
+    );
 
     if (error) {
       console.error('Error al guardar el prompt diario:', error);
@@ -26,4 +24,4 @@ export async function saveDailyPrompt(prompt: string, response?: string): Promis
     console.error('Error en saveDailyPrompt:', error);
     throw error;
   }
-} 
+}

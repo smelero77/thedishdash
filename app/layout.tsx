@@ -1,12 +1,12 @@
 // app/layout.tsx
-import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import Providers from '@/components/Providers'
-import { getMenuItems, getCurrentSlot } from '@/lib/data'
-import { processMenuItem } from '@/utils/menu'
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import Providers from '@/components/Providers';
+import { getMenuItems, getCurrentSlot } from '@/lib/data';
+import { processMenuItem } from '@/utils/menu';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Gourmeton',
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'Gourmeton',
   },
-}
+};
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -25,21 +25,14 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: '#1ce3cf',
-}
+};
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Cargamos en paralelo los datos que necesita el Provider
-  const [menuItems, slot] = await Promise.all([
-    getMenuItems(),
-    getCurrentSlot(),
-  ])
+  const [menuItems, slot] = await Promise.all([getMenuItems(), getCurrentSlot()]);
 
   // Transformamos los menuItems al formato correcto
-  const processedMenuItems = menuItems.map(processMenuItem)
+  const processedMenuItems = menuItems.map(processMenuItem);
 
   return (
     <html lang="es">
@@ -54,10 +47,8 @@ export default async function RootLayout({
           Ahí es donde inyectamos why-did-you-render (en desarrollo)
           y levantamos todos los contextos.
         */}
-        <Providers menuItems={processedMenuItems}>
-          {children}
-        </Providers>
+        <Providers menuItems={processedMenuItems}>{children}</Providers>
       </body>
     </html>
-  )
+  );
 }

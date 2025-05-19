@@ -22,22 +22,30 @@ if (missingEnvVars.length > 0) {
 }
 
 const embeddingService = new OpenAIEmbeddingService(process.env.OPENAI_API_KEY!, EMBEDDING_CONFIG);
-const chatService = new ChatOrchestrator(
-  process.env.OPENAI_API_KEY!,
-  supabase,
-  embeddingService
-);
+const chatService = new ChatOrchestrator(process.env.OPENAI_API_KEY!, supabase, embeddingService);
 
 export async function POST(request: Request) {
   try {
-    const { message: userMessage, sessionId, tableNumber, userAlias, categoryId } = await request.json();
-    console.log('Mensaje recibido:', { userMessage, sessionId, tableNumber, userAlias, categoryId });
-    
+    const {
+      message: userMessage,
+      sessionId,
+      tableNumber,
+      userAlias,
+      categoryId,
+    } = await request.json();
+    console.log('Mensaje recibido:', {
+      userMessage,
+      sessionId,
+      tableNumber,
+      userAlias,
+      categoryId,
+    });
+
     if (!userMessage || !tableNumber || !userAlias) {
       console.log('Error: Faltan mensaje, número de mesa o alias de usuario');
       return NextResponse.json(
         { error: 'Faltan campos requeridos: mensaje, número de mesa o alias de usuario' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,7 +54,7 @@ export async function POST(request: Request) {
     if (isNaN(tableNumberInt)) {
       return NextResponse.json(
         { error: 'El número de mesa debe ser un valor numérico' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,26 +70,26 @@ export async function POST(request: Request) {
       console.log('Sesión no encontrada, creando nueva:', sid);
       try {
         console.log('[API /chat] Valores para creación de sesión:', {
-          tableNumberInt, 
-          userAlias, 
-          sessionId: sid 
+          tableNumberInt,
+          userAlias,
+          sessionId: sid,
         });
         session = await chatSessionService.create(
           tableNumberInt,
           userAlias,
           {
-            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon'
+            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon',
           },
-          sid // sessionId
+          sid, // sessionId
         );
       } catch (error) {
         console.error('Error al crear nueva sesión:', error);
         return NextResponse.json(
-          { 
+          {
             error: 'Error al crear nueva sesión',
-            details: error instanceof Error ? error.message : 'Error desconocido'
+            details: error instanceof Error ? error.message : 'Error desconocido',
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
@@ -91,21 +99,21 @@ export async function POST(request: Request) {
     try {
       const result = await chatService.processUserMessage(session, userMessage, categoryId);
       console.log('Resultado del procesamiento:', JSON.stringify(result, null, 2));
-      
+
       // 4) Devuelve respuesta estructurada + sessionId
       return NextResponse.json({
         response: result,
-        sessionId: sid
+        sessionId: sid,
       });
     } catch (error) {
       console.error('Error detallado en chatService.processMessage:', error);
-      
+
       // Manejar errores específicos de OpenAI
       if (error instanceof Error && error.message.includes('OpenAI')) {
         console.error('Error de OpenAI:', error);
         return NextResponse.json(
           { error: 'Error al conectar con el servicio de IA' },
-          { status: 503 }
+          { status: 503 },
         );
       }
 
@@ -114,7 +122,7 @@ export async function POST(request: Request) {
         console.error('Error de Supabase:', error);
         return NextResponse.json(
           { error: 'Error al conectar con la base de datos' },
-          { status: 503 }
+          { status: 503 },
         );
       }
 
@@ -122,9 +130,6 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('Error detallado en el procesamiento del mensaje:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
-} 
+}

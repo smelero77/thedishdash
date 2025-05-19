@@ -1,5 +1,5 @@
 // thedishdash/components/ui/AliasModal.tsx
-"use client";
+'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,7 +10,6 @@ import { useWeather } from '@/hooks/useWeather';
 // Opcionales: loader y error genéricos si quieres mostrarlos dentro del modal
 import { CodeValidationLoader } from '@/components/ui/CodeValidationLoader';
 import { CodeValidationError } from '@/components/ui/CodeValidationError';
-
 
 export interface AliasModalProps {
   isOpen: boolean;
@@ -33,16 +32,16 @@ function AliasModalComponent({
   onClose,
   onConfirm,
   isLoading = false,
-  error
+  error,
 }: AliasModalProps) {
   const { tableNumber } = useTable();
   const tableNumberString = tableNumber?.toString() || '0';
-  const { current, loading: weatherLoading } = useWeather("Pozuelo de Alarcón");
+  const { current, loading: weatherLoading } = useWeather('Pozuelo de Alarcón');
 
   // Alias inicial memoizado para no regenerar cada render
   const initialGeneratedAlias = useMemo(
     () => generateRandomAlias(tableNumberString),
-    [tableNumberString]
+    [tableNumberString],
   );
 
   const [alias, setAlias] = useState(initialGeneratedAlias);
@@ -63,7 +62,7 @@ function AliasModalComponent({
         onClose();
       }
     },
-    [alias, onConfirm, onClose, tableNumberString]
+    [alias, onConfirm, onClose, tableNumberString],
   );
 
   return (
@@ -77,7 +76,7 @@ function AliasModalComponent({
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
         >
           <motion.div
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -120,7 +119,9 @@ function AliasModalComponent({
             {error && (
               <CodeValidationError
                 message={error}
-                onRetry={() => { /* opcional: reenfocar input */ }}
+                onRetry={() => {
+                  /* opcional: reenfocar input */
+                }}
               />
             )}
 
@@ -134,7 +135,7 @@ function AliasModalComponent({
               <input
                 type="text"
                 value={alias}
-                onChange={e => setAlias(e.target.value)}
+                onChange={(e) => setAlias(e.target.value)}
                 placeholder="Tu nombre o alias (opcional)"
                 className="w-full px-5 py-4 text-white bg-white/10 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1ce3cf] placeholder-white/50 text-lg"
                 disabled={isLoading}
@@ -148,7 +149,18 @@ function AliasModalComponent({
                 disabled={isLoading}
               >
                 <span>{isLoading ? 'Guardando...' : 'Entrar en la mesa'}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="ml-1"
+                >
                   <path d="M5 12h14"></path>
                   <path d="m12 5 7 7-7 7"></path>
                 </svg>

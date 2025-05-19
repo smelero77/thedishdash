@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import { DotLottieReact } from '@lottiefiles/dotlottie-react'
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 interface LoadingScreenProps {
   message?: string;
@@ -8,10 +8,10 @@ interface LoadingScreenProps {
   className?: string;
 }
 
-export function LoadingScreen({ 
+export function LoadingScreen({
   message = 'Cargando...',
   showAnimation = true,
-  className = ''
+  className = '',
 }: LoadingScreenProps) {
   return (
     <div className={`flex min-h-screen items-center justify-center bg-[#f8fbfb] ${className}`}>
@@ -25,13 +25,13 @@ export function LoadingScreen({
             />
           </div>
         )}
-        <p 
-          className="text-[#0e1b19] text-lg font-medium" 
+        <p
+          className="text-[#0e1b19] text-lg font-medium"
           style={{ fontFamily: 'Epilogue, "Noto Sans", sans-serif' }}
         >
           {message}
         </p>
       </div>
     </div>
-  )
-} 
+  );
+}

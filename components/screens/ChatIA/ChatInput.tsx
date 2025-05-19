@@ -69,4 +69,4 @@ export const ChatInput = ({ onSend, isLoading, alias }: ChatInputProps) => {
       </button>
     </form>
   );
-}; 
+};

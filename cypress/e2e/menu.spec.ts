@@ -14,4 +14,4 @@ describe('Flujo de menú y carrito', () => {
     // Asegúrate de que el contador de carrito aumentó
     cy.get('[data-test=cart-count]').should('not.have.text', '0');
   });
-}); 
+});

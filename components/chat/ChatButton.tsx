@@ -17,7 +17,7 @@ const ChatButton: React.FC<ChatButtonProps> = ({ onClick }) => {
           <div className="absolute inset-0 bg-white/20 rounded-full blur-md animate-[pulse_2s_ease-in-out_infinite]" />
           <div className="absolute -inset-1 bg-gradient-to-r from-[#0ea5e9] via-[#0284c7] to-[#0369a1] rounded-full blur opacity-30 group-hover:opacity-50 transition-opacity duration-300 animate-[spin_3s_linear_infinite]" />
           <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          
+
           {/* Particle effects */}
           <div className="absolute inset-0 overflow-hidden rounded-full">
             <div className="absolute w-1 h-1 bg-white/40 rounded-full animate-[particle1_3s_ease-in-out_infinite]" />
@@ -31,51 +31,133 @@ const ChatButton: React.FC<ChatButtonProps> = ({ onClick }) => {
 
       <style jsx global>{`
         @keyframes shine {
-          0% { transform: translateX(-100%); }
-          50% { transform: translateX(100%); }
-          100% { transform: translateX(100%); }
+          0% {
+            transform: translateX(-100%);
+          }
+          50% {
+            transform: translateX(100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
         }
         @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.2); opacity: 0.8; }
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 0.5;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 0.8;
+          }
         }
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
         @keyframes particle1 {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
-          25% { transform: translate(10px, -10px) scale(1.5); opacity: 0.8; }
-          50% { transform: translate(20px, 0) scale(1); opacity: 0; }
-          75% { transform: translate(10px, 10px) scale(1.5); opacity: 0.8; }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0;
+          }
+          25% {
+            transform: translate(10px, -10px) scale(1.5);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translate(20px, 0) scale(1);
+            opacity: 0;
+          }
+          75% {
+            transform: translate(10px, 10px) scale(1.5);
+            opacity: 0.8;
+          }
         }
         @keyframes particle2 {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
-          25% { transform: translate(-10px, -10px) scale(1.5); opacity: 0.8; }
-          50% { transform: translate(-20px, 0) scale(1); opacity: 0; }
-          75% { transform: translate(-10px, 10px) scale(1.5); opacity: 0.8; }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0;
+          }
+          25% {
+            transform: translate(-10px, -10px) scale(1.5);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translate(-20px, 0) scale(1);
+            opacity: 0;
+          }
+          75% {
+            transform: translate(-10px, 10px) scale(1.5);
+            opacity: 0.8;
+          }
         }
         @keyframes particle3 {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
-          25% { transform: translate(10px, 10px) scale(1.5); opacity: 0.8; }
-          50% { transform: translate(0, 20px) scale(1); opacity: 0; }
-          75% { transform: translate(-10px, 10px) scale(1.5); opacity: 0.8; }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0;
+          }
+          25% {
+            transform: translate(10px, 10px) scale(1.5);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translate(0, 20px) scale(1);
+            opacity: 0;
+          }
+          75% {
+            transform: translate(-10px, 10px) scale(1.5);
+            opacity: 0.8;
+          }
         }
         @keyframes particle4 {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
-          25% { transform: translate(-10px, 10px) scale(1.5); opacity: 0.8; }
-          50% { transform: translate(0, -20px) scale(1); opacity: 0; }
-          75% { transform: translate(10px, -10px) scale(1.5); opacity: 0.8; }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0;
+          }
+          25% {
+            transform: translate(-10px, 10px) scale(1.5);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translate(0, -20px) scale(1);
+            opacity: 0;
+          }
+          75% {
+            transform: translate(10px, -10px) scale(1.5);
+            opacity: 0.8;
+          }
         }
         @keyframes particle5 {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
-          25% { transform: translate(15px, 0) scale(1.5); opacity: 0.8; }
-          50% { transform: translate(0, 15px) scale(1); opacity: 0; }
-          75% { transform: translate(-15px, 0) scale(1.5); opacity: 0.8; }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0;
+          }
+          25% {
+            transform: translate(15px, 0) scale(1.5);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translate(0, 15px) scale(1);
+            opacity: 0;
+          }
+          75% {
+            transform: translate(-15px, 0) scale(1.5);
+            opacity: 0.8;
+          }
         }
       `}</style>
     </>
   );
 };
 
-export default ChatButton; 
+export default ChatButton;

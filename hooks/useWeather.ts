@@ -26,8 +26,8 @@ export function useWeather(location: string): WeatherData {
   useEffect(() => {
     const fetchWeather = async () => {
       try {
-        setWeatherData(prev => ({ ...prev, loading: true, error: null }));
-        
+        setWeatherData((prev) => ({ ...prev, loading: true, error: null }));
+
         const response = await fetch(`/api/weather?location=${encodeURIComponent(location)}`);
 
         if (!response.ok) {
@@ -51,7 +51,7 @@ export function useWeather(location: string): WeatherData {
 
         setWeatherData(transformedData);
       } catch (error) {
-        setWeatherData(prev => ({
+        setWeatherData((prev) => ({
           ...prev,
           loading: false,
           error: error instanceof Error ? error.message : 'Error desconocido',
@@ -65,4 +65,4 @@ export function useWeather(location: string): WeatherData {
   }, [location]);
 
   return weatherData;
-} 
+}

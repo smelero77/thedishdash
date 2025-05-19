@@ -1,19 +1,19 @@
-"use client"
+'use client';
 
-import { MenuScreenWrapper } from '@/components/screens/MenuScreenWrapper'
-import { useTableValidation } from '@/hooks/useTableValidation'
-import { useMenuData } from '@/hooks/useMenuData'
+import { MenuScreenWrapper } from '@/components/screens/MenuScreenWrapper';
+import { useTableValidation } from '@/hooks/useTableValidation';
+import { useMenuData } from '@/hooks/useMenuData';
 
 export function MenuPageContent() {
-  const { isValidating, tableNumber } = useTableValidation()
-  const { slots, categories, menuItems, currentSlot } = useMenuData()
+  const { isValidating, tableNumber } = useTableValidation();
+  const { slots, categories, menuItems, currentSlot } = useMenuData();
 
   if (isValidating) {
-    return null
+    return null;
   }
 
   if (!tableNumber) {
-    return null
+    return null;
   }
 
   return (
@@ -23,5 +23,5 @@ export function MenuPageContent() {
       initialMenuItems={menuItems}
       initialCurrentSlot={currentSlot}
     />
-  )
-} 
+  );
+}

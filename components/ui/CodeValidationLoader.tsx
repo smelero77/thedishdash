@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import { motion } from 'framer-motion';
 
@@ -6,8 +6,8 @@ interface CodeValidationLoaderProps {
   message?: string;
 }
 
-export function CodeValidationLoader({ 
-  message = "Validando código de mesa..." 
+export function CodeValidationLoader({
+  message = 'Validando código de mesa...',
 }: CodeValidationLoaderProps) {
   return (
     <div className="flex flex-col items-center justify-center p-8 space-y-4">
@@ -18,7 +18,7 @@ export function CodeValidationLoader({
           transition={{
             duration: 1.5,
             repeat: Infinity,
-            ease: "linear"
+            ease: 'linear',
           }}
         />
         <motion.div
@@ -27,7 +27,7 @@ export function CodeValidationLoader({
           transition={{
             duration: 2,
             repeat: Infinity,
-            ease: "linear"
+            ease: 'linear',
           }}
         />
         <motion.div
@@ -37,8 +37,8 @@ export function CodeValidationLoader({
           transition={{
             duration: 2,
             repeat: Infinity,
-            repeatType: "reverse",
-            ease: "easeInOut"
+            repeatType: 'reverse',
+            ease: 'easeInOut',
           }}
         >
           <div className="w-4 h-4 bg-[#1ce3cf] rounded-full" />
@@ -54,4 +54,4 @@ export function CodeValidationLoader({
       </motion.p>
     </div>
   );
-} 
+}

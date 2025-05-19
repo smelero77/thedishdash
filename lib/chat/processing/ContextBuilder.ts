@@ -60,25 +60,29 @@ export class ContextBuilder {
   public buildCartContext(cartItems: CartItemForContext[]): string {
     try {
       if (!cartItems || cartItems.length === 0) {
-        return "El carrito del cliente está vacío.";
+        return 'El carrito del cliente está vacío.';
       }
 
       const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-      const totalPrice = cartItems.reduce((sum, item) => 
-        sum + (item.menu_items?.price || 0) * item.quantity, 0);
+      const totalPrice = cartItems.reduce(
+        (sum, item) => sum + (item.menu_items?.price || 0) * item.quantity,
+        0,
+      );
 
-      return "En el carrito del cliente ya tiene:\n" +
+      return (
+        'En el carrito del cliente ya tiene:\n' +
         cartItems
           .map((item: CartItemForContext) => {
             const name = item.menu_items?.name || 'Ítem desconocido';
             const price = item.menu_items?.price ? `${item.menu_items.price}€` : '';
             return `- ${name} x${item.quantity}${price ? ` (${price} c/u)` : ''}`;
           })
-          .join("\n") +
-        `\n\nTotal: ${totalItems} ítem${totalItems !== 1 ? 's' : ''} - ${totalPrice.toFixed(2)}€`;
+          .join('\n') +
+        `\n\nTotal: ${totalItems} ítem${totalItems !== 1 ? 's' : ''} - ${totalPrice.toFixed(2)}€`
+      );
     } catch (error) {
       console.error('[ContextBuilder] Error building cart context:', error);
-      return "Error al construir el contexto del carrito.";
+      return 'Error al construir el contexto del carrito.';
     }
   }
 
@@ -88,42 +92,44 @@ export class ContextBuilder {
   public buildCandidatesContextBlock(items: EnrichedMenuItem[]): string {
     try {
       if (!items || items.length === 0) {
-        return "No hay candidatos específicos que cumplan los criterios para mostrar.";
+        return 'No hay candidatos específicos que cumplan los criterios para mostrar.';
       }
 
       // Limitar la cantidad de candidatos para no exceder tokens de GPT
       const itemsToShow = items.slice(0, CHAT_CONFIG.maxCandidatesForGptContext);
 
       // Crear una lista numerada con los IDs claramente marcados
-      const candidatesBlock = itemsToShow.map((item, index) => {
-        const description = item.description 
-          ? item.description.length > 150 
-            ? `${item.description.substring(0, 150)}...` 
-            : item.description
-          : '-';
+      const candidatesBlock = itemsToShow
+        .map((item, index) => {
+          const description = item.description
+            ? item.description.length > 150
+              ? `${item.description.substring(0, 150)}...`
+              : item.description
+            : '-';
 
-        const categories = (item.category_info || [])
-          .map(c => c.name)
-          .join(', ') || 'N/A';
+          const categories = (item.category_info || []).map((c) => c.name).join(', ') || 'N/A';
 
-        const characteristics = this.getMenuItemCharacteristics(item);
+          const characteristics = this.getMenuItemCharacteristics(item);
 
-        return `============= CANDIDATO ${index + 1} =============\n` +
-          `  ID: "${item.id}" (IMPORTANTE: usa EXACTAMENTE este ID)\n` +
-          `  Nombre: ${item.name}\n` +
-          `  Precio: ${item.price}€\n` +
-          `  Descripción: ${description}\n` +
-          `  Categorías: ${categories}\n` +
-          (characteristics ? `  Características: ${characteristics}\n` : '') +
-          (item.is_recommended ? '  ¡Recomendado!\n' : '') +
-          `============= FIN CANDIDATO ${index + 1} =============`;
-      }).join("\n\n");
+          return (
+            `============= CANDIDATO ${index + 1} =============\n` +
+            `  ID: "${item.id}" (IMPORTANTE: usa EXACTAMENTE este ID)\n` +
+            `  Nombre: ${item.name}\n` +
+            `  Precio: ${item.price}€\n` +
+            `  Descripción: ${description}\n` +
+            `  Categorías: ${categories}\n` +
+            (characteristics ? `  Características: ${characteristics}\n` : '') +
+            (item.is_recommended ? '  ¡Recomendado!\n' : '') +
+            `============= FIN CANDIDATO ${index + 1} =============`
+          );
+        })
+        .join('\n\n');
 
       // Añadir una nota enfática al principio
       return `IMPORTANTE: A continuación se lista TODOS los candidatos disponibles. DEBES usar EXCLUSIVAMENTE los IDs exactos proporcionados en esta lista. NUNCA inventes IDs ni uses nombres como si fueran IDs. Para cada plato recomendado, la razón de recomendación debe basarse ÚNICAMENTE en los atributos y características de ESE plato específico.\n\n${candidatesBlock}`;
     } catch (error) {
       console.error('[ContextBuilder] Error building candidates context:', error);
-      return "Error al construir el contexto de candidatos.";
+      return 'Error al construir el contexto de candidatos.';
     }
   }
 
@@ -132,18 +138,18 @@ export class ContextBuilder {
    */
   public buildExtractionContext(
     userMessage: string,
-    conversationHistory?: ConversationTurn[]
+    conversationHistory?: ConversationTurn[],
   ): string {
     try {
-      let context = "Mensaje del usuario: " + userMessage;
+      let context = 'Mensaje del usuario: ' + userMessage;
 
       if (conversationHistory && conversationHistory.length > 0) {
         const relevantHistory = conversationHistory
           .slice(-3) // Usar un número fijo de turnos para el historial
-          .map(turn => `${turn.role}: ${turn.content}`)
-          .join("\n");
+          .map((turn) => `${turn.role}: ${turn.content}`)
+          .join('\n');
 
-        context += "\n\nHistorial de conversación relevante:\n" + relevantHistory;
+        context += '\n\nHistorial de conversación relevante:\n' + relevantHistory;
       }
 
       return context;
@@ -159,28 +165,28 @@ export class ContextBuilder {
   public buildRecommendationContext(
     currentFilters: ExtractedFilters,
     conversationHistory?: ConversationTurn[],
-    candidates?: EnrichedMenuItem[]
+    candidates?: EnrichedMenuItem[],
   ): string {
     try {
-      let context = "Filtros actuales:\n" + this.formatFilters(currentFilters);
+      let context = 'Filtros actuales:\n' + this.formatFilters(currentFilters);
 
       if (conversationHistory && conversationHistory.length > 0) {
         const relevantHistory = conversationHistory
           .slice(-5) // Usar un número fijo de turnos para el historial
-          .map(turn => `${turn.role}: ${turn.content}`)
-          .join("\n");
+          .map((turn) => `${turn.role}: ${turn.content}`)
+          .join('\n');
 
-        context += "\n\nHistorial de conversación relevante:\n" + relevantHistory;
+        context += '\n\nHistorial de conversación relevante:\n' + relevantHistory;
       }
 
       if (candidates && candidates.length > 0) {
-        context += "\n\nCandidatos disponibles:\n" + this.buildCandidatesContextBlock(candidates);
+        context += '\n\nCandidatos disponibles:\n' + this.buildCandidatesContextBlock(candidates);
       }
 
       return context;
     } catch (error) {
       console.error('[ContextBuilder] Error building recommendation context:', error);
-      return "Error al construir el contexto de recomendación.";
+      return 'Error al construir el contexto de recomendación.';
     }
   }
 
@@ -246,4 +252,4 @@ export class ContextBuilder {
 }
 
 // Exportar una instancia singleton
-export const contextBuilder = ContextBuilder.getInstance(); 
+export const contextBuilder = ContextBuilder.getInstance();

@@ -12,7 +12,7 @@ const renames = [
   ['loading-fallback.tsx', 'LoadingFallback.tsx'],
   ['table-info.tsx', 'TableInfo.tsx'],
   ['toast.tsx', 'Toast.tsx'],
-  ['toaster.tsx', 'Toaster.tsx']
+  ['toaster.tsx', 'Toaster.tsx'],
 ];
 
 renames.forEach(([current, newName]) => {
@@ -26,4 +26,4 @@ renames.forEach(([current, newName]) => {
   }
 });
 
-console.log('Renombrado de componentes UI completado.'); 
+console.log('Renombrado de componentes UI completado.');

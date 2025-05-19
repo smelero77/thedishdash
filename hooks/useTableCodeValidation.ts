@@ -49,6 +49,6 @@ export function useTableCodeValidation() {
   return {
     validateCode,
     isValidating,
-    error
+    error,
   };
-} 
+}

@@ -12,4 +12,4 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({ error }) => {
   );
 };
 
-export default ErrorScreen; 
+export default ErrorScreen;

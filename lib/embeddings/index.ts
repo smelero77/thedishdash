@@ -17,4 +17,4 @@ export class EmbeddingService {
   }
 }
 
-export * from './types/embedding.types'; 
+export * from './types/embedding.types';

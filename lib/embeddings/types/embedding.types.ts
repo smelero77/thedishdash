@@ -14,4 +14,4 @@ export interface EmbeddingError {
   code: string;
   message: string;
   details?: any;
-} 
+}

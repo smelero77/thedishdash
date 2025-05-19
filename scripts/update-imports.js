@@ -27,17 +27,17 @@ const mappings = {
   '@/components/MenuItem': '@/components/screens/MenuItem',
   '@/components/SearchButton': '@/components/screens/SearchButton',
   '@/components/ModifierModal': '@/components/screens/ModifierModal',
-  '@/components/TableInfo': '@/components/screens/TableInfo'
+  '@/components/TableInfo': '@/components/screens/TableInfo',
 };
 
 // Archivos a procesar
 const targetFiles = glob.sync('**/*.{ts,tsx}', {
-  ignore: ['node_modules/**', 'scripts/**']
+  ignore: ['node_modules/**', 'scripts/**'],
 });
 
 console.log(`Procesando ${targetFiles.length} archivos...`);
 
-targetFiles.forEach(file => {
+targetFiles.forEach((file) => {
   let content = fs.readFileSync(file, 'utf-8');
   let updated = content;
 
@@ -52,4 +52,4 @@ targetFiles.forEach(file => {
   }
 });
 
-console.log('Actualización de imports completada.'); 
+console.log('Actualización de imports completada.');

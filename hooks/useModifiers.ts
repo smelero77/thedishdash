@@ -16,7 +16,8 @@ export function useModifiers() {
 
       const { data, error } = await supabase
         .from('modifiers')
-        .select(`
+        .select(
+          `
           *,
           options:modifier_options(
             *,
@@ -24,7 +25,8 @@ export function useModifiers() {
               allergen:allergens(*)
             )
           )
-        `)
+        `,
+        )
         .eq('menu_item_id', menuItemId);
 
       if (error) throw error;
@@ -35,19 +37,22 @@ export function useModifiers() {
         description: raw.description,
         required: raw.required,
         multi_select: raw.multi_select,
-        options: raw.options.map((opt: any): ModifierOption => ({
-          id: opt.id,
-          name: opt.name,
-          extra_price: opt.extra_price,
-          is_default: opt.is_default,
-          icon_url: opt.icon_url ?? undefined,
-          related_menu_item_id: opt.related_menu_item_id ?? undefined,
-          allergens: opt.modifier_options_allergens?.map((a: any) => ({
-            id: a.allergen.id,
-            name: a.allergen.name,
-            icon_url: a.allergen.icon_url ?? ''
-          })) ?? []
-        }))
+        options: raw.options.map(
+          (opt: any): ModifierOption => ({
+            id: opt.id,
+            name: opt.name,
+            extra_price: opt.extra_price,
+            is_default: opt.is_default,
+            icon_url: opt.icon_url ?? undefined,
+            related_menu_item_id: opt.related_menu_item_id ?? undefined,
+            allergens:
+              opt.modifier_options_allergens?.map((a: any) => ({
+                id: a.allergen.id,
+                name: a.allergen.name,
+                icon_url: a.allergen.icon_url ?? '',
+              })) ?? [],
+          }),
+        ),
       }));
 
       setModifiers(processed);
@@ -62,6 +67,6 @@ export function useModifiers() {
     modifiers,
     loading,
     error,
-    fetchModifiers
+    fetchModifiers,
   };
-} 
+}

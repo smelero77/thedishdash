@@ -202,4 +202,4 @@ export const CLARIFICATION_PROMPT = `Necesito más información para poder recom
 
 {clarificationPoints}
 
-Puedes responder a todas o solo a las que prefieras. Cuanta más información me proporciones, mejores recomendaciones podré hacerte.`; 
+Puedes responder a todas o solo a las que prefieras. Cuanta más información me proporciones, mejores recomendaciones podré hacerte.`;

@@ -4,14 +4,14 @@ export const searchMenuItems = (query: string, menuItems: MenuItemData[]) => {
   const searchTerm = query.toLowerCase().trim();
   if (!searchTerm) return [];
 
-  return menuItems.filter(item => {
+  return menuItems.filter((item) => {
     // Si algún campo es null/undefined, lo convertimos a ''
-    const name        = item.name               ?? '';
-    const description = item.description        ?? '';
-    const foodInfo    = item.food_info          ?? '';
-    const origin      = item.origin             ?? '';
-    const pairing     = item.pairing_suggestion ?? '';
-    const notes       = item.chef_notes         ?? '';
+    const name = item.name ?? '';
+    const description = item.description ?? '';
+    const foodInfo = item.food_info ?? '';
+    const origin = item.origin ?? '';
+    const pairing = item.pairing_suggestion ?? '';
+    const notes = item.chef_notes ?? '';
 
     return (
       name.toLowerCase().includes(searchTerm) ||
@@ -27,9 +27,9 @@ export const searchMenuItems = (query: string, menuItems: MenuItemData[]) => {
 export const resetSearch = (
   setSearchQuery: (q: string) => void,
   setFilteredItems: (items: MenuItemData[]) => void,
-  setSearchActive: (active: boolean) => void
+  setSearchActive: (active: boolean) => void,
 ) => {
   setSearchQuery('');
   setFilteredItems([]);
   setSearchActive(false);
-}; 
+};

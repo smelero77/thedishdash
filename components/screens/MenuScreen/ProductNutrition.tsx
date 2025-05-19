@@ -11,11 +11,13 @@ const ProductNutrition: React.FC<ProductNutritionProps> = ({ nutrition }) => {
       <h3 className="text-sm font-semibold text-[#0e1b19] mb-1">Información nutricional</h3>
       <ul className="list-disc list-inside text-sm text-[#0e1b19]">
         {Object.entries(nutrition).map(([key, value]) => (
-          <li key={key}><span className="font-medium">{key}:</span> {value}</li>
+          <li key={key}>
+            <span className="font-medium">{key}:</span> {value}
+          </li>
         ))}
       </ul>
     </div>
   );
 };
 
-export default ProductNutrition; 
+export default ProductNutrition;

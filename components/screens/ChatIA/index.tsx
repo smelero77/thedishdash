@@ -28,7 +28,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
           id: Date.now().toString(),
           content: {
             type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
-            content: `¡Hola ${userAlias}! Soy Don Gourmetón, ¿en qué puedo ayudarte hoy?`
+            content: `¡Hola ${userAlias}! Soy Don Gourmetón, ¿en qué puedo ayudarte hoy?`,
           },
           role: 'assistant',
           timestamp: new Date(),
@@ -84,7 +84,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
     setIsLoading(true);
     setIsTyping(true);
 
@@ -107,7 +107,9 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Error en la respuesta del servidor' }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ detail: 'Error en la respuesta del servidor' }));
         throw new Error(errorData.detail || 'Error en la respuesta del servidor');
       }
 
@@ -120,7 +122,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
         sessionIdRef.current = data.sessionId;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Transformar la respuesta legacy a la estructura esperada
       const legacyAsstResponse = data.response;
@@ -133,9 +135,9 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
         finalUiAssistantResponse = {
           type: SYSTEM_MESSAGE_TYPES.ERROR,
           content: 'Lo siento, recibí una respuesta inesperada del servidor.',
-          error: { message: 'Formato de respuesta inválido.' }
+          error: { message: 'Formato de respuesta inválido.' },
         };
-      } else if (legacyAsstResponse.type === "recommendation") {
+      } else if (legacyAsstResponse.type === 'recommendation') {
         finalUiAssistantResponse = {
           type: 'recommendation',
           content: legacyAsstResponse.content,
@@ -145,35 +147,38 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
             price: rec.price,
             reason: rec.reason,
             image_url: rec.image_url,
-            category_info: rec.category_info || []
-          }))
+            category_info: rec.category_info || [],
+          })),
         };
-      } else if (legacyAsstResponse.type === "text") {
+      } else if (legacyAsstResponse.type === 'text') {
         finalUiAssistantResponse = {
           type: SYSTEM_MESSAGE_TYPES.INFO,
-          content: legacyAsstResponse.content
-        };
-      } else if (legacyAsstResponse.type === "assistant_text") {
-        finalUiAssistantResponse = {
-          type: SYSTEM_MESSAGE_TYPES.INFO,
-          content: legacyAsstResponse.content
-        };
-      } else if (legacyAsstResponse.type === "product_details") {
-        finalUiAssistantResponse = {
-          type: "product_details",
           content: legacyAsstResponse.content,
-          product: legacyAsstResponse.product
+        };
+      } else if (legacyAsstResponse.type === 'assistant_text') {
+        finalUiAssistantResponse = {
+          type: SYSTEM_MESSAGE_TYPES.INFO,
+          content: legacyAsstResponse.content,
+        };
+      } else if (legacyAsstResponse.type === 'product_details') {
+        finalUiAssistantResponse = {
+          type: 'product_details',
+          content: legacyAsstResponse.content,
+          product: legacyAsstResponse.product,
         };
       } else {
         console.error('Tipo de respuesta no manejado:', legacyAsstResponse.type);
         finalUiAssistantResponse = {
           type: SYSTEM_MESSAGE_TYPES.ERROR,
           content: 'Lo siento, no pude procesar tu mensaje de la forma esperada.',
-          error: { message: `Tipo de respuesta no manejado: ${legacyAsstResponse.type}` }
+          error: { message: `Tipo de respuesta no manejado: ${legacyAsstResponse.type}` },
         };
       }
 
-      console.log('Respuesta final transformada:', JSON.stringify(finalUiAssistantResponse, null, 2));
+      console.log(
+        'Respuesta final transformada:',
+        JSON.stringify(finalUiAssistantResponse, null, 2),
+      );
 
       const assistantMessage: Message = {
         id: Date.now().toString(),
@@ -182,7 +187,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error:', error);
       const errorMessage: Message = {
@@ -192,13 +197,13 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
           content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.',
           error: {
             code: 'CHAT_ERROR',
-            message: error instanceof Error ? error.message : 'Error desconocido'
-          }
+            message: error instanceof Error ? error.message : 'Error desconocido',
+          },
         },
         role: 'assistant',
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
       setIsTyping(false);
@@ -211,7 +216,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
     <div className={`fixed inset-0 z-[200] ${isOpen ? 'block' : 'hidden'}`}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div 
+        <div
           className={`
             relative w-full max-w-2xl h-[80vh] 
             bg-[#f5fefe] dark:bg-[#0f1b1a]
@@ -237,7 +242,9 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
           )}
 
           {/* Header */}
-          <div className={`absolute top-0 left-0 right-0 h-16 bg-[#1ce3cf] dark:bg-[#1ce3cf]/90 backdrop-blur-md border-b border-[#c7f0ec]/30 ${isOpen ? 'slide-in' : ''}`}>
+          <div
+            className={`absolute top-0 left-0 right-0 h-16 bg-[#1ce3cf] dark:bg-[#1ce3cf]/90 backdrop-blur-md border-b border-[#c7f0ec]/30 ${isOpen ? 'slide-in' : ''}`}
+          >
             <div className="flex items-center justify-between h-full px-6">
               <div className="flex items-center space-x-3">
                 <div className="relative">
@@ -256,7 +263,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
           </div>
 
           {/* Mensajes */}
-          <div 
+          <div
             ref={messagesContainerRef}
             className={`
               absolute top-16 bottom-20 left-0 right-0
@@ -309,4 +316,4 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
       </div>
     </div>
   );
-}; 
+};

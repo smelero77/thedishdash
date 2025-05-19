@@ -17,7 +17,7 @@ interface TemporaryOrderItem {
 export const useCartSync = (
   temporaryOrderId: string | null,
   onCartUpdate: (cart: any) => void,
-  onError: (error: Error) => void
+  onError: (error: Error) => void,
 ) => {
   useEffect(() => {
     if (!temporaryOrderId) return;
@@ -30,19 +30,19 @@ export const useCartSync = (
           event: '*',
           schema: 'public',
           table: 'temporary_order_items',
-          filter: `temporary_order_id=eq.${temporaryOrderId}`
+          filter: `temporary_order_id=eq.${temporaryOrderId}`,
         },
         async (payload: RealtimePostgresChangesPayload<TemporaryOrderItem>) => {
           try {
             console.log('Realtime change received:', payload);
-            
+
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const item = payload.new;
               if (!item || !item.menu_item_id || !item.alias) {
                 console.warn('Item incompleto recibido:', item);
                 return;
               }
-              
+
               const normalizedModifiers = normalizeModifiers(item.modifiers_data);
               const cartKey = getCartKey(item.menu_item_id, normalizedModifiers, item.alias);
               onCartUpdate((prevCart: any) => ({
@@ -52,8 +52,8 @@ export const useCartSync = (
                   item: item.menu_item,
                   modifiers: normalizedModifiers,
                   quantity: item.quantity,
-                  client_alias: item.alias
-                }
+                  client_alias: item.alias,
+                },
               }));
             } else if (payload.eventType === 'DELETE') {
               const item = payload.old;
@@ -61,7 +61,7 @@ export const useCartSync = (
                 console.warn('Item incompleto recibido:', item);
                 return;
               }
-              
+
               const normalizedModifiers = normalizeModifiers(item.modifiers_data);
               const cartKey = getCartKey(item.menu_item_id, normalizedModifiers, item.alias);
               onCartUpdate((prevCart: any) => {
@@ -73,7 +73,7 @@ export const useCartSync = (
           } catch (error) {
             onError(error as Error);
           }
-        }
+        },
       )
       .subscribe();
 
@@ -81,4 +81,4 @@ export const useCartSync = (
       subscription.unsubscribe();
     };
   }, [temporaryOrderId, onCartUpdate, onError]);
-}; 
+};

@@ -33,4 +33,4 @@ moves.forEach(([src, dest]) => {
   }
 });
 
-console.log('Movimiento de screens completado.'); 
+console.log('Movimiento de screens completado.');

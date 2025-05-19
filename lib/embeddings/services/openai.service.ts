@@ -27,7 +27,7 @@ export class OpenAIEmbeddingService {
       const response = await this.openai.embeddings.create({
         model: this.config.model,
         input: text,
-        dimensions: this.config.dimensions
+        dimensions: this.config.dimensions,
       });
 
       return response.data[0].embedding;
@@ -42,13 +42,13 @@ export class OpenAIEmbeddingService {
       const response = await this.openai.embeddings.create({
         model: this.config.model,
         input: texts,
-        dimensions: this.config.dimensions
+        dimensions: this.config.dimensions,
       });
 
       return response.data.map((item, index) => ({
         object: item.object,
         embedding: item.embedding,
-        index
+        index,
       }));
     } catch (error) {
       console.error('Error generating embeddings:', error);
@@ -66,7 +66,7 @@ export class OpenAIEmbeddingService {
         temperature: opts.temperature,
         max_tokens: opts.max_tokens,
         top_p: opts.top_p,
-        presence_penalty: opts.presence_penalty
+        presence_penalty: opts.presence_penalty,
       });
 
       return response;
@@ -75,4 +75,4 @@ export class OpenAIEmbeddingService {
       throw new Error('Failed to get chat completion');
     }
   }
-} 
+}

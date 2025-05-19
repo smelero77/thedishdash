@@ -31,8 +31,4 @@ export type {
 } from './modifiers';
 
 // Re-export session types
-export type {
-  Session,
-  Message,
-  SessionState,
-} from './session'; 
+export type { Session, Message, SessionState } from './session';

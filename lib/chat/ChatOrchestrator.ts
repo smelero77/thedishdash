@@ -25,5 +25,5 @@ const systemContext = {
   
   IMPORTANTE: SIEMPRE debes devolver entre 3 y 4 recomendaciones diferentes, a menos que haya menos candidatos disponibles. No te limites a recomendar solo uno o dos platos.
   
-  Si no encuentras platos que coincidan exactamente, recomienda los más cercanos y explica por qué podrían ser adecuados.`
-}; 
+  Si no encuentras platos que coincidan exactamente, recomienda los más cercanos y explica por qué podrían ser adecuados.`,
+};

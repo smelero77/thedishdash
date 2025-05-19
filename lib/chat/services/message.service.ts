@@ -10,16 +10,12 @@ export class ChatMessageService {
 
   constructor(
     openaiApiKey: string,
-    private embeddingService: OpenAIEmbeddingService
+    private embeddingService: OpenAIEmbeddingService,
   ) {
     console.log('🔧 ChatMessageService: Inicializando ChatOrchestrator...');
-    
+
     try {
-      this.chatOrchestrator = new ChatOrchestrator(
-        openaiApiKey,
-        supabase,
-        this.embeddingService
-      );
+      this.chatOrchestrator = new ChatOrchestrator(openaiApiKey, supabase, this.embeddingService);
       console.log('✅ ChatMessageService: ChatOrchestrator inicializado correctamente');
     } catch (error) {
       console.error('❌ ChatMessageService: Error al inicializar ChatOrchestrator:', error);
@@ -30,7 +26,7 @@ export class ChatMessageService {
   public async processMessage(
     session: ChatSession,
     message: string,
-    categoryId?: string
+    categoryId?: string,
   ): Promise<AssistantResponse> {
     try {
       return await this.chatOrchestrator.processUserMessage(session, message, categoryId);
@@ -41,9 +37,9 @@ export class ChatMessageService {
         content: 'Lo siento, ha ocurrido un error al procesar tu mensaje.',
         error: {
           code: 'MESSAGE_PROCESSING_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error'
-        }
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
       };
     }
   }
-} 
+}

@@ -9,9 +9,12 @@ interface OrderTotalProps {
 export const OrderTotal = ({ items, visibleItems, className = '' }: OrderTotalProps) => {
   const total = visibleItems.reduce((sum, item) => {
     const itemTotal = item.item.price * item.quantity;
-    const modifiersTotal = Object.values(item.modifiers || {}).reduce((modSum, modifier) => 
-      modSum + modifier.options.reduce((optSum, opt) => optSum + (opt.extra_price || 0), 0), 0
-    ) * item.quantity;
+    const modifiersTotal =
+      Object.values(item.modifiers || {}).reduce(
+        (modSum, modifier) =>
+          modSum + modifier.options.reduce((optSum, opt) => optSum + (opt.extra_price || 0), 0),
+        0,
+      ) * item.quantity;
     return sum + itemTotal + modifiersTotal;
   }, 0);
 
@@ -25,4 +28,4 @@ export const OrderTotal = ({ items, visibleItems, className = '' }: OrderTotalPr
       </div>
     </div>
   );
-}; 
+};

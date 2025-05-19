@@ -15,14 +15,21 @@ interface StoryModalProps {
   onClose: () => void;
 }
 
-export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }: StoryModalProps) => {
+export const StoryModal = ({
+  alias,
+  items,
+  currentIndex: initialIndex,
+  onClose,
+}: StoryModalProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [visibleItems, setVisibleItems] = useState<CartItem[]>([]);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => { setIsVisible(true); }, 50);
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 50);
     return () => clearTimeout(timer);
   }, []);
 
@@ -30,7 +37,7 @@ export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }
     if (isVisible) {
       const loadItems = async () => {
         for (let i = 1; i <= items.length; i++) {
-          await new Promise(resolve => setTimeout(resolve, 150));
+          await new Promise((resolve) => setTimeout(resolve, 150));
           setVisibleItems(items.slice(0, i));
         }
       };
@@ -45,20 +52,20 @@ export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }
 
   return (
     <AnimatePresence>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: isVisible ? 1 : 0 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 bg-gradient-to-b from-black/80 to-black/60 backdrop-blur-sm"
         onClick={handleClose}
       >
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ type: "spring", damping: 20, stiffness: 200 }}
+          transition={{ type: 'spring', damping: 20, stiffness: 200 }}
           className="fixed inset-0 flex items-center justify-center p-4"
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl">
             <div className="absolute top-0 left-0 right-0 z-10 bg-white/80 backdrop-blur-md border-b border-white/20">
@@ -77,8 +84,8 @@ export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }
                 </div>
                 <div className="flex items-center gap-3">
                   <OrderTotal items={items} visibleItems={visibleItems} />
-                  <button 
-                    onClick={handleClose} 
+                  <button
+                    onClick={handleClose}
                     className="p-2 -m-2 text-[#4f968f] hover:bg-[#4f968f]/10 rounded-full transition-colors"
                     aria-label="Cerrar"
                   >
@@ -86,7 +93,7 @@ export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }
                   </button>
                 </div>
               </div>
-              <ScrollProgressBar 
+              <ScrollProgressBar
                 containerRef={contentRef}
                 className="sticky top-0 z-10"
                 barClassName="bg-[#4f968f]"
@@ -94,7 +101,7 @@ export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }
               />
             </div>
 
-            <div 
+            <div
               ref={contentRef}
               className="h-[calc(100vh-200px)] overflow-y-auto no-scrollbar pt-24 pb-8 px-4"
             >
@@ -104,11 +111,11 @@ export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }
                     key={index}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ 
-                      type: "spring",
+                    transition={{
+                      type: 'spring',
                       damping: 25,
                       stiffness: 150,
-                      delay: index * 0.05
+                      delay: index * 0.05,
                     }}
                   >
                     <StoryItem item={item} />
@@ -121,4 +128,4 @@ export const StoryModal = ({ alias, items, currentIndex: initialIndex, onClose }
       </motion.div>
     </AnimatePresence>
   );
-}; 
+};

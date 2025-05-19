@@ -46,11 +46,11 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     ],
     collapseGroups: false,
     notifier: (options: WhyDidYouRenderNotifierOptions) => {
-      const componentName = options.Component ? 
-        (options.Component as any).displayName || 
-        (options.Component as any).name || 
-        'Unknown Component' : 
-        'Unknown Component';
+      const componentName = options.Component
+        ? (options.Component as any).displayName ||
+          (options.Component as any).name ||
+          'Unknown Component'
+        : 'Unknown Component';
       console.log('=== RENDER INNECESARIO ===');
       console.log('Component:', componentName);
       console.log('Reason:', options.reason);

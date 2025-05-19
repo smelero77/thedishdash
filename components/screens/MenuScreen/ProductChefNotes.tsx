@@ -14,4 +14,4 @@ const ProductChefNotes: React.FC<ProductChefNotesProps> = ({ notes }) => {
   );
 };
 
-export default ProductChefNotes; 
+export default ProductChefNotes;

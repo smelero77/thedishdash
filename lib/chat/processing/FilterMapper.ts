@@ -22,7 +22,7 @@ export class FilterMapper {
     allergenHits: 0,
     allergenMisses: 0,
     dietTagHits: 0,
-    dietTagMisses: 0
+    dietTagMisses: 0,
   };
 
   private constructor() {
@@ -45,8 +45,8 @@ export class FilterMapper {
 
   private cleanupCache() {
     const now = Date.now();
-    
-    [this.categoryCache, this.allergenCache, this.dietTagCache].forEach(cache => {
+
+    [this.categoryCache, this.allergenCache, this.dietTagCache].forEach((cache) => {
       Array.from(cache.entries()).forEach(([key, entry]) => {
         if (now - entry.timestamp > CACHE_MAX_AGE) {
           cache.delete(key);
@@ -58,17 +58,14 @@ export class FilterMapper {
   }
 
   private async validateIds(ids: string[], table: string): Promise<string[]> {
-    const { data, error } = await supabase
-      .from(table)
-      .select('id')
-      .in('id', ids);
+    const { data, error } = await supabase.from(table).select('id').in('id', ids);
 
     if (error) {
       this.logger.error(`[FilterMapper] Error validating ${table} IDs:`, error);
       return [];
     }
 
-    return data.map(item => item.id);
+    return data.map((item) => item.id);
   }
 
   /**
@@ -76,7 +73,7 @@ export class FilterMapper {
    */
   public async mapToRpcParameters(filters: ExtractedFilters): Promise<RpcFilterParameters> {
     this.logger.debug('[FilterMapper] Iniciando mapeo de filtros');
-    
+
     // Inicialización de variables de filtro
     const result: RpcFilterParameters = {
       p_item_type: filters.item_type || undefined,
@@ -93,16 +90,16 @@ export class FilterMapper {
       p_price_max: filters.price_max || undefined,
       p_price_min: filters.price_min || undefined,
       p_keywords_include: filters.keywords_include || undefined,
-      main_query: filters.main_query || undefined
+      main_query: filters.main_query || undefined,
     };
-    
+
     // Log específico para filtros de precio
     this.logger.debug('[FilterMapper] Mapeo de filtros de precio:', {
       price_min_input: filters.price_min,
       price_max_input: filters.price_max,
       price_min_output: result.p_price_min,
       price_max_output: result.p_price_max,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     try {
@@ -139,18 +136,27 @@ export class FilterMapper {
       categories: {
         hits: this.cacheMetrics.categoryHits,
         misses: this.cacheMetrics.categoryMisses,
-        hitRate: this.calculateHitRate(this.cacheMetrics.categoryHits, this.cacheMetrics.categoryMisses)
+        hitRate: this.calculateHitRate(
+          this.cacheMetrics.categoryHits,
+          this.cacheMetrics.categoryMisses,
+        ),
       },
       allergens: {
         hits: this.cacheMetrics.allergenHits,
         misses: this.cacheMetrics.allergenMisses,
-        hitRate: this.calculateHitRate(this.cacheMetrics.allergenHits, this.cacheMetrics.allergenMisses)
+        hitRate: this.calculateHitRate(
+          this.cacheMetrics.allergenHits,
+          this.cacheMetrics.allergenMisses,
+        ),
       },
       dietTags: {
         hits: this.cacheMetrics.dietTagHits,
         misses: this.cacheMetrics.dietTagMisses,
-        hitRate: this.calculateHitRate(this.cacheMetrics.dietTagHits, this.cacheMetrics.dietTagMisses)
-      }
+        hitRate: this.calculateHitRate(
+          this.cacheMetrics.dietTagHits,
+          this.cacheMetrics.dietTagMisses,
+        ),
+      },
     });
   }
 
@@ -165,7 +171,7 @@ export class FilterMapper {
   public async mapCategoryNamesToIds(names: string[]): Promise<string[]> {
     console.log('[FilterMapper] Iniciando mapeo de nombres de categorías:', {
       category_names: names,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     const ids: string[] = [];
@@ -179,7 +185,7 @@ export class FilterMapper {
         console.log('[FilterMapper] Categoría encontrada en caché:', {
           name,
           id: cachedEntry.id,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
         ids.push(cachedEntry.id);
       } else {
@@ -187,7 +193,7 @@ export class FilterMapper {
         namesToFetch.push(name);
         console.log('[FilterMapper] Categoría no encontrada en caché:', {
           name,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     }
@@ -195,30 +201,30 @@ export class FilterMapper {
     if (namesToFetch.length > 0) {
       console.log('[FilterMapper] Buscando categorías en base de datos:', {
         names_to_fetch: namesToFetch,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       const { data, error } = await supabase
         .from('categories')
         .select('id, name')
-        .or(namesToFetch.map(name => `name.ilike.${name}`).join(','));
+        .or(namesToFetch.map((name) => `name.ilike.${name}`).join(','));
 
       if (error) {
         console.error('[FilterMapper] Error al buscar categorías:', {
           error,
           names_to_fetch: namesToFetch,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
         throw new Error(`Error fetching category IDs: ${error.message}`);
       }
 
       console.log('[FilterMapper] Resultados de búsqueda en base de datos:', {
-        found_categories: data?.map(c => ({ id: c.id, name: c.name })),
-        timestamp: new Date().toISOString()
+        found_categories: data?.map((c) => ({ id: c.id, name: c.name })),
+        timestamp: new Date().toISOString(),
       });
 
       // Actualizar caché y recopilar IDs
-      data?.forEach(category => {
+      data?.forEach((category) => {
         const entry: CacheEntry = { id: category.id, timestamp: Date.now() };
         this.categoryCache.set(category.name.toLowerCase(), entry);
         ids.push(category.id);
@@ -230,7 +236,7 @@ export class FilterMapper {
       output_ids: ids,
       cache_hits: this.cacheMetrics.categoryHits,
       cache_misses: this.cacheMetrics.categoryMisses,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return ids;
@@ -241,7 +247,7 @@ export class FilterMapper {
    */
   private async mapAllergenFilters(filters: ExtractedFilters): Promise<string[]> {
     const allergenIds: string[] = [];
-    
+
     if (filters.exclude_allergen_names?.length) {
       for (const allergenName of filters.exclude_allergen_names) {
         const allergenId = await this.getAllergenId(allergenName);
@@ -250,7 +256,7 @@ export class FilterMapper {
         }
       }
     }
-    
+
     return allergenIds;
   }
 
@@ -277,14 +283,14 @@ export class FilterMapper {
       const { data, error } = await supabase
         .from('diet_tags')
         .select('id, name')
-        .or(namesToFetch.map(name => `name.ilike.${name}`).join(','));
+        .or(namesToFetch.map((name) => `name.ilike.${name}`).join(','));
 
       if (error) {
         throw new Error(`Error fetching diet tag IDs: ${error.message}`);
       }
 
       // Actualizar caché y recopilar IDs
-      data?.forEach(tag => {
+      data?.forEach((tag) => {
         const entry: CacheEntry = { id: tag.id, timestamp: Date.now() };
         this.dietTagCache.set(tag.name.toLowerCase(), entry);
         ids.push(tag.id);
@@ -303,12 +309,9 @@ export class FilterMapper {
     }
 
     this.cacheMetrics.allergenMisses++;
-    
+
     // Si no está en caché, buscar en la base de datos
-    const { data, error } = await supabase
-      .from('allergens')
-      .select('id, name')
-      .ilike('name', name);
+    const { data, error } = await supabase.from('allergens').select('id, name').ilike('name', name);
 
     if (error) {
       console.error('[FilterMapper] Error fetching allergen ID:', error);
@@ -335,4 +338,4 @@ export class FilterMapper {
 }
 
 // Exportar una instancia singleton
-export const filterMapper = FilterMapper.getInstance(); 
+export const filterMapper = FilterMapper.getInstance();

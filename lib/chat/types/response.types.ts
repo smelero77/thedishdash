@@ -60,48 +60,53 @@ export const RecommendationSchema = z.object({
   price: z.number(),
   reason: z.string(),
   image_url: z.string(),
-  category_info: z.array(z.object({
-    id: z.string(),
-    name: z.string()
-  }))
+  category_info: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+    }),
+  ),
 });
 
 export const ChatResponseSchema = z.object({
-  type: z.enum([
-    'text',
-    'recommendation',
-    'product_details',
-    'error'
-  ]),
+  type: z.enum(['text', 'recommendation', 'product_details', 'error']),
   content: z.string(),
   data: z.array(RecommendationSchema).optional(),
-  product: z.object({
-    item: z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string().optional(),
-      price: z.number(),
-      image_url: z.string(),
-      category_info: z.array(z.object({
+  product: z
+    .object({
+      item: z.object({
         id: z.string(),
-        name: z.string()
-      })).optional(),
-      food_info: z.string().nullable().optional(),
-      origin: z.string().nullable().optional(),
-      pairing_suggestion: z.string().nullable().optional(),
-      chef_notes: z.string().optional(),
-      calories_est_min: z.number().optional(),
-      calories_est_max: z.number().optional(),
-      is_vegetarian_base: z.boolean().optional(),
-      is_vegan_base: z.boolean().optional(),
-      is_gluten_free_base: z.boolean().optional()
-    }),
-    explanation: z.string()
-  }).optional(),
-  error: z.object({
-    code: z.string(),
-    message: z.string()
-  }).optional()
+        name: z.string(),
+        description: z.string().optional(),
+        price: z.number(),
+        image_url: z.string(),
+        category_info: z
+          .array(
+            z.object({
+              id: z.string(),
+              name: z.string(),
+            }),
+          )
+          .optional(),
+        food_info: z.string().nullable().optional(),
+        origin: z.string().nullable().optional(),
+        pairing_suggestion: z.string().nullable().optional(),
+        chef_notes: z.string().optional(),
+        calories_est_min: z.number().optional(),
+        calories_est_max: z.number().optional(),
+        is_vegetarian_base: z.boolean().optional(),
+        is_vegan_base: z.boolean().optional(),
+        is_gluten_free_base: z.boolean().optional(),
+      }),
+      explanation: z.string(),
+    })
+    .optional(),
+  error: z
+    .object({
+      code: z.string(),
+      message: z.string(),
+    })
+    .optional(),
 });
 
 // Tipos derivados de los esquemas
@@ -144,4 +149,4 @@ export interface AssistantResponse {
   data?: Recommendation[];
   product?: ProductDetails;
   error?: ChatError;
-} 
+}

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from 'react';
 
@@ -24,4 +24,4 @@ export default function TableIcon({ tableNumber, size = 24 }: TableIconProps) {
       <span className="text-xs font-semibold mt-1">Mesa {tableNumber}</span>
     </div>
   );
-} 
+}

@@ -1,13 +1,16 @@
 import { supabase } from '@/lib/supabase';
 import { normalizeModifiers } from '@/utils/cartTransformers';
 
-export const useCartDatabase = (temporaryOrderId: string | null, onError: (error: Error) => void) => {
+export const useCartDatabase = (
+  temporaryOrderId: string | null,
+  onError: (error: Error) => void,
+) => {
   const addItemToDatabase = async (itemId: string, modifiers: Record<string, any> | null) => {
     if (!temporaryOrderId) return;
 
     try {
       const normalizedModifiers = normalizeModifiers(modifiers);
-      
+
       const { data: existingItem, error: fetchError } = await supabase
         .from('temporary_order_items')
         .select('*')
@@ -30,14 +33,12 @@ export const useCartDatabase = (temporaryOrderId: string | null, onError: (error
           throw new Error(`Error updating item: ${updateError.message}`);
         }
       } else {
-        const { error: insertError } = await supabase
-          .from('temporary_order_items')
-          .insert({
-            temporary_order_id: temporaryOrderId,
-            menu_item_id: itemId,
-            modifiers_data: normalizedModifiers,
-            quantity: 1
-          });
+        const { error: insertError } = await supabase.from('temporary_order_items').insert({
+          temporary_order_id: temporaryOrderId,
+          menu_item_id: itemId,
+          modifiers_data: normalizedModifiers,
+          quantity: 1,
+        });
 
         if (insertError) {
           throw new Error(`Error inserting item: ${insertError.message}`);
@@ -54,7 +55,7 @@ export const useCartDatabase = (temporaryOrderId: string | null, onError: (error
 
     try {
       const normalizedModifiers = normalizeModifiers(modifiers);
-      
+
       const { data: existingItem, error: fetchError } = await supabase
         .from('temporary_order_items')
         .select('*')
@@ -94,6 +95,6 @@ export const useCartDatabase = (temporaryOrderId: string | null, onError: (error
 
   return {
     addItemToDatabase,
-    removeItemFromDatabase
+    removeItemFromDatabase,
   };
-}; 
+};

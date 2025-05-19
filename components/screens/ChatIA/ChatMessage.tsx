@@ -69,7 +69,7 @@ export interface TextResponse {
   content: string;
 }
 
-export type TypedAssistantResponse = 
+export type TypedAssistantResponse =
   | { type: 'info'; content: string }
   | { type: 'error'; content: string; error: { message: string; code?: string } }
   | { type: 'clarification'; content: string }
@@ -99,8 +99,8 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
             <div key={rec.id} className="bg-white/10 rounded-lg p-4">
               <div className="flex items-start gap-4">
                 {rec.image_url && (
-                  <img 
-                    src={rec.image_url} 
+                  <img
+                    src={rec.image_url}
                     alt={rec.name}
                     className="w-20 h-20 object-cover rounded-lg"
                   />
@@ -112,7 +112,10 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
                   {rec.category_info?.length > 0 && (
                     <div className="flex gap-2 mt-2">
                       {rec.category_info.map((cat) => (
-                        <span key={cat.id} className="text-xs bg-[#1ce3cf]/20 text-[#1ce3cf] px-2 py-1 rounded">
+                        <span
+                          key={cat.id}
+                          className="text-xs bg-[#1ce3cf]/20 text-[#1ce3cf] px-2 py-1 rounded"
+                        >
                           {cat.name}
                         </span>
                       ))}
@@ -128,18 +131,18 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
     case 'product_details': {
       const productDetails = content as ProductDetailsResponse;
       const { item } = productDetails.product;
-      
+
       return (
         <div className="space-y-4">
           {/* Mensaje del asistente */}
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{productDetails.content}</p>
-          
+
           {/* Ficha del artículo */}
           <div className="bg-white/10 rounded-lg p-4">
             <div className="flex items-start gap-4">
               {item.image_url && (
-                <img 
-                  src={item.image_url} 
+                <img
+                  src={item.image_url}
                   alt={item.name}
                   className="w-20 h-20 object-cover rounded-lg"
                 />
@@ -148,23 +151,22 @@ function renderContent(content: string | TypedAssistantResponse): ReactNode {
                 <h3 className="font-bold text-lg">{item.name}</h3>
                 <p className="text-sm font-semibold text-[#0a8a7c]">{item.price}€</p>
                 <p className="text-sm mt-2">{item.description}</p>
-                
-                {item.food_info && (
-                  <p className="text-sm mt-2">{item.food_info}</p>
-                )}
-                
-                {item.chef_notes && (
-                  <p className="text-sm mt-2 italic">{item.chef_notes}</p>
-                )}
-                
+
+                {item.food_info && <p className="text-sm mt-2">{item.food_info}</p>}
+
+                {item.chef_notes && <p className="text-sm mt-2 italic">{item.chef_notes}</p>}
+
                 {item.pairing_suggestion && (
                   <p className="text-sm mt-2">{item.pairing_suggestion}</p>
                 )}
-                
+
                 {item.category_info?.length > 0 && (
                   <div className="flex gap-2 mt-2">
                     {item.category_info.map((cat) => (
-                      <span key={cat.id} className="text-xs bg-[#1ce3cf]/20 text-[#1ce3cf] px-2 py-1 rounded">
+                      <span
+                        key={cat.id}
+                        className="text-xs bg-[#1ce3cf]/20 text-[#1ce3cf] px-2 py-1 rounded"
+                      >
                         {cat.name}
                       </span>
                     ))}
@@ -236,7 +238,9 @@ export const ChatMessage = ({ message, alias }: ChatMessageProps) => {
           </div>
         )}
         {renderContent(message.content)}
-        <span className={`mt-1 block text-xs text-right ${isGuest ? 'text-white/80' : 'text-[#111111]/60 dark:text-white/60'}`}>
+        <span
+          className={`mt-1 block text-xs text-right ${isGuest ? 'text-white/80' : 'text-[#111111]/60 dark:text-white/60'}`}
+        >
           {message.timestamp.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
@@ -248,4 +252,4 @@ export const ChatMessage = ({ message, alias }: ChatMessageProps) => {
       )}
     </div>
   );
-}; 
+};

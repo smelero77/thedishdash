@@ -1,8 +1,8 @@
-"use client"
+'use client';
 
-import React, { Suspense } from 'react'
-import InvalidScreen from '@/components/screens/InvalidScreen'
-import { LoadingScreen } from '@/components/ui/LoadingScreen'
+import React, { Suspense } from 'react';
+import InvalidScreen from '@/components/screens/InvalidScreen';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
 export default function InvalidPage() {
   return (
@@ -10,4 +10,4 @@ export default function InvalidPage() {
       <InvalidScreen />
     </Suspense>
   );
-} 
+}

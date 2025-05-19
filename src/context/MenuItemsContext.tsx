@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { createContext } from 'react';
 import type { MenuItemData } from '@/types/menu';
@@ -7,4 +7,4 @@ import type { MenuItemData } from '@/types/menu';
 export const MenuItemsContext = createContext<MenuItemData[] | null>(null);
 
 // Nota: No necesitamos un Provider complejo aquí, ya que MenuScreen actuará como Provider.
-// Solo exportamos el contexto para ser usado con useContext. 
+// Solo exportamos el contexto para ser usado con useContext.

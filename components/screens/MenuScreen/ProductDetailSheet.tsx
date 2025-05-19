@@ -11,15 +11,20 @@ interface ProductDetailSheetProps {
 
 const sheetVariants = {
   hidden: { y: '100%', opacity: 0 },
-  visible: { 
+  visible: {
     y: '0%',
     opacity: 1,
-    transition: { type: 'spring', stiffness: 200, damping: 25 }
+    transition: { type: 'spring', stiffness: 200, damping: 25 },
   },
   exit: { y: '100%', opacity: 0, transition: { duration: 0.2 } },
 };
 
-export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, onClose, product, children }) => {
+export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
+  isOpen,
+  onClose,
+  product,
+  children,
+}) => {
   const controls = useAnimation();
   const y = useMotionValue(0);
   const opacity = useTransform(y, [0, 100], [1, 0]);
@@ -27,10 +32,10 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, 
   const handleDragEnd = async (event: any, info: any) => {
     const threshold = 100;
     if (info.offset.y > threshold) {
-      await controls.start("exit");
+      await controls.start('exit');
       onClose();
     } else {
-      controls.start("visible");
+      controls.start('visible');
     }
   };
 
@@ -47,7 +52,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, 
         >
           <motion.div
             className="w-full bg-black/50 rounded-t-3xl"
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             <motion.div
               className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative h-[calc(100vh-80px)] overflow-y-auto"
@@ -64,7 +69,15 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, 
                 aria-label="Cerrar ficha"
                 className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/60 text-[#0e1b19] shadow-md active:bg-white/80"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -83,4 +96,4 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, 
   return null;
 };
 
-export default ProductDetailSheet; 
+export default ProductDetailSheet;

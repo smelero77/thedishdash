@@ -17,6 +17,6 @@ const SearchButtonComponent = ({ onClick }: SearchButtonProps) => {
   );
 };
 
-SearchButtonComponent.displayName = "SearchButton";
+SearchButtonComponent.displayName = 'SearchButton';
 
-export default React.memo(SearchButtonComponent); 
+export default React.memo(SearchButtonComponent);

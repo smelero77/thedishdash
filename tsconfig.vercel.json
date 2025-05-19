@@ -10,4 +10,4 @@
     "suppressImplicitAnyIndexErrors": true
   },
   "exclude": ["node_modules", ".next", "build"]
-} 
+}

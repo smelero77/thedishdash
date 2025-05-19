@@ -21,7 +21,8 @@ export interface ApiResponse<T> {
 export async function getMenuItems(): Promise<SupabaseMenuItem[]> {
   const { data, error } = await supabase
     .from('menu_items')
-    .select(`
+    .select(
+      `
       id,
       name,
       description,
@@ -70,7 +71,8 @@ export async function getMenuItems(): Promise<SupabaseMenuItem[]> {
           )
         )
       )
-    `)
+    `,
+    )
     .eq('is_available', true)
     .order('is_recommended', { ascending: false })
     .order('profit_margin', { ascending: false })
@@ -81,22 +83,22 @@ export async function getMenuItems(): Promise<SupabaseMenuItem[]> {
     return [];
   }
 
-  return (data || []).map(item => ({
+  return (data || []).map((item) => ({
     ...item,
-    menu_item_diet_tags: (item.menu_item_diet_tags || []).map(tag => ({
+    menu_item_diet_tags: (item.menu_item_diet_tags || []).map((tag) => ({
       diet_tags: {
         id: tag.diet_tags?.[0]?.id || '',
-        name: tag.diet_tags?.[0]?.name || ''
-      }
+        name: tag.diet_tags?.[0]?.name || '',
+      },
     })) as MenuItemDietTag[],
-    menu_item_allergens: (item.menu_item_allergens || []).map(allergen => ({
+    menu_item_allergens: (item.menu_item_allergens || []).map((allergen) => ({
       allergens: {
         id: allergen.allergens?.[0]?.id || '',
         name: allergen.allergens?.[0]?.name || '',
-        icon_url: allergen.allergens?.[0]?.icon_url || ''
-      }
+        icon_url: allergen.allergens?.[0]?.icon_url || '',
+      },
     })),
-    modifiers: item.modifiers || []
+    modifiers: item.modifiers || [],
   })) as unknown as SupabaseMenuItem[];
 }
 
@@ -104,7 +106,8 @@ export async function getMenuItems(): Promise<SupabaseMenuItem[]> {
 export async function getMenuItemsByIds(ids: string[]): Promise<SupabaseMenuItem[]> {
   const { data, error } = await supabase
     .from('menu_items')
-    .select(`
+    .select(
+      `
       id,
       name,
       description,
@@ -153,7 +156,8 @@ export async function getMenuItemsByIds(ids: string[]): Promise<SupabaseMenuItem
           )
         )
       )
-    `)
+    `,
+    )
     .in('id', ids)
     .eq('is_available', true);
 
@@ -162,22 +166,22 @@ export async function getMenuItemsByIds(ids: string[]): Promise<SupabaseMenuItem
     return [];
   }
 
-  return (data || []).map(item => ({
+  return (data || []).map((item) => ({
     ...item,
-    menu_item_diet_tags: (item.menu_item_diet_tags || []).map(tag => ({
+    menu_item_diet_tags: (item.menu_item_diet_tags || []).map((tag) => ({
       diet_tags: {
         id: tag.diet_tags?.[0]?.id || '',
-        name: tag.diet_tags?.[0]?.name || ''
-      }
+        name: tag.diet_tags?.[0]?.name || '',
+      },
     })) as MenuItemDietTag[],
-    menu_item_allergens: (item.menu_item_allergens || []).map(allergen => ({
+    menu_item_allergens: (item.menu_item_allergens || []).map((allergen) => ({
       allergens: {
         id: allergen.allergens?.[0]?.id || '',
         name: allergen.allergens?.[0]?.name || '',
-        icon_url: allergen.allergens?.[0]?.icon_url || ''
-      }
+        icon_url: allergen.allergens?.[0]?.icon_url || '',
+      },
     })),
-    modifiers: item.modifiers || []
+    modifiers: item.modifiers || [],
   })) as unknown as SupabaseMenuItem[];
 }
 
@@ -199,11 +203,13 @@ export async function getSlots(): Promise<Slot[]> {
 export async function getCategoriesWithSlots(): Promise<any[]> {
   const { data, error } = await supabase
     .from('slot_categories')
-    .select(`
+    .select(
+      `
       *,
       slots (*),
       categories (*)
-    `)
+    `,
+    )
     .order('slot_id', { ascending: true });
 
   if (error) {
@@ -229,9 +235,7 @@ export async function getCurrentSlot(): Promise<Slot[]> {
 
 /** Recupera todos los códigos de mesa */
 export async function getTableCodes(): Promise<{ id: string; table_number: number }[]> {
-  const { data, error } = await supabase
-    .from('table_codes')
-    .select('id, table_number');
+  const { data, error } = await supabase.from('table_codes').select('id, table_number');
 
   if (error) {
     console.error('[lib/data] getTableCodes error:', error);
@@ -241,7 +245,9 @@ export async function getTableCodes(): Promise<{ id: string; table_number: numbe
 }
 
 /** Obtiene un ítem del menú por su ID */
-export async function getMenuItemById(itemId: string): Promise<{ menuItem: SupabaseMenuItem | null; error: any }> {
+export async function getMenuItemById(
+  itemId: string,
+): Promise<{ menuItem: SupabaseMenuItem | null; error: any }> {
   if (!itemId) {
     return { menuItem: null, error: 'Item ID is required' };
   }
@@ -249,7 +255,8 @@ export async function getMenuItemById(itemId: string): Promise<{ menuItem: Supab
   try {
     const { data, error } = await supabase
       .from('menu_items')
-      .select(`
+      .select(
+        `
         id,
         name,
         description,
@@ -298,7 +305,8 @@ export async function getMenuItemById(itemId: string): Promise<{ menuItem: Supab
             )
           )
         )
-      `)
+      `,
+      )
       .eq('id', itemId)
       .single();
 
@@ -313,20 +321,20 @@ export async function getMenuItemById(itemId: string): Promise<{ menuItem: Supab
 
     const transformedData = {
       ...data,
-      menu_item_diet_tags: (data.menu_item_diet_tags || []).map(tag => ({
+      menu_item_diet_tags: (data.menu_item_diet_tags || []).map((tag) => ({
         diet_tags: {
           id: tag.diet_tags?.[0]?.id || '',
-          name: tag.diet_tags?.[0]?.name || ''
-        }
+          name: tag.diet_tags?.[0]?.name || '',
+        },
       })) as MenuItemDietTag[],
-      menu_item_allergens: (data.menu_item_allergens || []).map(allergen => ({
+      menu_item_allergens: (data.menu_item_allergens || []).map((allergen) => ({
         allergens: {
           id: allergen.allergens?.[0]?.id || '',
           name: allergen.allergens?.[0]?.name || '',
-          icon_url: allergen.allergens?.[0]?.icon_url || ''
-        }
+          icon_url: allergen.allergens?.[0]?.icon_url || '',
+        },
       })),
-      modifiers: data.modifiers || []
+      modifiers: data.modifiers || [],
     };
 
     return { menuItem: transformedData as unknown as SupabaseMenuItem, error: null };
@@ -368,11 +376,7 @@ export async function validateTableCode(tableNumber: string): Promise<{ table: a
  */
 export async function getTableByCode(code: string): Promise<ApiResponse<TableData>> {
   try {
-    const { data, error } = await supabase
-      .from('table_codes')
-      .select('*')
-      .eq('id', code)
-      .single();
+    const { data, error } = await supabase.from('table_codes').select('*').eq('id', code).single();
 
     if (error) {
       console.error('[getTableByCode] Error Supabase:', error);
@@ -385,15 +389,15 @@ export async function getTableByCode(code: string): Promise<ApiResponse<TableDat
       data: {
         id: data.id,
         table_number: data.table_number,
-        created_at: data.created_at
+        created_at: data.created_at,
       },
-      error: null
+      error: null,
     };
   } catch (err) {
     console.error('[getTableByCode] Error inesperado:', err);
     return {
       data: null,
-      error: err instanceof Error ? err : new Error('Error al consultar la mesa')
+      error: err instanceof Error ? err : new Error('Error al consultar la mesa'),
     };
   }
 }

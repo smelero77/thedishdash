@@ -14,4 +14,4 @@ const ProductPairingSuggestion: React.FC<ProductPairingSuggestionProps> = ({ sug
   );
 };
 
-export default ProductPairingSuggestion; 
+export default ProductPairingSuggestion;

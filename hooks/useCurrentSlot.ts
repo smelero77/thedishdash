@@ -4,4 +4,4 @@ import { getCurrentSlot } from '@/utils/slot';
 
 export const useCurrentSlot = (slots: Slot[]) => {
   return useMemo(() => getCurrentSlot(slots), [slots]);
-}; 
+};

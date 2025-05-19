@@ -37,4 +37,4 @@ export interface CartActions {
   handleDecrementCart: (itemId: string, modifiers?: SelectedModifiers | null) => Promise<void>;
   getTotalItems: () => number;
   getItemQuantity: (itemId: string) => number;
-} 
+}

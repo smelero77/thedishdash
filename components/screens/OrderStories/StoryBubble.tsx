@@ -5,10 +5,7 @@ interface StoryBubbleProps {
 }
 
 export const StoryBubble = ({ alias, itemCount, onSelect }: StoryBubbleProps) => (
-  <div 
-    className="flex-shrink-0 flex flex-col items-center cursor-pointer"
-    onClick={onSelect}
-  >
+  <div className="flex-shrink-0 flex flex-col items-center cursor-pointer" onClick={onSelect}>
     <div className="relative w-14 h-14 sm:w-16 sm:h-16 mb-1.5 sm:mb-2">
       <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#4f968f] to-[#1ce3cf] p-[2px]">
         <div className="w-full h-full rounded-full bg-white p-[2px]">
@@ -27,4 +24,4 @@ export const StoryBubble = ({ alias, itemCount, onSelect }: StoryBubbleProps) =>
       {alias}
     </span>
   </div>
-); 
+);

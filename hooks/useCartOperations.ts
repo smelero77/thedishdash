@@ -8,27 +8,54 @@ export const useCartOperations = (currentClientAlias: string | null) => {
   const [total, setTotal] = useState(0);
   const [pendingOperations, setPendingOperations] = useState<Array<() => void>>([]);
 
-  const addItem = useCallback((item: MenuItemData, modifiers: Record<string, any> | null) => {
-    const normalizedModifiers = normalizeModifiers(modifiers);
-    const cartKey = getCartKey(item.id, normalizedModifiers, currentClientAlias || '');
-    
-    // Actualización optimista
-    setCart(prevCart => {
-      const newCart = { ...prevCart };
-      if (newCart[cartKey]) {
-        newCart[cartKey].quantity += 1;
-      } else {
-        newCart[cartKey] = transformCartItem(item, normalizedModifiers);
-      }
-      return newCart;
-    });
+  const addItem = useCallback(
+    (item: MenuItemData, modifiers: Record<string, any> | null) => {
+      const normalizedModifiers = normalizeModifiers(modifiers);
+      const cartKey = getCartKey(item.id, normalizedModifiers, currentClientAlias || '');
 
-    // Actualizar el total inmediatamente
-    setTotal(prevTotal => prevTotal + calculateItemPrice(item, normalizedModifiers || {}));
+      // Actualización optimista
+      setCart((prevCart) => {
+        const newCart = { ...prevCart };
+        if (newCart[cartKey]) {
+          newCart[cartKey].quantity += 1;
+        } else {
+          newCart[cartKey] = transformCartItem(item, normalizedModifiers);
+        }
+        return newCart;
+      });
 
-    // Guardar la operación para rollback si es necesario
-    setPendingOperations(prev => [...prev, () => {
-      setCart(prevCart => {
+      // Actualizar el total inmediatamente
+      setTotal((prevTotal) => prevTotal + calculateItemPrice(item, normalizedModifiers || {}));
+
+      // Guardar la operación para rollback si es necesario
+      setPendingOperations((prev) => [
+        ...prev,
+        () => {
+          setCart((prevCart) => {
+            const newCart = { ...prevCart };
+            if (newCart[cartKey]) {
+              if (newCart[cartKey].quantity > 1) {
+                newCart[cartKey].quantity -= 1;
+              } else {
+                delete newCart[cartKey];
+              }
+            }
+            return newCart;
+          });
+          setTotal((prevTotal) => prevTotal - calculateItemPrice(item, normalizedModifiers || {}));
+        },
+      ]);
+    },
+    [currentClientAlias],
+  );
+
+  const removeItem = useCallback(
+    (item: MenuItemData, modifiers: Record<string, any> | null) => {
+      const normalizedModifiers = normalizeModifiers(modifiers);
+      const cartKey = getCartKey(item.id, normalizedModifiers, currentClientAlias || '');
+
+      // Actualización optimista
+      setCart((prevCart) => {
         const newCart = { ...prevCart };
         if (newCart[cartKey]) {
           if (newCart[cartKey].quantity > 1) {
@@ -39,55 +66,43 @@ export const useCartOperations = (currentClientAlias: string | null) => {
         }
         return newCart;
       });
-      setTotal(prevTotal => prevTotal - calculateItemPrice(item, normalizedModifiers || {}));
-    }]);
-  }, [currentClientAlias]);
 
-  const removeItem = useCallback((item: MenuItemData, modifiers: Record<string, any> | null) => {
-    const normalizedModifiers = normalizeModifiers(modifiers);
-    const cartKey = getCartKey(item.id, normalizedModifiers, currentClientAlias || '');
-    
-    // Actualización optimista
-    setCart(prevCart => {
-      const newCart = { ...prevCart };
-      if (newCart[cartKey]) {
-        if (newCart[cartKey].quantity > 1) {
-          newCart[cartKey].quantity -= 1;
-        } else {
-          delete newCart[cartKey];
-        }
-      }
-      return newCart;
-    });
+      // Actualizar el total inmediatamente
+      setTotal((prevTotal) => prevTotal - calculateItemPrice(item, normalizedModifiers || {}));
 
-    // Actualizar el total inmediatamente
-    setTotal(prevTotal => prevTotal - calculateItemPrice(item, normalizedModifiers || {}));
+      // Guardar la operación para rollback si es necesario
+      setPendingOperations((prev) => [
+        ...prev,
+        () => {
+          setCart((prevCart) => {
+            const newCart = { ...prevCart };
+            if (newCart[cartKey]) {
+              newCart[cartKey].quantity += 1;
+            } else {
+              newCart[cartKey] = transformCartItem(item, normalizedModifiers);
+            }
+            return newCart;
+          });
+          setTotal((prevTotal) => prevTotal + calculateItemPrice(item, normalizedModifiers || {}));
+        },
+      ]);
+    },
+    [currentClientAlias],
+  );
 
-    // Guardar la operación para rollback si es necesario
-    setPendingOperations(prev => [...prev, () => {
-      setCart(prevCart => {
-        const newCart = { ...prevCart };
-        if (newCart[cartKey]) {
-          newCart[cartKey].quantity += 1;
-        } else {
-          newCart[cartKey] = transformCartItem(item, normalizedModifiers);
-        }
-        return newCart;
-      });
-      setTotal(prevTotal => prevTotal + calculateItemPrice(item, normalizedModifiers || {}));
-    }]);
-  }, [currentClientAlias]);
-
-  const getItemQuantity = useCallback((itemId: string, modifiers: Record<string, any> | null) => {
-    const cartKey = getCartKey(itemId, modifiers, currentClientAlias || '');
-    return cart[cartKey]?.quantity || 0;
-  }, [cart, currentClientAlias]);
+  const getItemQuantity = useCallback(
+    (itemId: string, modifiers: Record<string, any> | null) => {
+      const cartKey = getCartKey(itemId, modifiers, currentClientAlias || '');
+      return cart[cartKey]?.quantity || 0;
+    },
+    [cart, currentClientAlias],
+  );
 
   const rollbackLastOperation = useCallback(() => {
     if (pendingOperations.length > 0) {
       const lastOperation = pendingOperations[pendingOperations.length - 1];
       lastOperation();
-      setPendingOperations(prev => prev.slice(0, -1));
+      setPendingOperations((prev) => prev.slice(0, -1));
     }
   }, [pendingOperations]);
 
@@ -97,6 +112,6 @@ export const useCartOperations = (currentClientAlias: string | null) => {
     addItem,
     removeItem,
     getItemQuantity,
-    rollbackLastOperation
+    rollbackLastOperation,
   };
-}; 
+};

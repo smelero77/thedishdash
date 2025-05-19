@@ -32,4 +32,4 @@ export async function getDailyPrompt(): Promise<DailyPrompt | null> {
     console.error('Error en getDailyPrompt:', error);
     throw error;
   }
-} 
+}

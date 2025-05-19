@@ -17,7 +17,7 @@ const ProductQuantityControls: React.FC<ProductQuantityControlsProps> = ({
   hasModifiers = false,
   onAdd,
   onRemove,
-  onOpenCart
+  onOpenCart,
 }) => {
   return (
     <div className="flex items-center justify-between w-[8.5rem]">
@@ -74,4 +74,4 @@ const ProductQuantityControls: React.FC<ProductQuantityControlsProps> = ({
   );
 };
 
-export default ProductQuantityControls; 
+export default ProductQuantityControls;

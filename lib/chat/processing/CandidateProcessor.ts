@@ -48,12 +48,14 @@ export class CandidateProcessor {
         throw {
           code: ERROR_CODES.DB_ERROR,
           message: 'Error al obtener nombres de categorías',
-          originalError: error
+          originalError: error,
         };
       }
 
       const map: Record<string, string> = {};
-      data?.forEach(c => { map[c.id] = c.name; });
+      data?.forEach((c) => {
+        map[c.id] = c.name;
+      });
       return map;
     } catch (error) {
       console.error('[CandidateProcessor] Error in getCategoryNamesMap:', error);
@@ -67,7 +69,7 @@ export class CandidateProcessor {
    */
   public async processCandidates(
     searchedItems: MenuItemData[],
-    rawCartItems: CartItemForProcessing[]
+    rawCartItems: CartItemForProcessing[],
   ): Promise<MenuItemData[]> {
     try {
       if (!searchedItems || searchedItems.length === 0) {
@@ -78,21 +80,23 @@ export class CandidateProcessor {
       console.log(`[CandidateProcessor] Procesando ${searchedItems.length} candidatos iniciales`);
 
       // 1. Enriquecer con category_info
-      const allCategoryIds = Array.from(new Set(searchedItems.flatMap(i => i.category_ids || [])));
+      const allCategoryIds = Array.from(
+        new Set(searchedItems.flatMap((i) => i.category_ids || [])),
+      );
       const categoryNamesMap = await this.getCategoryNamesMap(allCategoryIds);
 
-      const enrichedItems: EnrichedMenuItem[] = searchedItems.map(item => ({
+      const enrichedItems: EnrichedMenuItem[] = searchedItems.map((item) => ({
         ...item,
-        category_info: (item.category_ids || []).map(id => ({
+        category_info: (item.category_ids || []).map((id) => ({
           id,
-          name: categoryNamesMap[id] || 'Categoría Desconocida'
-        }))
+          name: categoryNamesMap[id] || 'Categoría Desconocida',
+        })),
       }));
 
       // 2. Filtrar items no disponibles y los que ya están en el carrito
-      const cartItemIds = new Set(rawCartItems.map(item => item.menu_item_id));
-      const finalCandidates = enrichedItems.filter(item =>
-        item.is_available && !cartItemIds.has(item.id)
+      const cartItemIds = new Set(rawCartItems.map((item) => item.menu_item_id));
+      const finalCandidates = enrichedItems.filter(
+        (item) => item.is_available && !cartItemIds.has(item.id),
       );
 
       // 3. Ordenar por relevancia (profit_margin e is_recommended)
@@ -111,19 +115,21 @@ export class CandidateProcessor {
       // 4. Mantener al menos 4 candidatos si hay suficientes
       const minCandidates = Math.min(4, sortedCandidates.length);
       const finalResults = sortedCandidates.slice(0, minCandidates);
-      
-      console.log(`[CandidateProcessor] Candidatos finales después de procesar: ${finalResults.length}`);
+
+      console.log(
+        `[CandidateProcessor] Candidatos finales después de procesar: ${finalResults.length}`,
+      );
       return finalResults;
     } catch (error) {
       console.error('[CandidateProcessor] Error processing candidates:', error);
       throw {
         code: ERROR_CODES.UNKNOWN_ERROR,
         message: 'Error al procesar candidatos',
-        originalError: error
+        originalError: error,
       };
     }
   }
 }
 
 // Exportar una instancia singleton
-export const candidateProcessor = CandidateProcessor.getInstance(supabase); 
+export const candidateProcessor = CandidateProcessor.getInstance(supabase);

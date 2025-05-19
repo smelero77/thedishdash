@@ -9,4 +9,4 @@ export const useCategoryScroll = (activeTab: string) => {
       window.scrollTo({ top: offset, behavior: 'smooth' });
     }
   }, [activeTab]);
-}; 
+};

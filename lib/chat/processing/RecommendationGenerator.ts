@@ -49,12 +49,12 @@ export class RecommendationGenerator {
   private buildRecommendationPrompt(
     candidates: MenuItemData[],
     userMessage: string,
-    filters: ExtractedFilters
+    filters: ExtractedFilters,
   ): string {
     const filterText = this.formatFilters(filters);
-    const candidatesText = candidates.map(item => 
-      `- ${item.name}: ${item.description || 'Sin descripción'} (${item.price}€)`
-    ).join('\n');
+    const candidatesText = candidates
+      .map((item) => `- ${item.name}: ${item.description || 'Sin descripción'} (${item.price}€)`)
+      .join('\n');
 
     return `
 Mensaje del usuario: ${userMessage}
@@ -90,21 +90,24 @@ Para cada recomendación, proporciona una razón clara y concisa de por qué ese
 
   private formatRecommendations(
     recommendations: Array<{ id: string; reason: string }>,
-    candidates: MenuItemData[]
+    candidates: MenuItemData[],
   ): string {
-    return recommendations.map(rec => {
-      const item = candidates.find(c => c.id === rec.id);
-      if (!item) return '';
+    return recommendations
+      .map((rec) => {
+        const item = candidates.find((c) => c.id === rec.id);
+        if (!item) return '';
 
-      return `${item.name} (${item.price}€)\n${rec.reason}\n`;
-    }).filter(Boolean).join('\n');
+        return `${item.name} (${item.price}€)\n${rec.reason}\n`;
+      })
+      .filter(Boolean)
+      .join('\n');
   }
 
   /**
    * Genera una respuesta o recomendación basada en los mensajes proporcionados
    */
   public async generateResponse(
-    promptMessages: ChatCompletionMessageParam[]
+    promptMessages: ChatCompletionMessageParam[],
   ): Promise<OpenAI.Chat.Completions.ChatCompletionMessage> {
     try {
       if (!this.validatePromptMessages(promptMessages)) {
@@ -117,7 +120,7 @@ Para cada recomendación, proporciona una razón clara y concisa de por qué ese
         temperature: CHAT_CONFIG.temperature,
         maxTokens: CHAT_CONFIG.maxTokensRecommendation,
         topP: CHAT_CONFIG.topP,
-        presencePenalty: CHAT_CONFIG.presencePenalty
+        presencePenalty: CHAT_CONFIG.presencePenalty,
       });
 
       const response = await this.openai.chat.completions.create({
@@ -125,9 +128,9 @@ Para cada recomendación, proporciona una razón clara y concisa de por qué ese
         messages: [
           {
             role: 'system',
-            content: RECOMMENDATION_SYSTEM_CONTEXT
+            content: RECOMMENDATION_SYSTEM_CONTEXT,
           },
-          ...promptMessages
+          ...promptMessages,
         ],
         functions: [recommendDishesFn, getProductDetailsFn],
         temperature: CHAT_CONFIG.temperature,
@@ -141,14 +144,17 @@ Para cada recomendación, proporciona una razón clara y concisa de por qué ese
       }
 
       const message = response.choices[0].message;
-      
+
       // Si hay una llamada a función, validar que sea válida
       if (message.function_call) {
         try {
           const args = JSON.parse(message.function_call.arguments);
           if (message.function_call.name === 'recommend_dishes') {
             if (!args.recommendations || !Array.isArray(args.recommendations)) {
-              console.error('[RecommendationGenerator] Error: Argumentos inválidos para recommend_dishes:', args);
+              console.error(
+                '[RecommendationGenerator] Error: Argumentos inválidos para recommend_dishes:',
+                args,
+              );
               throw new Error(ERROR_CODES.RECOMMENDATION_FAILED);
             }
             // Validar cada recomendación
@@ -168,13 +174,13 @@ Para cada recomendación, proporciona una razón clara y concisa de por qué ese
       console.log('[RecommendationGenerator] Respuesta generada:', {
         role: message.role,
         content: message.content?.substring(0, 100) + '...',
-        function_call: message.function_call ? 'Present' : 'None'
+        function_call: message.function_call ? 'Present' : 'None',
       });
 
       return message;
     } catch (error) {
       console.error('[RecommendationGenerator] Error generando recomendación:', error);
-      
+
       // Determinar el tipo de error y lanzar el código de error apropiado
       if (error instanceof OpenAI.APIError) {
         if (error.status === 429) {
@@ -183,7 +189,7 @@ Para cada recomendación, proporciona una razón clara y concisa de por qué ese
           throw new Error(ERROR_CODES.UNKNOWN_ERROR); // Invalid API key
         }
       }
-      
+
       throw new Error(ERROR_CODES.RECOMMENDATION_FAILED);
     }
   }
@@ -196,21 +202,19 @@ Para cada recomendación, proporciona una razón clara y concisa de por qué ese
       return false;
     }
 
-    return messages.every(message => 
-      message && 
-      typeof message === 'object' && 
-      'role' in message && 
-      'content' in message
+    return messages.every(
+      (message) =>
+        message && typeof message === 'object' && 'role' in message && 'content' in message,
     );
   }
 
   private async generateRecommendationResponse(
     candidates: MenuItemData[],
     userMessage: string,
-    filters: ExtractedFilters
+    filters: ExtractedFilters,
   ): Promise<RecommendationResponse> {
     const prompt = this.buildRecommendationPrompt(candidates, userMessage, filters);
-    
+
     const response = await this.openai.chat.completions.create({
       model: CHAT_CONFIG.recommendationModel,
       temperature: CHAT_CONFIG.temperature,
@@ -220,15 +224,16 @@ Para cada recomendación, proporciona una razón clara y concisa de por qué ese
       messages: [
         {
           role: 'system',
-          content: 'Eres un asistente experto en gastronomía que ayuda a los usuarios a encontrar platos que se ajusten a sus preferencias. SIEMPRE debes devolver entre 3 y 4 recomendaciones diferentes, a menos que haya menos candidatos disponibles.'
+          content:
+            'Eres un asistente experto en gastronomía que ayuda a los usuarios a encontrar platos que se ajusten a sus preferencias. SIEMPRE debes devolver entre 3 y 4 recomendaciones diferentes, a menos que haya menos candidatos disponibles.',
         },
         {
           role: 'user',
-          content: prompt
-        }
+          content: prompt,
+        },
       ],
       functions: [recommendDishesFn],
-      function_call: { name: 'recommend_dishes' }
+      function_call: { name: 'recommend_dishes' },
     });
 
     const functionCall = response.choices[0]?.message?.function_call;
@@ -244,13 +249,15 @@ Para cada recomendación, proporciona una razón clara y concisa de por qué ese
     return {
       type: 'recommendation',
       content: this.formatRecommendations(recommendations, candidates),
-      recommendations: recommendations.map(rec => ({
+      recommendations: recommendations.map((rec) => ({
         id: rec.id,
-        reason: rec.reason
-      }))
+        reason: rec.reason,
+      })),
     };
   }
 }
 
 // Exportar una instancia singleton
-export const recommendationGenerator = RecommendationGenerator.getInstance(process.env.OPENAI_API_KEY || ''); 
+export const recommendationGenerator = RecommendationGenerator.getInstance(
+  process.env.OPENAI_API_KEY || '',
+);

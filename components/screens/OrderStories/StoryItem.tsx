@@ -12,12 +12,7 @@ export const StoryItem = ({ item }: StoryItemProps) => (
     <div className="flex items-start gap-4">
       {item.item.image_url && (
         <div className="relative w-20 h-20 rounded-xl overflow-hidden">
-          <Image
-            src={item.item.image_url}
-            alt={item.item.name}
-            fill
-            className="object-cover"
-          />
+          <Image src={item.item.image_url} alt={item.item.name} fill className="object-cover" />
         </div>
       )}
       <div className="flex-1">
@@ -27,9 +22,9 @@ export const StoryItem = ({ item }: StoryItemProps) => (
         </div>
         {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
           <div key={modifierId} className="mt-1">
-            {modifier.options.map(opt => (
+            {modifier.options.map((opt) => (
               <p key={opt.id} className="text-sm text-[#4f968f]">
-                {opt.extra_price > 0 
+                {opt.extra_price > 0
                   ? `+${opt.name} (+${opt.extra_price.toFixed(2)}€)`
                   : `• ${opt.name}`}
               </p>
@@ -38,13 +33,16 @@ export const StoryItem = ({ item }: StoryItemProps) => (
         ))}
         <p className="text-[#4f968f] text-sm mt-1">
           {formatPrice(
-            item.item.price + 
-            Object.values(item.modifiers || {}).reduce((total, modifier) => 
-              total + modifier.options.reduce((optTotal, opt) => optTotal + opt.extra_price, 0)
-            , 0)
-          )} c/u
+            item.item.price +
+              Object.values(item.modifiers || {}).reduce(
+                (total, modifier) =>
+                  total + modifier.options.reduce((optTotal, opt) => optTotal + opt.extra_price, 0),
+                0,
+              ),
+          )}{' '}
+          c/u
         </p>
       </div>
     </div>
   </div>
-); 
+);

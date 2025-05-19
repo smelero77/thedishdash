@@ -14,4 +14,4 @@ const ProductOrigin: React.FC<ProductOriginProps> = ({ origin }) => {
   );
 };
 
-export default ProductOrigin; 
+export default ProductOrigin;

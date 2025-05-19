@@ -1,18 +1,13 @@
-import { 
-  Modifier, 
-  SelectedModifiers, 
-  Allergen, 
+import {
+  Modifier,
+  SelectedModifiers,
+  Allergen,
   MenuItemAllergen,
-  SupabaseModifier 
+  SupabaseModifier,
 } from './modifiers';
 
 // Re-export types
-export type { 
-  SelectedModifiers, 
-  Modifier, 
-  Allergen, 
-  MenuItemAllergen 
-};
+export type { SelectedModifiers, Modifier, Allergen, MenuItemAllergen };
 
 export interface SupabaseMenuItem {
   id: string;
@@ -113,4 +108,4 @@ export interface CartItem {
 
 export interface Cart {
   [key: string]: CartItem;
-} 
+}

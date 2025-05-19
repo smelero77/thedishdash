@@ -15,12 +15,12 @@ import { processMenuItem } from '@/utils/menu';
 // Esquemas de validación con Zod
 const PriceRangeSchema = z.object({
   min: z.number().min(0),
-  max: z.number().min(0)
+  max: z.number().min(0),
 });
 
 const CaloriesRangeSchema = z.object({
   min: z.number().min(0),
-  max: z.number().min(0)
+  max: z.number().min(0),
 });
 
 const ExtractedFiltersSchema = z.object({
@@ -30,12 +30,12 @@ const ExtractedFiltersSchema = z.object({
   allergens: z.array(z.string()).optional(),
   diet_tags: z.array(z.string()).optional(),
   price_range: PriceRangeSchema.optional(),
-  calories_range: CaloriesRangeSchema.optional()
+  calories_range: CaloriesRangeSchema.optional(),
 });
 
 const ProductDetailsSchema = z.object({
   product_id: z.string().uuid(),
-  is_price_query: z.boolean().optional().default(false)
+  is_price_query: z.boolean().optional().default(false),
 });
 
 interface CategoryInfo {
@@ -103,7 +103,7 @@ export class FunctionCallHandler {
   public async handleFunctionCall(
     functionName: string,
     args: any,
-    context: any
+    context: any,
   ): Promise<AssistantResponse> {
     try {
       console.log('[FunctionCallHandler] Procesando llamada a función:', functionName);
@@ -138,7 +138,7 @@ export class FunctionCallHandler {
 
       return {
         type: SYSTEM_MESSAGE_TYPES.INFO,
-        content: this.formatExtractedFilters(validatedArgs)
+        content: this.formatExtractedFilters(validatedArgs),
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -154,13 +154,15 @@ export class FunctionCallHandler {
    */
   private async handleRequestClarification(args: any): Promise<AssistantResponse> {
     try {
-      const { question } = z.object({
-        question: z.string().min(1)
-      }).parse(args);
+      const { question } = z
+        .object({
+          question: z.string().min(1),
+        })
+        .parse(args);
 
       return {
         type: SYSTEM_MESSAGE_TYPES.CLARIFICATION,
-        content: question
+        content: question,
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -188,12 +190,16 @@ export class FunctionCallHandler {
       }
 
       // Validar argumentos con Zod
-      const { recommendations } = z.object({
-        recommendations: z.array(z.object({
-          id: z.string().uuid(),
-          reason: z.string().min(1)
-        }))
-      }).parse(parsedArgs);
+      const { recommendations } = z
+        .object({
+          recommendations: z.array(
+            z.object({
+              id: z.string().uuid(),
+              reason: z.string().min(1),
+            }),
+          ),
+        })
+        .parse(parsedArgs);
 
       // Obtener detalles completos de cada plato recomendado
       const enrichedRecommendations = await Promise.all(
@@ -229,13 +235,15 @@ export class FunctionCallHandler {
             price: menuItem.price,
             reason: rec.reason,
             image_url: menuItem.image_url,
-            category_info: categoryInfo
+            category_info: categoryInfo,
           };
-        })
+        }),
       );
 
       // Filtrar recomendaciones nulas
-      const validRecommendations = enrichedRecommendations.filter((rec): rec is NonNullable<typeof rec> => rec !== null);
+      const validRecommendations = enrichedRecommendations.filter(
+        (rec): rec is NonNullable<typeof rec> => rec !== null,
+      );
 
       if (validRecommendations.length === 0) {
         throw new Error('No se pudieron obtener los detalles de los platos recomendados');
@@ -244,7 +252,7 @@ export class FunctionCallHandler {
       return {
         type: SYSTEM_MESSAGE_TYPES.RECOMMENDATION,
         content: this.formatRecommendations(validRecommendations),
-        data: validRecommendations
+        data: validRecommendations,
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -261,7 +269,7 @@ export class FunctionCallHandler {
   private transformToEnrichedMenuItem(menuItem: SupabaseMenuItem): EnrichedMenuItem {
     // Primero procesamos el item base usando la función existente
     const baseItem = processMenuItem(menuItem);
-    
+
     // Luego añadimos los campos enriquecidos
     const enrichedItem: EnrichedMenuItem = {
       ...baseItem,
@@ -283,7 +291,7 @@ export class FunctionCallHandler {
       diet_tags: baseItem.diet_tags,
       modifiers: baseItem.modifiers,
       is_available: baseItem.is_available,
-      is_recommended: baseItem.is_recommended
+      is_recommended: baseItem.is_recommended,
     };
 
     return enrichedItem;
@@ -306,7 +314,7 @@ export class FunctionCallHandler {
         console.error('[FunctionCallHandler] Error parsing function call arguments:', args, e);
         throw new Error(ERROR_CODES.INVALID_FILTERS);
       }
-      
+
       // Validar argumentos con Zod
       const { product_id, is_price_query } = ProductDetailsSchema.parse(parsedArgs);
 
@@ -314,7 +322,10 @@ export class FunctionCallHandler {
       const { menuItem, error: dbError } = await getMenuItemById(product_id);
 
       if (dbError || !menuItem) {
-        console.error(`[FunctionCallHandler] Could not retrieve or menuItem is null for ID: ${product_id}. DB Error:`, dbError);
+        console.error(
+          `[FunctionCallHandler] Could not retrieve or menuItem is null for ID: ${product_id}. DB Error:`,
+          dbError,
+        );
         throw new Error(ERROR_CODES.DB_ERROR);
       }
 
@@ -328,8 +339,8 @@ export class FunctionCallHandler {
           content: `Las ${enrichedMenuItem.name} cuestan ${enrichedMenuItem.price}€.`,
           product: {
             item: enrichedMenuItem,
-            explanation: `Las ${enrichedMenuItem.name} cuestan ${enrichedMenuItem.price}€.`
-          }
+            explanation: `Las ${enrichedMenuItem.name} cuestan ${enrichedMenuItem.price}€.`,
+          },
         };
       }
 
@@ -341,8 +352,8 @@ export class FunctionCallHandler {
         content: explanation,
         product: {
           item: enrichedMenuItem,
-          explanation: explanation
-        }
+          explanation: explanation,
+        },
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -365,15 +376,16 @@ export class FunctionCallHandler {
         messages: [
           {
             role: 'system',
-            content: 'Eres un experto en gastronomía y servicio al cliente. Tu tarea es generar una explicación concisa y atractiva de un producto del menú, destacando sus características más relevantes en máximo 3 líneas.'
+            content:
+              'Eres un experto en gastronomía y servicio al cliente. Tu tarea es generar una explicación concisa y atractiva de un producto del menú, destacando sus características más relevantes en máximo 3 líneas.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: CHAT_CONFIG.productExplanationTemperature,
-        max_tokens: 150 // Reducimos el número máximo de tokens para respuestas más concisas
+        max_tokens: 150, // Reducimos el número máximo de tokens para respuestas más concisas
       });
 
       return response.choices[0].message.content || 'No se pudo generar una explicación detallada.';
@@ -388,8 +400,8 @@ export class FunctionCallHandler {
    */
   private buildProductExplanationPrompt(menuItem: EnrichedMenuItem): string {
     const characteristics = this.getMenuItemCharacteristics(menuItem);
-    const categories = menuItem.category_info?.map(c => c.name).join(', ') || 'N/A';
-    const allergens = menuItem.allergens?.map(a => a.name).join(', ') || 'Ninguno';
+    const categories = menuItem.category_info?.map((c) => c.name).join(', ') || 'N/A';
+    const allergens = menuItem.allergens?.map((a) => a.name).join(', ') || 'Ninguno';
     const dietTags = menuItem.diet_tags?.join(', ') || 'Ninguno';
 
     return `
@@ -470,7 +482,9 @@ export class FunctionCallHandler {
       typeof (filters.price_range as any).min === 'number' &&
       typeof (filters.price_range as any).max === 'number'
     ) {
-      parts.push(`Rango de precio: ${(filters.price_range as any).min}€ - ${(filters.price_range as any).max}€`);
+      parts.push(
+        `Rango de precio: ${(filters.price_range as any).min}€ - ${(filters.price_range as any).max}€`,
+      );
     }
 
     if (
@@ -479,7 +493,9 @@ export class FunctionCallHandler {
       typeof (filters.calories_range as any).min === 'number' &&
       typeof (filters.calories_range as any).max === 'number'
     ) {
-      parts.push(`Rango de calorías: ${(filters.calories_range as any).min} - ${(filters.calories_range as any).max}`);
+      parts.push(
+        `Rango de calorías: ${(filters.calories_range as any).min} - ${(filters.calories_range as any).max}`,
+      );
     }
 
     return parts.join('\n');
@@ -490,8 +506,8 @@ export class FunctionCallHandler {
    */
   private formatRecommendations(recommendations: Recommendation[]): string {
     return recommendations
-      .map(rec => {
-        const categoryNames = rec.category_info?.map(c => c.name).join(', ') || 'Sin categoría';
+      .map((rec) => {
+        const categoryNames = rec.category_info?.map((c) => c.name).join(', ') || 'Sin categoría';
         const priceInfo = rec.price ? ` (${rec.price}€)` : '';
         return `- ${rec.name || 'Plato'}${priceInfo} - ${categoryNames}\n  ${rec.reason}`;
       })
@@ -500,4 +516,6 @@ export class FunctionCallHandler {
 }
 
 // Exportar una instancia singleton
-export const functionCallHandler = FunctionCallHandler.getInstance(process.env.OPENAI_API_KEY || ''); 
+export const functionCallHandler = FunctionCallHandler.getInstance(
+  process.env.OPENAI_API_KEY || '',
+);

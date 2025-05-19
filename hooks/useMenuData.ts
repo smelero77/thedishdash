@@ -44,20 +44,21 @@ export const useMenuData = (): UseMenuDataResult => {
         // Fetch categories with slot relationships
         const { data: categoriesData, error: categoriesError } = await supabase
           .from('categories')
-          .select(`
+          .select(
+            `
             *,
             slot_categories (
               slot_id
             )
-          `)
+          `,
+          )
           .order('sort_order');
 
         if (categoriesError) throw categoriesError;
         setCategories(categoriesData || []);
 
         // Fetch menu items
-        const { data: menuItemsData, error: menuItemsError } = await supabase
-          .from('menu_items')
+        const { data: menuItemsData, error: menuItemsError } = await supabase.from('menu_items')
           .select(`
             *,
             menu_item_allergens (
@@ -83,7 +84,6 @@ export const useMenuData = (): UseMenuDataResult => {
         // Set current slot
         const activeSlot = getCurrentSlot(slotsData || []);
         setCurrentSlot(activeSlot);
-
       } catch (err) {
         console.error('Error fetching menu data:', err);
         setError(err instanceof Error ? err : new Error('An error occurred'));
@@ -95,18 +95,19 @@ export const useMenuData = (): UseMenuDataResult => {
     fetchData();
   }, []);
 
-  const menuItems = useMemo<MenuItemData[]>(() =>
-    rawMenuItems.map(r => processMenuItem(r)),
-  [rawMenuItems]);
+  const menuItems = useMemo<MenuItemData[]>(
+    () => rawMenuItems.map((r) => processMenuItem(r)),
+    [rawMenuItems],
+  );
 
-  const categoriesWithItems = useMemo<CategoryWithItems[]>(() =>
-    categories.map(cat => ({
-      ...cat,
-      items: menuItems.filter(item =>
-        item.category_ids.includes(cat.id)
-      )
-    })),
-  [categories, menuItems]);
+  const categoriesWithItems = useMemo<CategoryWithItems[]>(
+    () =>
+      categories.map((cat) => ({
+        ...cat,
+        items: menuItems.filter((item) => item.category_ids.includes(cat.id)),
+      })),
+    [categories, menuItems],
+  );
 
   return {
     slots,
@@ -114,6 +115,6 @@ export const useMenuData = (): UseMenuDataResult => {
     categories: categoriesWithItems,
     menuItems,
     loading,
-    error
+    error,
   };
 };

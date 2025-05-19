@@ -19,11 +19,14 @@ export const OrderStories = ({ groupedItems, currentClientAlias }: OrderStoriesP
 
   // Recalcular el total de items por alias cada vez que cambian los items
   const updatedGroupedItems = useMemo(() => {
-    return Object.entries(groupedItems).reduce((acc, [alias, { items, total }]) => {
-      const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-      acc[alias] = { items, total, itemCount };
-      return acc;
-    }, {} as Record<string, { items: CartItem[]; total: number; itemCount: number }>);
+    return Object.entries(groupedItems).reduce(
+      (acc, [alias, { items, total }]) => {
+        const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+        acc[alias] = { items, total, itemCount };
+        return acc;
+      },
+      {} as Record<string, { items: CartItem[]; total: number; itemCount: number }>,
+    );
   }, [groupedItems]);
 
   // Ordenar los items para que el alias actual aparezca primero
@@ -63,4 +66,4 @@ export const OrderStories = ({ groupedItems, currentClientAlias }: OrderStoriesP
       )}
     </div>
   );
-}; 
+};

@@ -10,4 +10,4 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ description }) 
   </div>
 );
 
-export default ProductDescription; 
+export default ProductDescription;

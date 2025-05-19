@@ -33,10 +33,10 @@ interface CircuitBreakerState {
   isOpen: boolean;
 }
 
-interface CartItemForOrchestrator { 
-  menu_item_id: string; 
-  quantity: number; 
-  menu_items?: { name?: string } | null; 
+interface CartItemForOrchestrator {
+  menu_item_id: string;
+  quantity: number;
+  menu_items?: { name?: string } | null;
 }
 
 export class ChatOrchestrator {
@@ -57,7 +57,7 @@ export class ChatOrchestrator {
   constructor(
     openaiApiKey: string,
     supabaseClient: SupabaseClient,
-    embeddingService: OpenAIEmbeddingService
+    embeddingService: OpenAIEmbeddingService,
   ) {
     console.log('🔍 INICIALIZANDO ChatOrchestrator:', { timestamp: new Date().toISOString() });
     this.openaiApiKey = openaiApiKey;
@@ -67,13 +67,16 @@ export class ChatOrchestrator {
     this.circuitBreaker = {
       failures: 0,
       lastFailureTime: 0,
-      isOpen: false
+      isOpen: false,
     };
 
     // Inicializar servicios
     this.filterExtractor = FilterExtractor.getInstance();
     this.filterMapper = FilterMapper.getInstance();
-    this.semanticSearcher = SemanticSearcher.getInstance(this.embeddingService, this.supabaseClient);
+    this.semanticSearcher = SemanticSearcher.getInstance(
+      this.embeddingService,
+      this.supabaseClient,
+    );
     this.candidateProcessor = CandidateProcessor.getInstance(this.supabaseClient);
     this.contextBuilder = ContextBuilder.getInstance();
     this.recommendationGenerator = RecommendationGenerator.getInstance(this.openaiApiKey);
@@ -83,10 +86,10 @@ export class ChatOrchestrator {
 
   private async getRawCartItems(userAlias: string): Promise<CartItemForOrchestrator[]> {
     const { data, error } = await this.supabaseClient
-      .from("temporary_order_items")
+      .from('temporary_order_items')
       .select(`menu_item_id, quantity, menu_items!inner(name)`)
-      .eq("alias", userAlias);
-    
+      .eq('alias', userAlias);
+
     if (error) {
       this.logger.error('[ChatOrchestrator] Error obteniendo ítems del carrito:', error.message);
       return [];
@@ -97,9 +100,9 @@ export class ChatOrchestrator {
   private async withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
     return Promise.race([
       operation,
-      new Promise<T>((_, reject) => 
-        setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs)
-      )
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs),
+      ),
     ]);
   }
 
@@ -121,12 +124,12 @@ export class ChatOrchestrator {
     } catch (error) {
       this.circuitBreaker.failures++;
       this.circuitBreaker.lastFailureTime = Date.now();
-      
+
       if (this.circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
         this.circuitBreaker.isOpen = true;
         this.logger.error('[ChatOrchestrator] Circuit breaker opened due to multiple failures');
       }
-      
+
       throw error;
     }
   }
@@ -134,38 +137,38 @@ export class ChatOrchestrator {
   async processUserMessage(
     session: ChatSession,
     userMessage: string,
-    categoryIdFromFrontend?: string
+    categoryIdFromFrontend?: string,
   ): Promise<AssistantResponse> {
     // Log muy temprano para verificar que llegamos aquí
     console.log('🚨 DEBUG - LLEGAMOS A processUserMessage', {
       sessionId: session.id,
       userMessage,
-      categoryIdFromFrontend
+      categoryIdFromFrontend,
     });
-    
+
     try {
       // Log inicial para verificar que llegamos aquí
       console.log('🚨 DEBUG - INICIO processUserMessage', {
         sessionId: session.id,
         userMessage,
-        categoryIdFromFrontend
+        categoryIdFromFrontend,
       });
 
       // 1. Cargar TODO el historial de mensajes
       const messageHistory = await this.chatSessionService.getLastConversationTurns(session.id);
-      
+
       // Log después de cargar el historial
       console.log('🚨 DEBUG - Historial cargado', {
         sessionId: session.id,
-        messageCount: messageHistory.length
+        messageCount: messageHistory.length,
       });
 
       // 2. Extraer filtros del mensaje actual (usando el mensaje original)
       const extractedFilters = await this.withCircuitBreaker(() =>
         this.withTimeout(
           this.filterExtractor.extractFilters(userMessage, messageHistory),
-          OPERATION_TIMEOUT
-        )
+          OPERATION_TIMEOUT,
+        ),
       );
 
       // Normalizar los filtros extraídos antes de mapearlos
@@ -174,7 +177,7 @@ export class ChatOrchestrator {
       // Log de extractedFilters
       console.log('🚨 DEBUG - Filtros extraídos y normalizados', {
         sessionId: session.id,
-        extractedFilters: JSON.parse(JSON.stringify(normalizedFilters))
+        extractedFilters: JSON.parse(JSON.stringify(normalizedFilters)),
       });
 
       // Preparar metadatos del mensaje de usuario
@@ -184,14 +187,14 @@ export class ChatOrchestrator {
           priceMax: normalizedFilters.price_max,
           main_query: normalizedFilters.main_query,
           category_names: normalizedFilters.category_names,
-          categoryId: categoryIdFromFrontend
-        }
+          categoryId: categoryIdFromFrontend,
+        },
       };
 
       // Log de userMessageMetadata después de inicialización
       console.log('🚨 DEBUG - userMessageMetadata inicializado', {
         sessionId: session.id,
-        userMessageMetadata: JSON.parse(JSON.stringify(userMessageMetadata))
+        userMessageMetadata: JSON.parse(JSON.stringify(userMessageMetadata)),
       });
 
       // Si hay un embedding, añadirlo a los metadatos
@@ -201,7 +204,7 @@ export class ChatOrchestrator {
           userMessageMetadata.embedding = embedding;
           console.log('🚨 DEBUG - Embedding añadido', {
             sessionId: session.id,
-            hasEmbedding: true
+            hasEmbedding: true,
           });
         }
       }
@@ -210,43 +213,43 @@ export class ChatOrchestrator {
       const rpcParameters = await this.withCircuitBreaker(() =>
         this.withTimeout(
           this.filterMapper.mapToRpcParameters(normalizedFilters),
-          OPERATION_TIMEOUT
-        )
+          OPERATION_TIMEOUT,
+        ),
       );
 
       // 5. Búsqueda semántica con filtros acumulados
       let searchedItems = await this.withCircuitBreaker(() =>
         this.withTimeout(
           this.semanticSearcher.findRelevantItems(normalizedFilters.main_query, rpcParameters),
-          OPERATION_TIMEOUT
-        )
+          OPERATION_TIMEOUT,
+        ),
       );
 
       // Log de searchedItems
       console.log('🚨 DEBUG - Resultados de búsqueda', {
         sessionId: session.id,
-        itemCount: searchedItems?.length || 0
+        itemCount: searchedItems?.length || 0,
       });
 
       // Añadir resultados de búsqueda a la metadata
       if (searchedItems && searchedItems.length > 0) {
         userMessageMetadata.search_results = {
-          items: searchedItems.map(item => ({
+          items: searchedItems.map((item) => ({
             id: item.id,
             name: item.name,
-            distance: item.similarity || 0
-          }))
+            distance: item.similarity || 0,
+          })),
         };
         console.log('🚨 DEBUG - Search results añadidos', {
           sessionId: session.id,
-          resultCount: userMessageMetadata.search_results.items.length
+          resultCount: userMessageMetadata.search_results.items.length,
         });
       }
 
       // Log antes de la copia profunda
       console.log('🚨 DEBUG - Antes de copia profunda', {
         sessionId: session.id,
-        userMessageMetadata: JSON.parse(JSON.stringify(userMessageMetadata))
+        userMessageMetadata: JSON.parse(JSON.stringify(userMessageMetadata)),
       });
 
       // Crear una copia profunda del objeto de metadata para asegurar que no se modifique
@@ -255,31 +258,38 @@ export class ChatOrchestrator {
       // Log después de la copia profunda
       console.log('🚨 DEBUG - Después de copia profunda', {
         sessionId: session.id,
-        userMessageMetadataToSave: JSON.parse(JSON.stringify(userMessageMetadataToSave))
+        userMessageMetadataToSave: JSON.parse(JSON.stringify(userMessageMetadataToSave)),
       });
 
       // Log de las propiedades del objeto
       console.log('🚨 DEBUG - Propiedades de userMessageMetadataToSave', {
         sessionId: session.id,
-        properties: Object.keys(userMessageMetadataToSave)
+        properties: Object.keys(userMessageMetadataToSave),
       });
 
       // Log antes de llamar a addMessage
       console.log('🚨 DEBUG - Llamando a addMessage para USER', {
         sessionId: session.id,
-        metadata: JSON.parse(JSON.stringify(userMessageMetadataToSave))
+        metadata: JSON.parse(JSON.stringify(userMessageMetadataToSave)),
       });
 
       // 3. Guardar mensaje del usuario con sus metadatos
-      await this.chatSessionService.addMessage(session.id, {
-        role: 'user',
-        content: userMessage,
-        timestamp: new Date()
-      }, userMessageMetadataToSave);
+      await this.chatSessionService.addMessage(
+        session.id,
+        {
+          role: 'user',
+          content: userMessage,
+          timestamp: new Date(),
+        },
+        userMessageMetadataToSave,
+      );
 
       // 6. Procesar candidatos y construir contexto
       const rawCartItems = await this.getRawCartItems(session.alias);
-      const finalCandidates = await this.candidateProcessor.processCandidates(searchedItems, rawCartItems);
+      const finalCandidates = await this.candidateProcessor.processCandidates(
+        searchedItems,
+        rawCartItems,
+      );
 
       // 7. Construir prompt con sistema + historial + usuario
       const cartContext = this.contextBuilder.buildCartContext(rawCartItems);
@@ -288,23 +298,22 @@ export class ChatOrchestrator {
       // Construir mensaje de sistema con filtros activos
       const systemMessage = {
         role: 'system' as const,
-        content: `Eres un asistente virtual de The Dish Dash. Filtros activos: ${
-          Object.entries(userMessageMetadata.filters || {})
-            .filter(([_, value]) => value !== undefined)
-            .map(([key, value]) => `${key}=${value}`)
-            .join('; ')
-        }. ${cartContext}\n\nCandidatos disponibles:\n${candidatesBlock}`
+        content: `Eres un asistente virtual de The Dish Dash. Filtros activos: ${Object.entries(
+          userMessageMetadata.filters || {},
+        )
+          .filter(([_, value]) => value !== undefined)
+          .map(([key, value]) => `${key}=${value}`)
+          .join('; ')}. ${cartContext}\n\nCandidatos disponibles:\n${candidatesBlock}`,
       };
 
       // 8. Generar respuesta con OpenAI
       const messages: ChatCompletionMessageParam[] = [
         systemMessage,
-        ...messageHistory
-          .map(msg => ({
-            role: msg.role as 'system' | 'user' | 'assistant',
-            content: msg.content
-          })),
-        { role: 'user', content: userMessage }
+        ...messageHistory.map((msg) => ({
+          role: msg.role as 'system' | 'user' | 'assistant',
+          content: msg.content,
+        })),
+        { role: 'user', content: userMessage },
       ];
 
       const gptResponseMsg = await this.recommendationGenerator.generateResponse(messages);
@@ -316,7 +325,7 @@ export class ChatOrchestrator {
       // Log inicial de assistantMetadata
       console.log('[ChatOrchestrator] assistantMetadata inicializado', {
         sessionId: session.id,
-        assistantMetadata: JSON.parse(JSON.stringify(assistantMetadata))
+        assistantMetadata: JSON.parse(JSON.stringify(assistantMetadata)),
       });
 
       // Mantener los filtros activos solo si hay alguno
@@ -324,7 +333,7 @@ export class ChatOrchestrator {
         assistantMetadata.filters = { ...userMessageMetadata.filters };
         console.log('[ChatOrchestrator] Filters copiados a assistantMetadata', {
           sessionId: session.id,
-          assistantMetadata: JSON.parse(JSON.stringify(assistantMetadata))
+          assistantMetadata: JSON.parse(JSON.stringify(assistantMetadata)),
         });
       }
 
@@ -333,24 +342,27 @@ export class ChatOrchestrator {
           assistantResponse = await this.functionCallHandler.handleFunctionCall(
             gptResponseMsg.function_call.name,
             gptResponseMsg.function_call.arguments,
-            { searchedItems }
+            { searchedItems },
           );
         } catch (error) {
           console.error('[ChatOrchestrator] Error procesando function_call:', error);
           // Si falla el procesamiento de la función, intentar usar el contenido como fallback
           assistantResponse = {
             type: SYSTEM_MESSAGE_TYPES.ERROR,
-            content: gptResponseMsg.content || "Lo siento, no pude procesar tu solicitud correctamente.",
+            content:
+              gptResponseMsg.content || 'Lo siento, no pude procesar tu solicitud correctamente.',
             error: {
               code: 'FUNCTION_CALL_ERROR',
-              message: error instanceof Error ? error.message : 'Error desconocido'
-            }
+              message: error instanceof Error ? error.message : 'Error desconocido',
+            },
           };
         }
       } else if (gptResponseMsg.content != null) {
         // Si no hay function_call pero hay contenido, verificar si hay un artículo específico
-        const foundItem = searchedItems?.find(item => 
-          gptResponseMsg.content && gptResponseMsg.content.toLowerCase().includes(item.name.toLowerCase())
+        const foundItem = searchedItems?.find(
+          (item) =>
+            gptResponseMsg.content &&
+            gptResponseMsg.content.toLowerCase().includes(item.name.toLowerCase()),
         );
 
         if (foundItem) {
@@ -359,31 +371,31 @@ export class ChatOrchestrator {
             assistantResponse = await this.functionCallHandler.handleFunctionCall(
               'get_product_details',
               { product_id: foundItem.id },
-              { searchedItems }
+              { searchedItems },
             );
           } catch (error) {
             console.error('[ChatOrchestrator] Error obteniendo detalles del producto:', error);
             assistantResponse = {
               type: 'text',
-              content: gptResponseMsg.content || ''
+              content: gptResponseMsg.content || '',
             };
           }
         } else {
           // Si no hay artículo específico, usar el contenido como respuesta de texto
           assistantResponse = {
             type: 'text',
-            content: gptResponseMsg.content || ''
+            content: gptResponseMsg.content || '',
           };
         }
       } else {
         // Si no hay ni function_call ni contenido, devolver un mensaje de error
         assistantResponse = {
           type: SYSTEM_MESSAGE_TYPES.ERROR,
-          content: "Lo siento, no pude procesar tu solicitud correctamente.",
+          content: 'Lo siento, no pude procesar tu solicitud correctamente.',
           error: {
             code: 'NO_RESPONSE',
-            message: 'No se recibió respuesta válida del modelo'
-          }
+            message: 'No se recibió respuesta válida del modelo',
+          },
         };
       }
 
@@ -394,7 +406,7 @@ export class ChatOrchestrator {
           assistantMetadata.embedding = embedding;
           console.log('[ChatOrchestrator] Embedding añadido a assistantMetadata', {
             sessionId: session.id,
-            hasEmbedding: true
+            hasEmbedding: true,
           });
         }
       }
@@ -402,7 +414,7 @@ export class ChatOrchestrator {
       // Log antes de la copia profunda
       console.log('[ChatOrchestrator] Antes de copia profunda de assistantMetadata', {
         sessionId: session.id,
-        assistantMetadata: JSON.parse(JSON.stringify(assistantMetadata))
+        assistantMetadata: JSON.parse(JSON.stringify(assistantMetadata)),
       });
 
       // Crear una copia profunda del objeto de metadata para asegurar que no se modifique
@@ -411,55 +423,65 @@ export class ChatOrchestrator {
       // Log después de la copia profunda
       console.log('[ChatOrchestrator] Después de copia profunda de assistantMetadata', {
         sessionId: session.id,
-        assistantMetadataToSave: JSON.parse(JSON.stringify(assistantMetadataToSave))
+        assistantMetadataToSave: JSON.parse(JSON.stringify(assistantMetadataToSave)),
       });
 
       // Log de las propiedades del objeto
       console.log('[ChatOrchestrator] Propiedades de assistantMetadataToSave', {
         sessionId: session.id,
-        properties: Object.keys(assistantMetadataToSave)
+        properties: Object.keys(assistantMetadataToSave),
       });
 
       // Log antes de llamar a addMessage
       console.log('[ChatOrchestrator] Llamando a addMessage para ASSISTANT', {
         sessionId: session.id,
-        metadata: JSON.parse(JSON.stringify(assistantMetadataToSave))
+        metadata: JSON.parse(JSON.stringify(assistantMetadataToSave)),
       });
 
       // Guardar respuesta del asistente con metadatos
-      await this.chatSessionService.addMessage(session.id, {
-        role: 'assistant',
-        content: assistantResponse.content || '',
-        timestamp: new Date()
-      }, assistantMetadataToSave);
+      await this.chatSessionService.addMessage(
+        session.id,
+        {
+          role: 'assistant',
+          content: assistantResponse.content || '',
+          timestamp: new Date(),
+        },
+        assistantMetadataToSave,
+      );
 
       return assistantResponse;
-
     } catch (error) {
       this.logger.error('[ChatOrchestrator] Error procesando mensaje:', error);
-      
+
       // Guardar mensaje de error como sistema con metadatos de error
-      await this.chatSessionService.addMessage(session.id, {
-        role: 'system',
-        content: 'Error procesando mensaje: ' + (error instanceof Error ? error.message : 'Unknown error'),
-        timestamp: new Date()
-      }, { 
-        error: true,
-        errorDetails: {
-          code: 'PROCESSING_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString()
-        }
-      });
+      await this.chatSessionService.addMessage(
+        session.id,
+        {
+          role: 'system',
+          content:
+            'Error procesando mensaje: ' +
+            (error instanceof Error ? error.message : 'Unknown error'),
+          timestamp: new Date(),
+        },
+        {
+          error: true,
+          errorDetails: {
+            code: 'PROCESSING_ERROR',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString(),
+          },
+        },
+      );
 
       return {
         type: 'error',
-        content: "Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo.",
+        content:
+          'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo.',
         error: {
           code: 'PROCESSING_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error'
-        }
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
       };
     }
   }
-} 
+}

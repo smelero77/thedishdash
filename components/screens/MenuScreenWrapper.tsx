@@ -17,4 +17,4 @@ export const MenuScreenWrapper: React.FC<MenuScreenWrapperProps> = (props) => {
       <MenuScreen {...props} />
     </CartProvider>
   );
-}; 
+};

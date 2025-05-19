@@ -9,13 +9,13 @@ export function CartIconBadge() {
   // Comprueba si el contexto está disponible (importante!)
   if (!cartActions) {
     // Puedes retornar null, 0, o un estado de carga mientras el provider se inicializa
-    console.warn("CartActionsContext no disponible en CartIconBadge");
+    console.warn('CartActionsContext no disponible en CartIconBadge');
     // Retornar el icono sin número podría ser una opción
     return (
-       <button className="relative" disabled>
-         <ShoppingCart className="h-6 w-6 opacity-50" />
-       </button>
-    )
+      <button className="relative" disabled>
+        <ShoppingCart className="h-6 w-6 opacity-50" />
+      </button>
+    );
   }
 
   // Llama directamente a la función del contexto de acciones
@@ -31,4 +31,4 @@ export function CartIconBadge() {
       )}
     </button>
   );
-} 
+}

@@ -1,82 +1,88 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from '../ui/Button'
-import { Input } from '../ui/Input'
-import { useToast } from '@/hooks/use-toast'
-import { Toaster } from '../ui/Toaster'
-import { useTable } from '@/context/TableContext'
-import { TableInfo } from '../ui/TableInfo'
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { useToast } from '@/hooks/use-toast';
+import { Toaster } from '../ui/Toaster';
+import { useTable } from '@/context/TableContext';
+import { TableInfo } from '../ui/TableInfo';
 
 // Generar un alias aleatorio
 function generateRandomAlias(): string {
   const adjectives = ['Gourmet', 'Foodie', 'Sibarita', 'Chef', 'Gourmetón', 'Comensal'];
   const nouns = ['Feliz', 'Hambriento', 'Curioso', 'Elegante', 'Exigente', 'Aventurero'];
   const number = Math.floor(1000 + Math.random() * 9000);
-  
+
   const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
   const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-  
+
   return `${randomAdjective}${randomNoun}${number}`;
 }
 
 export default function AliasScreen() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const { toast } = useToast()
-  const [alias, setAlias] = useState<string>('')
-  const { tableNumber } = useTable()
-  
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [alias, setAlias] = useState<string>('');
+  const { tableNumber } = useTable();
+
   // Generar un alias aleatorio
   useEffect(() => {
-    setAlias(generateRandomAlias())
-  }, [])
-  
+    setAlias(generateRandomAlias());
+  }, []);
+
   // Manejar el envío del formulario
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!tableNumber) {
       toast({
-        title: "Error",
-        description: "No se encontró el número de mesa.",
-        variant: "destructive",
-      })
-      return
+        title: 'Error',
+        description: 'No se encontró el número de mesa.',
+        variant: 'destructive',
+      });
+      return;
     }
-    
+
     if (!alias.trim()) {
       toast({
-        title: "Alias requerido",
-        description: "Por favor, introduce un alias o usa el generado automáticamente.",
-        variant: "destructive",
-      })
-      return
+        title: 'Alias requerido',
+        description: 'Por favor, introduce un alias o usa el generado automáticamente.',
+        variant: 'destructive',
+      });
+      return;
     }
-    
+
     // Guardar el alias en localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem('customerAlias', alias.trim())
+      localStorage.setItem('customerAlias', alias.trim());
     }
-    
+
     // Redirigir al menú
-    router.push('/menu')
-  }
+    router.push('/menu');
+  };
 
   return (
-    <div className="relative flex size-full min-h-screen flex-col bg-[#f8fbfb] group/design-root overflow-x-hidden" style={{ fontFamily: 'Epilogue, "Noto Sans", sans-serif' }}>
+    <div
+      className="relative flex size-full min-h-screen flex-col bg-[#f8fbfb] group/design-root overflow-x-hidden"
+      style={{ fontFamily: 'Epilogue, "Noto Sans", sans-serif' }}
+    >
       <div className="flex w-full grow bg-[#f8fbfb] @container p-4">
         <div className="w-full gap-1 overflow-hidden bg-[#f8fbfb] @[480px]:gap-2 aspect-[3/2] rounded-xl flex">
           <div
             className="w-full bg-center bg-no-repeat bg-cover aspect-auto rounded-none flex-1"
-            style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/sdxl10/36e7e026-ee59-417b-aa5a-9480957baf30.png")' }}
+            style={{
+              backgroundImage:
+                'url("https://cdn.usegalileo.ai/sdxl10/36e7e026-ee59-417b-aa5a-9480957baf30.png")',
+            }}
           />
         </div>
       </div>
       <div className="flex w-full grow bg-[#f8fbfb] p-4 flex-col">
-        <motion.div 
+        <motion.div
           className="flex-1 flex flex-col items-center justify-center max-w-md mx-auto w-full"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -88,10 +94,8 @@ export default function AliasScreen() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <TableInfo 
-              tableNumber={tableNumber} 
-            />
-            
+            <TableInfo tableNumber={tableNumber} />
+
             <motion.div
               className="w-full mt-8"
               initial={{ opacity: 0, y: 20 }}
@@ -104,7 +108,7 @@ export default function AliasScreen() {
               <p className="text-gray-600 text-center text-sm mb-6">
                 Usar un alias nos ayuda a servirte mejor. Tu nombre aparecerá en tus platos.
               </p>
-              
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Input
@@ -118,8 +122,8 @@ export default function AliasScreen() {
                     Usa el alias sugerido o escribe uno propio.
                   </p>
                 </div>
-                
-                <Button 
+
+                <Button
                   type="submit"
                   className="w-full h-14 rounded-full bg-[#1ce3cf] text-[#0e1b19] hover:bg-[#1ce3cf]/90 text-base"
                 >
@@ -131,5 +135,5 @@ export default function AliasScreen() {
         </motion.div>
       </div>
     </div>
-  )
-} 
+  );
+}

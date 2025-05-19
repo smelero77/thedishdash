@@ -53,8 +53,8 @@
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 /* Estilos para la barra de scroll */
@@ -79,4 +79,4 @@
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #1ce3cf transparent;
-} 
+}

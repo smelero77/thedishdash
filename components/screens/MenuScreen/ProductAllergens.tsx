@@ -30,4 +30,4 @@ const ProductAllergens: React.FC<ProductAllergensProps> = ({ allergens }) => {
   );
 };
 
-export default ProductAllergens; 
+export default ProductAllergens;

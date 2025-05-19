@@ -23,9 +23,7 @@ export default function Providers({ children, menuItems }: ProvidersProps) {
   return (
     <TableProvider>
       <CustomerProvider>
-        <CartProvider menuItems={menuItems}>
-          {children}
-        </CartProvider>
+        <CartProvider menuItems={menuItems}>{children}</CartProvider>
       </CustomerProvider>
     </TableProvider>
   );
