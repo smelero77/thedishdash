@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { Category, MenuItemData, Slot, SupabaseMenuItem } from '@/types/menu';
 import { supabase } from '@/lib/supabase';
-import { useCurrentSlot } from './useCurrentSlot';
 import { getCurrentSlot } from '@/utils/slot';
 import { processMenuItem } from '@/utils/menu';
 
@@ -96,15 +95,15 @@ export const useMenuData = (): UseMenuDataResult => {
   }, []);
 
   const menuItems = useMemo<MenuItemData[]>(
-    () => rawMenuItems.map((r) => processMenuItem(r)),
+    () => rawMenuItems.map((r: SupabaseMenuItem) => processMenuItem(r)),
     [rawMenuItems],
   );
 
   const categoriesWithItems = useMemo<CategoryWithItems[]>(
     () =>
-      categories.map((cat) => ({
+      categories.map((cat: Category) => ({
         ...cat,
-        items: menuItems.filter((item) => item.category_ids.includes(cat.id)),
+        items: menuItems.filter((item: MenuItemData) => item.category_ids.includes(cat.id)),
       })),
     [categories, menuItems],
   );

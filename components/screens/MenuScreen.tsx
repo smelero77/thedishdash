@@ -75,15 +75,24 @@ interface MenuScreenProps {
 
 const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
   ({ initialSlots, initialCategories, initialMenuItems, initialCurrentSlot }, ref) => {
-    // 1. Todos los hooks al principio
+    // 1. Context hooks primero
+    const cart = useContext(CartItemsContext);
+    const cartTotal = useContext(CartTotalContext);
+    const cartActions = useContext(CartActionsContext);
+    const { alias } = useCustomer();
+    const { tableNumber } = useTable();
+
+    // 2. Data fetching hooks
     const { slots, currentSlot, categories, loading, error } = useMenuData();
+    const { modifiers, fetchModifiers } = useModifiers();
     const orderedCategories = useCategoryOrder({
       categories,
       slots,
       currentSlot,
     });
+
+    // 3. State hooks
     const [activeTab, setActiveTab] = useState<string>('');
-    const menuScrollRef = useRef<HTMLDivElement | null>(null);
     const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
     const [showModifierModal, setShowModifierModal] = useState(false);
     const [showCartModal, setShowCartModal] = useState(false);
@@ -91,21 +100,16 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredItems, setFilteredItems] = useState<MenuItemData[]>([]);
     const [showAliasModal, setShowAliasModal] = useState(false);
-    const isScrollingProgrammatically = useRef(false);
-    const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
     const [showChatModal, setShowChatModal] = useState(false);
-    const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const [isAnyDetailOpen, setIsAnyDetailOpen] = useState(false);
 
-    const cart = useContext(CartItemsContext);
-    const cartTotal = useContext(CartTotalContext);
-    const cartActions = useContext(CartActionsContext);
+    // 4. Refs
+    const menuScrollRef = useRef<HTMLDivElement | null>(null);
+    const isScrollingProgrammatically = useRef(false);
+    const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+    const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-    const { alias } = useCustomer();
-    const { tableNumber } = useTable();
-
-    const { modifiers, fetchModifiers } = useModifiers();
-
+    // 5. Memoized values
     const memoizedCartActions = useMemo(() => cartActions, [cartActions]);
     const memoizedInitialMenuItems = useMemo(() => initialMenuItems, [initialMenuItems]);
     const memoizedModifiers = useMemo(() => modifiers, [modifiers]);
@@ -113,7 +117,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const itemQuantities = useMemo(
       () =>
         Object.entries(cart || {}).reduce(
-          (quantities, [id, item]) => {
+          (quantities, [id, item]: [string, CartItem]) => {
             if (item.client_alias === alias) {
               quantities[id] = item.quantity;
             }
