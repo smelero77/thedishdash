@@ -1,6 +1,8 @@
 // eslint.config.js
 import js from '@eslint/js'
-import tseslint from 'typescript-eslint'
+import parser from '@typescript-eslint/parser'
+import plugin from '@typescript-eslint/eslint-plugin'
+import * as tsConfigs from '@typescript-eslint/eslint-plugin/configs'
 import reactPlugin from 'eslint-plugin-react'
 import reactHooksPlugin from 'eslint-plugin-react-hooks'
 import prettierPlugin from 'eslint-plugin-prettier'
@@ -19,7 +21,7 @@ export default [
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
-      parser: tseslint.parser,
+      parser,
       parserOptions: {
         project: './tsconfig.json',
         tsconfigRootDir: process.cwd(),
@@ -31,7 +33,7 @@ export default [
       },
     },
     plugins: {
-      '@typescript-eslint': tseslint.plugin,
+      '@typescript-eslint': plugin,
       'react': reactPlugin,
       'react-hooks': reactHooksPlugin,
       'prettier': prettierPlugin
@@ -43,8 +45,8 @@ export default [
     },
     rules: {
       // TypeScript rules
-      ...tseslint.configs.recommended.rules,
-      ...tseslint.configs['recommended-type-checked'].rules,
+      ...tsConfigs.recommended.rules,
+      ...tsConfigs['recommended-type-checked'].rules,
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       
       // React rules

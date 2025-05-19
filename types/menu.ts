@@ -6,6 +6,9 @@ import {
   SupabaseModifier 
 } from './modifiers';
 
+// Re-export SelectedModifiers
+export type { SelectedModifiers };
+
 export interface SupabaseMenuItem {
   id: string;
   name: string;
