@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
 import { getMenuItems, getCurrentSlot } from '@/lib/data'
+import { processMenuItem } from '@/utils/menu'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -37,6 +38,9 @@ export default async function RootLayout({
     getCurrentSlot(),
   ])
 
+  // Transformamos los menuItems al formato correcto
+  const processedMenuItems = menuItems.map(processMenuItem)
+
   return (
     <html lang="es">
       <head>
@@ -50,7 +54,7 @@ export default async function RootLayout({
           Ahí es donde inyectamos why-did-you-render (en desarrollo)
           y levantamos todos los contextos.
         */}
-        <Providers menuItems={menuItems}>
+        <Providers menuItems={processedMenuItems}>
           {children}
         </Providers>
       </body>
