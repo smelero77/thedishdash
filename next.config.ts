@@ -1,5 +1,8 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+// next.config.ts
+import type { NextConfig } from 'next';
+import { resolve } from 'path';
+
+const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
@@ -22,7 +25,7 @@ const nextConfig = {
       '@': process.cwd(),
     };
 
-    // Evitar que WDYR se incluya en producción
+    // Avoid including WDYR in production
     if (!dev) {
       config.resolve.alias['@/config/whyDidYouRender'] = false;
     }
@@ -31,4 +34,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
