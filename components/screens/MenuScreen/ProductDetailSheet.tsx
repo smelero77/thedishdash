@@ -50,7 +50,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, 
             onClick={e => e.stopPropagation()}
           >
             <motion.div
-              className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative h-[calc(100vh-120px)] overflow-y-auto"
+              className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative h-[calc(100vh-80px)] overflow-y-auto"
               drag="y"
               dragConstraints={{ top: 0 }}
               dragElastic={0.2}
