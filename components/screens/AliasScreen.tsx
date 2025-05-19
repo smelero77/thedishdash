@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { Button } from '../ui/Button'
+import { Input } from '../ui/Input'
 import { useToast } from '@/hooks/use-toast'
-import { Toaster } from '@/components/ui/Toaster'
+import { Toaster } from '../ui/Toaster'
 import { useTable } from '@/context/TableContext'
-import { TableInfo } from '@/components/ui/TableInfo'
+import { TableInfo } from '../ui/TableInfo'
 
 // Generar un alias aleatorio
 function generateRandomAlias(): string {
