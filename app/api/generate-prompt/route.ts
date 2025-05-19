@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getPromptContextFromSupabase } from '@/lib/context/getPromptContextFromSupabase';
-import { buildMenuPrompt } from '@/lib/llm/buildMenuPrompt';
+import { buildSystemPrompt, buildPromptContext } from '@/lib/context/promptContextBuilder';
 import { saveDailyPrompt } from '@/lib/storage/saveDailyPrompt';
 
 export async function GET() {
   try {
     // 1. Obtener el contexto del menú
     const menuContext = await getPromptContextFromSupabase();
+    const context = await buildPromptContext();
 
     // 2. Construir el prompt base
-    const prompt = buildMenuPrompt(menuContext);
+    const prompt = buildSystemPrompt(context);
 
     // 3. Guardar el prompt en la base de datos
     await saveDailyPrompt(prompt);
