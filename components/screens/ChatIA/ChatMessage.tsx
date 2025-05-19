@@ -71,7 +71,7 @@ export interface TextResponse {
 
 export type TypedAssistantResponse = 
   | { type: 'info'; content: string }
-  | { type: 'error'; content: string; error: { message: string } }
+  | { type: 'error'; content: string; error: { message: string; code?: string } }
   | { type: 'clarification'; content: string }
   | { type: 'recommendations' | 'recommendation'; content: string; data: Recommendation[] }
   | { type: 'product_details'; content: string; product: ProductDetails };

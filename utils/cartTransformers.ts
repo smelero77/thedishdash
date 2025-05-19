@@ -31,9 +31,9 @@ export const normalizeModifiers = (val: any): any => {
     return normalizedObj;
 };
 
-export const getCartKey = (itemId: string, modifiers: Record<string, any> | null, alias: string): string => {
+export const getCartKey = (itemId: string, modifiers: Record<string, any> | null | undefined, alias: string | undefined): string => {
     const normalizedModifiers = normalizeModifiers(modifiers);
-    return `${itemId}${normalizedModifiers ? `-${JSON.stringify(normalizedModifiers)}` : ''}-${alias}`;
+    return `${itemId}${normalizedModifiers ? `-${JSON.stringify(normalizedModifiers)}` : ''}-${alias || ''}`;
 };
 
 export const transformCartItem = (item: MenuItemData, modifiers: Record<string, any> | null) => {

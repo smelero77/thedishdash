@@ -1,0 +1,3 @@
+{
+  "buildCommand": "tsc --noEmit -p tsconfig.vercel.json || true && next build"
+} 

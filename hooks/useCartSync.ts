@@ -1,11 +1,17 @@
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { normalizeModifiers, getCartKey } from '@/utils/cartTransformers';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-interface RealtimePayload {
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
-  new?: { data: any };
-  old?: { data: any };
+interface TemporaryOrderItem {
+  temporary_order_id: string;
+  menu_item_id: string;
+  quantity: number;
+  modifiers_data: any;
+  alias: string;
+  menu_item: any;
+  created_at: string;
+  updated_at: string;
 }
 
 export const useCartSync = (
@@ -26,12 +32,17 @@ export const useCartSync = (
           table: 'temporary_order_items',
           filter: `temporary_order_id=eq.${temporaryOrderId}`
         },
-        async (payload: RealtimePayload) => {
+        async (payload: RealtimePostgresChangesPayload<TemporaryOrderItem>) => {
           try {
             console.log('Realtime change received:', payload);
             
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              const { data: item } = payload.new!;
+              const item = payload.new;
+              if (!item || !item.menu_item_id || !item.alias) {
+                console.warn('Item incompleto recibido:', item);
+                return;
+              }
+              
               const normalizedModifiers = normalizeModifiers(item.modifiers_data);
               const cartKey = getCartKey(item.menu_item_id, normalizedModifiers, item.alias);
               onCartUpdate((prevCart: any) => ({
@@ -45,7 +56,12 @@ export const useCartSync = (
                 }
               }));
             } else if (payload.eventType === 'DELETE') {
-              const { data: item } = payload.old!;
+              const item = payload.old;
+              if (!item || !item.menu_item_id || !item.alias) {
+                console.warn('Item incompleto recibido:', item);
+                return;
+              }
+              
               const normalizedModifiers = normalizeModifiers(item.modifiers_data);
               const cartKey = getCartKey(item.menu_item_id, normalizedModifiers, item.alias);
               onCartUpdate((prevCart: any) => {

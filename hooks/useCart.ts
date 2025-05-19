@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { MenuItemData, Cart, CartItem, CartActions } from '@/types/menu';
+import { MenuItemData, Cart, CartItem } from '@/types/menu';
+import { CartActions } from '@/types/cart';
 import { supabase } from '@/lib/supabase';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { getCartKey as getCartKeyFromUtils, normalizeModifiers } from '@/utils/cartTransformers';
@@ -14,6 +15,7 @@ export interface SelectedModifierOption {
 }
 
 export interface SelectedModifier {
+  id: string;
   name: string;
   options: SelectedModifierOption[];
 }
@@ -96,11 +98,11 @@ function useCart(
     const [temporaryOrderId, setTemporaryOrderId] = useState<string>('');
 
     // --- Funciones Internas con Tipos Más Estrictos ---
-    const getCartKey = useCallback((itemId: string, modifiers: SelectedModifiers | null = null, alias: string = ''): string => {
-        return getCartKeyFromUtils(itemId, modifiers, alias);
+    const getCartKey = useCallback((itemId: string, modifiers: SelectedModifiers | null | undefined = null, alias: string = ''): string => {
+        return getCartKeyFromUtils(itemId, modifiers ?? null, alias);
     }, []);
 
-    const calculateItemPrice = useCallback((item: MenuItemData, modifiers: SelectedModifiers | null): number => {
+    const calculateItemPrice = useCallback((item: MenuItemData, modifiers: SelectedModifiers | null | undefined): number => {
         const basePrice = item?.price ?? 0;
         if (!modifiers) {
             return basePrice;
@@ -174,7 +176,7 @@ function useCart(
                     items?.forEach((item) => {
                         const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
                         if (menuItem) {
-                            const cartKey = getCartKey(item.menu_item_id, item.modifiers_data as SelectedModifiers | null, item.alias);
+                            const cartKey = getCartKey(item.menu_item_id, item.modifiers_data ?? null, item.alias);
                             initialCartState[cartKey] = {
                                 id: item.menu_item_id,
                                 quantity: item.quantity,

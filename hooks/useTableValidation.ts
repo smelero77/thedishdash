@@ -23,7 +23,7 @@ export function useTableValidation() {
         }
 
         // Validar el código
-        const { table } = await validateTableCode(codeToValidate, deviceId)
+        const { table } = await validateTableCode(codeToValidate)
 
         // Almacenar datos
         localStorage.setItem('tableCode', codeToValidate)

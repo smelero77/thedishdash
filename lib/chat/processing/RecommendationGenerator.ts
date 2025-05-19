@@ -4,6 +4,23 @@ import { CHAT_CONFIG } from '../constants/config';
 import { recommendDishesFn, getProductDetailsFn } from '../constants/functions';
 import { ERROR_CODES } from '../constants/config';
 import { RECOMMENDATION_SYSTEM_CONTEXT } from '../constants/prompts';
+import { MenuItemData } from '@/types/menu';
+
+interface ExtractedFilters {
+  dietary?: string[];
+  allergens?: string[];
+  priceRange?: [number, number];
+  preferences?: string[];
+}
+
+interface RecommendationResponse {
+  type: 'recommendation';
+  content: string;
+  recommendations: Array<{
+    id: string;
+    reason: string;
+  }>;
+}
 
 /**
  * Clase responsable de generar recomendaciones utilizando el modelo de OpenAI
@@ -27,6 +44,60 @@ export class RecommendationGenerator {
       RecommendationGenerator.instance = new RecommendationGenerator(openaiApiKey);
     }
     return RecommendationGenerator.instance;
+  }
+
+  private buildRecommendationPrompt(
+    candidates: MenuItemData[],
+    userMessage: string,
+    filters: ExtractedFilters
+  ): string {
+    const filterText = this.formatFilters(filters);
+    const candidatesText = candidates.map(item => 
+      `- ${item.name}: ${item.description || 'Sin descripción'} (${item.price}€)`
+    ).join('\n');
+
+    return `
+Mensaje del usuario: ${userMessage}
+
+${filterText}
+
+Platos disponibles:
+${candidatesText}
+
+Por favor, recomienda entre 3 y 4 platos que mejor se ajusten a las preferencias del usuario, considerando los filtros aplicados.
+Para cada recomendación, proporciona una razón clara y concisa de por qué ese plato sería una buena opción.
+`;
+  }
+
+  private formatFilters(filters: ExtractedFilters): string {
+    const parts: string[] = [];
+
+    if (filters.dietary?.length) {
+      parts.push(`Preferencias dietéticas: ${filters.dietary.join(', ')}`);
+    }
+    if (filters.allergens?.length) {
+      parts.push(`Alergias a evitar: ${filters.allergens.join(', ')}`);
+    }
+    if (filters.priceRange) {
+      parts.push(`Rango de precio: ${filters.priceRange[0]}€ - ${filters.priceRange[1]}€`);
+    }
+    if (filters.preferences?.length) {
+      parts.push(`Preferencias adicionales: ${filters.preferences.join(', ')}`);
+    }
+
+    return parts.length ? `Filtros aplicados:\n${parts.join('\n')}` : '';
+  }
+
+  private formatRecommendations(
+    recommendations: Array<{ id: string; reason: string }>,
+    candidates: MenuItemData[]
+  ): string {
+    return recommendations.map(rec => {
+      const item = candidates.find(c => c.id === rec.id);
+      if (!item) return '';
+
+      return `${item.name} (${item.price}€)\n${rec.reason}\n`;
+    }).filter(Boolean).join('\n');
   }
 
   /**
@@ -134,7 +205,7 @@ export class RecommendationGenerator {
   }
 
   private async generateRecommendationResponse(
-    candidates: MenuItem[],
+    candidates: MenuItemData[],
     userMessage: string,
     filters: ExtractedFilters
   ): Promise<RecommendationResponse> {
@@ -142,7 +213,7 @@ export class RecommendationGenerator {
     
     const response = await this.openai.chat.completions.create({
       model: CHAT_CONFIG.recommendationModel,
-      temperature: CHAT_CONFIG.recommendationTemperature,
+      temperature: CHAT_CONFIG.temperature,
       max_tokens: CHAT_CONFIG.maxTokensRecommendation,
       top_p: 0.9,
       presence_penalty: 0.2,

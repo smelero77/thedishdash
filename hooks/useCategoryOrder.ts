@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { Category, Slot } from '@/types/menu';
+import { Category, Slot, CategoryWithItems } from '@/types/menu';
 
 interface UseCategoryOrderProps {
-  categories: Category[];
+  categories: CategoryWithItems[];
   slots: Slot[];
   currentSlot: Slot | null;
 }

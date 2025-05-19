@@ -11,22 +11,22 @@ import ProductQuantityControls from './MenuScreen/ProductQuantityControls';
 interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
-  image_url: string;
+  image_url: string | null;
   allergens: Allergen[];
   diet_tags: string[];
-  food_info: string;
-  origin: string;
-  pairing_suggestion: string;
-  chef_notes: string;
+  food_info: string | null;
+  origin: string | null;
+  pairing_suggestion: string | null;
+  chef_notes: string | null;
   is_recommended: boolean;
-  onAddToCart: () => void; // Función para añadir/incrementar el ítem
-  onRemoveFromCart: () => void; // Función para decrementar/eliminar el ítem
-  quantity: number; // Cantidad actual del ítem en el carrito
+  onAddToCart: (e: React.MouseEvent) => void;
+  onRemoveFromCart: (e: React.MouseEvent) => void;
+  quantity: number;
   is_available: boolean;
-  hasModifiers?: boolean; // Nueva prop
-  onOpenCart?: () => void; // Nueva prop para abrir el carrito
+  hasModifiers?: boolean;
+  onOpenCart?: (e: React.MouseEvent) => void;
 }
 
 const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
@@ -112,8 +112,8 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(({
             quantity={quantity}
             price={price}
             hasModifiers={hasModifiers}
-            onAdd={onAddToCart}
-            onRemove={onRemoveFromCart}
+            onAdd={(e) => onAddToCart(e)}
+            onRemove={(e) => onRemoveFromCart(e)}
             onOpenCart={onOpenCart}
           />
         </div>

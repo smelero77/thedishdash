@@ -3,14 +3,14 @@ import { MenuItemData } from '@/types/menu';
 import { normalizeModifiers, getCartKey, transformCartItem } from '@/utils/cartTransformers';
 import { calculateItemPrice, calculateCartTotal } from '@/utils/cartCalculations';
 
-export const useCartOperations = () => {
+export const useCartOperations = (currentClientAlias: string | null) => {
   const [cart, setCart] = useState<Record<string, any>>({});
   const [total, setTotal] = useState(0);
   const [pendingOperations, setPendingOperations] = useState<Array<() => void>>([]);
 
   const addItem = useCallback((item: MenuItemData, modifiers: Record<string, any> | null) => {
     const normalizedModifiers = normalizeModifiers(modifiers);
-    const cartKey = getCartKey(item.id, normalizedModifiers, item.client_alias || '');
+    const cartKey = getCartKey(item.id, normalizedModifiers, currentClientAlias || '');
     
     // Actualización optimista
     setCart(prevCart => {
@@ -41,11 +41,11 @@ export const useCartOperations = () => {
       });
       setTotal(prevTotal => prevTotal - calculateItemPrice(item, normalizedModifiers || {}));
     }]);
-  }, []);
+  }, [currentClientAlias]);
 
   const removeItem = useCallback((item: MenuItemData, modifiers: Record<string, any> | null) => {
     const normalizedModifiers = normalizeModifiers(modifiers);
-    const cartKey = getCartKey(item.id, normalizedModifiers, item.client_alias || '');
+    const cartKey = getCartKey(item.id, normalizedModifiers, currentClientAlias || '');
     
     // Actualización optimista
     setCart(prevCart => {
@@ -76,12 +76,12 @@ export const useCartOperations = () => {
       });
       setTotal(prevTotal => prevTotal + calculateItemPrice(item, normalizedModifiers || {}));
     }]);
-  }, []);
+  }, [currentClientAlias]);
 
   const getItemQuantity = useCallback((itemId: string, modifiers: Record<string, any> | null) => {
     const cartKey = getCartKey(itemId, modifiers, currentClientAlias || '');
     return cart[cartKey]?.quantity || 0;
-  }, [cart]);
+  }, [cart, currentClientAlias]);
 
   const rollbackLastOperation = useCallback(() => {
     if (pendingOperations.length > 0) {

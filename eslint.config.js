@@ -2,10 +2,10 @@
 import js from '@eslint/js'
 import parser from '@typescript-eslint/parser'
 import plugin from '@typescript-eslint/eslint-plugin'
-import * as tsConfigs from '@typescript-eslint/eslint-plugin/configs'
 import reactPlugin from 'eslint-plugin-react'
 import reactHooksPlugin from 'eslint-plugin-react-hooks'
 import prettierPlugin from 'eslint-plugin-prettier'
+import nextPlugin from '@next/eslint-plugin-next'
 
 export default [
   {
@@ -36,7 +36,8 @@ export default [
       '@typescript-eslint': plugin,
       'react': reactPlugin,
       'react-hooks': reactHooksPlugin,
-      'prettier': prettierPlugin
+      'prettier': prettierPlugin,
+      '@next/next': nextPlugin
     },
     settings: {
       react: {
@@ -44,27 +45,30 @@ export default [
       }
     },
     rules: {
-      // TypeScript rules
-      ...tsConfigs.recommended.rules,
-      ...tsConfigs['recommended-type-checked'].rules,
+      // TypeScript
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      
-      // React rules
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_'
+      }],
+
+      // React
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      
-      // Prettier integration
+
+      // Next.js
+      '@next/next/no-html-link-for-pages': 'error',
+      '@next/next/no-img-element': 'error',
+      '@next/next/no-unwanted-polyfillio': 'error',
+
+      // Prettier
       'prettier/prettier': ['error', {}, { usePrettierrc: true }],
-      
-      // General rules
+
+      // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
-      'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { 
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_'
-      }]
+      'no-unused-vars': 'off'
     }
   }
 ]

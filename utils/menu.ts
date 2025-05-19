@@ -42,8 +42,9 @@ export function processMenuItem(item: SupabaseMenuItem): MenuItemData {
                 allergens: opt.modifier_options_allergens.map(ma => ({
                     id: ma.allergens.id,
                     name: ma.allergens.name,
-                    icon_url: ma.allergens.icon_url || ''
-                }))
+                    icon_url: ma.allergens.icon_url || '',
+                    is_visible: true
+                })) as MenuItemAllergen[]
             }))
         }))
     };

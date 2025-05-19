@@ -62,8 +62,8 @@ export class CandidateProcessor {
   }
 
   /**
-   * Procesa los candidatos de menú, enriqueciéndolos con información de categorías
-   * y filtrando según disponibilidad y carrito actual
+   * Procesa los candidatos de menú, enriqueciéndolos con información de categorías,
+   * filtrando según disponibilidad y carrito actual, y ordenándolos por relevancia
    */
   public async processCandidates(
     searchedItems: MenuItemData[],
@@ -95,11 +95,25 @@ export class CandidateProcessor {
         item.is_available && !cartItemIds.has(item.id)
       );
 
-      // 3. Ordenar por relevancia (profit_margin y is_recommended)
-      const sortedCandidates = this.sortCandidatesByRelevance(finalCandidates);
+      // 3. Ordenar por relevancia (profit_margin e is_recommended)
+      const sortedCandidates = [...finalCandidates].sort((a, b) => {
+        // Priorizar items recomendados
+        if (a.is_recommended !== b.is_recommended) {
+          return a.is_recommended ? -1 : 1;
+        }
+
+        // Luego ordenar por profit_margin
+        const marginA = a.profit_margin || 0;
+        const marginB = b.profit_margin || 0;
+        return marginB - marginA;
+      });
+
+      // 4. Mantener al menos 4 candidatos si hay suficientes
+      const minCandidates = Math.min(4, sortedCandidates.length);
+      const finalResults = sortedCandidates.slice(0, minCandidates);
       
-      console.log(`[CandidateProcessor] Candidatos finales después de procesar: ${sortedCandidates.length}`);
-      return sortedCandidates;
+      console.log(`[CandidateProcessor] Candidatos finales después de procesar: ${finalResults.length}`);
+      return finalResults;
     } catch (error) {
       console.error('[CandidateProcessor] Error processing candidates:', error);
       throw {
@@ -108,36 +122,6 @@ export class CandidateProcessor {
         originalError: error
       };
     }
-  }
-
-  /**
-   * Ordena los candidatos por relevancia basada en profit_margin y is_recommended
-   */
-  private sortCandidatesByRelevance(candidates: EnrichedMenuItem[]): MenuItemData[] {
-    return [...candidates].sort((a, b) => {
-      // Priorizar items recomendados
-      if (a.is_recommended !== b.is_recommended) {
-        return a.is_recommended ? -1 : 1;
-      }
-
-      // Luego ordenar por profit_margin
-      const marginA = a.profit_margin || 0;
-      const marginB = b.profit_margin || 0;
-      return marginB - marginA;
-    });
-  }
-
-  public processCandidates(candidates: MenuItem[]): MenuItem[] {
-    if (!candidates.length) return [];
-
-    // Ordenar por relevancia (distance)
-    const sortedCandidates = [...candidates].sort((a, b) => 
-      (a.distance || 0) - (b.distance || 0)
-    );
-
-    // Mantener al menos 4 candidatos si hay suficientes
-    const minCandidates = Math.min(4, candidates.length);
-    return sortedCandidates.slice(0, minCandidates);
   }
 }
 

@@ -24,7 +24,7 @@ export const useItemClick = ({
       setSelectedItem({
         id: item.id,
         name: item.name,
-        description: item.description,
+        description: item.description || '',
         allergens: item.allergens,
         modifiers: item.modifiers
       });

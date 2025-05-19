@@ -6,8 +6,13 @@ import {
   SupabaseModifier 
 } from './modifiers';
 
-// Re-export SelectedModifiers
-export type { SelectedModifiers };
+// Re-export types
+export type { 
+  SelectedModifiers, 
+  Modifier, 
+  Allergen, 
+  MenuItemAllergen 
+};
 
 export interface SupabaseMenuItem {
   id: string;
@@ -37,7 +42,7 @@ export interface MenuItemData {
   price: number;
   image_url: string | null;
   category_ids: string[];
-  allergens: Allergen[];
+  allergens: MenuItemAllergen[];
   diet_tags: string[];
   food_info: string | null;
   origin: string | null;

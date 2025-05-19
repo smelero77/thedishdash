@@ -6,9 +6,9 @@ interface ProductQuantityControlsProps {
   quantity: number;
   price: number;
   hasModifiers?: boolean;
-  onAdd: () => void;
-  onRemove: () => void;
-  onOpenCart?: () => void;
+  onAdd: (e: React.MouseEvent) => void;
+  onRemove: (e: React.MouseEvent) => void;
+  onOpenCart?: (e: React.MouseEvent) => void;
 }
 
 const ProductQuantityControls: React.FC<ProductQuantityControlsProps> = ({

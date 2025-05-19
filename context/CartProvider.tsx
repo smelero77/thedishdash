@@ -8,7 +8,8 @@ import { CartActionsContext } from './CartActionsContext';
 // Importa el hook useCart MODIFICADO
 import useCart from '@/hooks/useCart';
 // Importa los tipos necesarios
-import { CartActions, Cart, MenuItemData } from '@/types/menu';
+import { Cart, MenuItemData } from '@/types/menu';
+import { CartActions } from '@/types/cart';
 
 // Importa los hooks que proveen las dependencias para useCart
 import { useCustomer } from './CustomerContext';

@@ -3,12 +3,14 @@
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
+  ToastActionElement,
+  ToastProps,
   ToastClose,
   ToastDescription,
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from "@/components/ui/toast"
+} from "@/components/ui/Toast"
 
 export function Toaster() {
   const { toasts } = useToast()

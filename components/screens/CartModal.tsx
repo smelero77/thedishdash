@@ -142,7 +142,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
                   {alias === currentClientAlias ? 'Tu pedido' : `Pedido de ${alias}`}
                 </h3>
                 {aliasItems.map((item) => (
-                    <div key={getCartKey(item.id, item.modifiers, item.client_alias || '')} className="mb-4">
+                    <div key={getCartKey(item.id, item.modifiers ?? null, item.client_alias || '')} className="mb-4">
                     <div className="flex items-start gap-4">
                       {item.item.image_url && (
                         <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">

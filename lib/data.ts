@@ -1,5 +1,5 @@
 // lib/data.ts
-import { MenuItemData, SupabaseMenuItem, Slot } from '@/types/menu';
+import { MenuItemData, SupabaseMenuItem, Slot, MenuItemDietTag } from '@/types/menu';
 import { supabase } from '@/lib/supabase';
 
 export interface TableData {
@@ -20,7 +20,7 @@ export interface ApiResponse<T> {
 /** Recupera todos los items de menú disponibles */
 export async function getMenuItems(): Promise<SupabaseMenuItem[]> {
   const { data, error } = await supabase
-    .from<SupabaseMenuItem>('menu_items')
+    .from('menu_items')
     .select(`
       id,
       name,
@@ -80,13 +80,30 @@ export async function getMenuItems(): Promise<SupabaseMenuItem[]> {
     console.error('[lib/data] getMenuItems error:', error);
     return [];
   }
-  return data || [];
+
+  return (data || []).map(item => ({
+    ...item,
+    menu_item_diet_tags: (item.menu_item_diet_tags || []).map(tag => ({
+      diet_tags: {
+        id: tag.diet_tags?.id || '',
+        name: tag.diet_tags?.name || ''
+      }
+    })) as MenuItemDietTag[],
+    menu_item_allergens: (item.menu_item_allergens || []).map(allergen => ({
+      allergens: {
+        id: allergen.allergens?.id || '',
+        name: allergen.allergens?.name || '',
+        icon_url: allergen.allergens?.icon_url || ''
+      }
+    })),
+    modifiers: item.modifiers || []
+  })) as unknown as SupabaseMenuItem[];
 }
 
 /** Obtiene múltiples platos por su array de IDs */
 export async function getMenuItemsByIds(ids: string[]): Promise<SupabaseMenuItem[]> {
   const { data, error } = await supabase
-    .from<SupabaseMenuItem>('menu_items')
+    .from('menu_items')
     .select(`
       id,
       name,
@@ -144,13 +161,30 @@ export async function getMenuItemsByIds(ids: string[]): Promise<SupabaseMenuItem
     console.error('[lib/data] getMenuItemsByIds error:', error);
     return [];
   }
-  return data || [];
+
+  return (data || []).map(item => ({
+    ...item,
+    menu_item_diet_tags: (item.menu_item_diet_tags || []).map(tag => ({
+      diet_tags: {
+        id: tag.diet_tags?.id || '',
+        name: tag.diet_tags?.name || ''
+      }
+    })) as MenuItemDietTag[],
+    menu_item_allergens: (item.menu_item_allergens || []).map(allergen => ({
+      allergens: {
+        id: allergen.allergens?.id || '',
+        name: allergen.allergens?.name || '',
+        icon_url: allergen.allergens?.icon_url || ''
+      }
+    })),
+    modifiers: item.modifiers || []
+  })) as unknown as SupabaseMenuItem[];
 }
 
 /** Recupera todos los slots (franjas horarias) */
 export async function getSlots(): Promise<Slot[]> {
   const { data, error } = await supabase
-    .from<Slot>('slots')
+    .from('slots')
     .select('*')
     .order('start_time', { ascending: true });
 
@@ -182,7 +216,7 @@ export async function getCategoriesWithSlots(): Promise<any[]> {
 /** Recupera el slot actual (puede usarse igual que getSlots) */
 export async function getCurrentSlot(): Promise<Slot[]> {
   const { data, error } = await supabase
-    .from<Slot>('slots')
+    .from('slots')
     .select('*')
     .order('start_time', { ascending: true });
 
@@ -273,7 +307,29 @@ export async function getMenuItemById(itemId: string): Promise<{ menuItem: Supab
       return { menuItem: null, error };
     }
 
-    return { menuItem: data as SupabaseMenuItem, error: null };
+    if (!data) {
+      return { menuItem: null, error: 'Menu item not found' };
+    }
+
+    const transformedData = {
+      ...data,
+      menu_item_diet_tags: (data.menu_item_diet_tags || []).map(tag => ({
+        diet_tags: {
+          id: tag.diet_tags?.id || '',
+          name: tag.diet_tags?.name || ''
+        }
+      })) as MenuItemDietTag[],
+      menu_item_allergens: (data.menu_item_allergens || []).map(allergen => ({
+        allergens: {
+          id: allergen.allergens?.id || '',
+          name: allergen.allergens?.name || '',
+          icon_url: allergen.allergens?.icon_url || ''
+        }
+      })),
+      modifiers: data.modifiers || []
+    };
+
+    return { menuItem: transformedData as unknown as SupabaseMenuItem, error: null };
   } catch (e) {
     console.error(`[lib/data] Exception fetching menu item ${itemId}:`, e);
     return { menuItem: null, error: e };

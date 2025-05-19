@@ -9,7 +9,7 @@ import { CartActionsContext } from '@/context/CartActionsContext';
 import { useCustomer } from '@/context/CustomerContext';
 import FloatingCartButton from './FloatingCartButton';
 import { CartTotalContext } from '@/context/CartTotalContext';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import ChatButton from '@/components/chat/ChatButton';
 
 interface SearchOverlayProps {

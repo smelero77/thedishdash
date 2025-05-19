@@ -14,7 +14,6 @@ import ProductDietTags from './ProductDietTags';
 import ProductOrigin from './ProductOrigin';
 import ProductPairingSuggestion from './ProductPairingSuggestion';
 import ProductChefNotes from './ProductChefNotes';
-import ProductNutrition from './ProductNutrition';
 import Image from "next/image";
 import React from 'react';
 import ProductQuantityControls from './ProductQuantityControls';
@@ -146,7 +145,6 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
             <ProductOrigin origin={selectedProduct.origin ?? ''} />
             <ProductPairingSuggestion suggestion={selectedProduct.pairing_suggestion ?? ''} />
             <ProductChefNotes notes={selectedProduct.chef_notes ?? ''} />
-            <ProductNutrition nutrition={selectedProduct.nutrition} />
           </>
         )}
       </ProductDetailSheet>

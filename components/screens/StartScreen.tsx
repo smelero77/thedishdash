@@ -167,6 +167,10 @@ function screenReducer(state: ReducerState, action: ReducerAction): ReducerState
 
 // --- StartScreen Component ---
 
+export interface StartScreenProps {
+  // Por ahora está vacío ya que el componente no recibe props
+}
+
 const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props, ref) => {
 
   const router = useRouter();

@@ -44,7 +44,7 @@ const AliasModal = dynamic(
 export interface SelectedItem {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   allergens: MenuItemAllergen[];
   modifiers: Modifier[];
 }
@@ -184,7 +184,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
     let maxVisibility = 0;
 
     Object.entries(categoryRefs.current).forEach(([id, element]) => {
-      if (element) {
+      if (element && menuScrollRef.current) {
         const rect = element.getBoundingClientRect();
         const elementTop = rect.top + scrollTop;
         const elementBottom = elementTop + rect.height;
@@ -318,8 +318,8 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
 
   const floatingCartButtonProps = useMemo(() => ({
     onClick: () => setShowCartModal(true),
-    getTotalItems: memoizedCartActions?.getTotalItems,
-    cartTotal,
+    getTotalItems: () => memoizedCartActions?.getTotalItems() ?? 0,
+    cartTotal: cartTotal ?? 0,
   }), [memoizedCartActions, cartTotal]);
 
   const searchOverlayProps = useMemo(() => ({
@@ -361,7 +361,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
             onAddToCart={handleItemClick}
             onRemoveFromCart={handleDecrementItem}
             onOpenCart={() => setShowCartModal(true)}
-            ref={(el) => categoryRefs.current[category.id] = el}
+            ref={(el) => { categoryRefs.current[category.id] = el }}
             setIsAnyDetailOpen={setIsAnyDetailOpen}
           />
         ))}
@@ -380,9 +380,16 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(({
         <ModifierModal
           isOpen={showModifierModal}
           itemName={selectedItem.name}
-          itemDescription={selectedItem.description}
+          itemDescription={selectedItem.description ?? undefined}
           itemAllergens={selectedItem.allergens}
-          modifiers={memoizedModifiers}
+          modifiers={memoizedModifiers.map(modifier => ({
+            ...modifier,
+            options: modifier.options.map(option => ({
+              ...option,
+              icon_url: option.icon_url ?? undefined,
+              related_menu_item_id: option.related_menu_item_id ?? undefined
+            }))
+          }))}
           menuItems={memoizedInitialMenuItems ?? []}
           onConfirm={onModifierSubmit}
           onClose={() => { setShowModifierModal(false); setSelectedItem(null); }}

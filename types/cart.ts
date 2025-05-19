@@ -1,10 +1,10 @@
 import { MenuItemData } from './menu';
-import { ModifierSelection } from './modifiers';
+import { SelectedModifiers } from './modifiers';
 
 export interface CartItem {
   id: string;
   quantity: number;
-  modifiers: Record<string, ModifierSelection>;
+  modifiers: Record<string, SelectedModifiers>;
   item: MenuItemData;
   client_alias?: string;
   menu_item_id?: string;
@@ -33,8 +33,8 @@ export interface ClientCartSummary {
 }
 
 export interface CartActions {
-  handleAddToCart: (itemId: string, modifiers?: ModifierSelection | null) => Promise<void>;
-  handleDecrementCart: (itemId: string, modifiers?: ModifierSelection | null) => Promise<void>;
+  handleAddToCart: (itemId: string, modifiers?: SelectedModifiers | null) => Promise<void>;
+  handleDecrementCart: (itemId: string, modifiers?: SelectedModifiers | null) => Promise<void>;
   getTotalItems: () => number;
   getItemQuantity: (itemId: string) => number;
 } 

@@ -17,6 +17,7 @@ interface MenuHeaderProps {
   slots: Slot[];
   onAliasClick: () => void;
   setSearchActive: (active: boolean) => void;
+  style?: React.CSSProperties;
 }
 
 const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(({
