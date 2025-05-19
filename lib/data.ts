@@ -85,15 +85,15 @@ export async function getMenuItems(): Promise<SupabaseMenuItem[]> {
     ...item,
     menu_item_diet_tags: (item.menu_item_diet_tags || []).map(tag => ({
       diet_tags: {
-        id: tag.diet_tags?.id || '',
-        name: tag.diet_tags?.name || ''
+        id: tag.diet_tags?.[0]?.id || '',
+        name: tag.diet_tags?.[0]?.name || ''
       }
     })) as MenuItemDietTag[],
     menu_item_allergens: (item.menu_item_allergens || []).map(allergen => ({
       allergens: {
-        id: allergen.allergens?.id || '',
-        name: allergen.allergens?.name || '',
-        icon_url: allergen.allergens?.icon_url || ''
+        id: allergen.allergens?.[0]?.id || '',
+        name: allergen.allergens?.[0]?.name || '',
+        icon_url: allergen.allergens?.[0]?.icon_url || ''
       }
     })),
     modifiers: item.modifiers || []
@@ -166,15 +166,15 @@ export async function getMenuItemsByIds(ids: string[]): Promise<SupabaseMenuItem
     ...item,
     menu_item_diet_tags: (item.menu_item_diet_tags || []).map(tag => ({
       diet_tags: {
-        id: tag.diet_tags?.id || '',
-        name: tag.diet_tags?.name || ''
+        id: tag.diet_tags?.[0]?.id || '',
+        name: tag.diet_tags?.[0]?.name || ''
       }
     })) as MenuItemDietTag[],
     menu_item_allergens: (item.menu_item_allergens || []).map(allergen => ({
       allergens: {
-        id: allergen.allergens?.id || '',
-        name: allergen.allergens?.name || '',
-        icon_url: allergen.allergens?.icon_url || ''
+        id: allergen.allergens?.[0]?.id || '',
+        name: allergen.allergens?.[0]?.name || '',
+        icon_url: allergen.allergens?.[0]?.icon_url || ''
       }
     })),
     modifiers: item.modifiers || []
@@ -315,15 +315,15 @@ export async function getMenuItemById(itemId: string): Promise<{ menuItem: Supab
       ...data,
       menu_item_diet_tags: (data.menu_item_diet_tags || []).map(tag => ({
         diet_tags: {
-          id: tag.diet_tags?.id || '',
-          name: tag.diet_tags?.name || ''
+          id: tag.diet_tags?.[0]?.id || '',
+          name: tag.diet_tags?.[0]?.name || ''
         }
       })) as MenuItemDietTag[],
       menu_item_allergens: (data.menu_item_allergens || []).map(allergen => ({
         allergens: {
-          id: allergen.allergens?.id || '',
-          name: allergen.allergens?.name || '',
-          icon_url: allergen.allergens?.icon_url || ''
+          id: allergen.allergens?.[0]?.id || '',
+          name: allergen.allergens?.[0]?.name || '',
+          icon_url: allergen.allergens?.[0]?.icon_url || ''
         }
       })),
       modifiers: data.modifiers || []

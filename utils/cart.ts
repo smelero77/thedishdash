@@ -1,6 +1,6 @@
 import { Cart, CartItem } from '@/types/cart';
 import { MenuItemData } from '@/types/menu';
-import { ModifierSelection } from '@/types/modifiers';
+import { ModifierSelection, SelectedModifiers } from '@/types/modifiers';
 
 /**
  * Obtiene la cantidad total de un ítem específico en el carrito
@@ -103,8 +103,11 @@ export const removeFromCart = (
  */
 export const getItemTotalPrice = (item: CartItem, menuItem: MenuItemData): number => {
   const basePrice = menuItem.price;
-  const modifiersPrice = Object.values(item.modifiers).reduce((total: number, modifier: ModifierSelection) => {
-    return total + modifier.options.reduce((sum: number, option) => sum + option.extra_price, 0);
+  const modifiersPrice = Object.values(item.modifiers).reduce((total: number, modifier: SelectedModifiers) => {
+    const optionsPrice = Object.values(modifier).reduce((sum: number, mod) => {
+      return sum + mod.options.reduce((optSum: number, option) => optSum + option.extra_price, 0);
+    }, 0);
+    return total + optionsPrice;
   }, 0);
   return (basePrice + modifiersPrice) * item.quantity;
 }; 

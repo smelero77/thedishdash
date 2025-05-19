@@ -1,7 +1,12 @@
 // components/Providers.tsx
 'use client';
 
-import '../config/whyDidYouRender';
+if (process.env.NODE_ENV === 'development') {
+  import('../config/whyDidYouRender').then(({ initWhyDidYouRender }) => {
+    initWhyDidYouRender();
+  });
+}
+
 import React from 'react';
 // import { CartProvider } from '@/context/CartContext';
 import { TableProvider } from '@/context/TableContext';

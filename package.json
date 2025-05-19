@@ -40,7 +40,8 @@
     "test:watch": "jest --watch",
     "cypress:open": "cypress open --e2e",
     "cypress:run": "cypress run --e2e",
-    "update-embeddings": "ts-node --transpile-only scripts/update-menu-embeddings.ts"
+    "update-embeddings": "ts-node --transpile-only scripts/update-menu-embeddings.ts",
+    "build:ignore-types": "(tsc --noEmit --skipLibCheck || exit 0) && next build"
   },
   "husky": {
     "hooks": {

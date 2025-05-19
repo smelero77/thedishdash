@@ -16,11 +16,17 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config) => {
+  webpack: (config, { dev }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': process.cwd(),
     };
+    
+    // Evitar que WDYR se incluya en producción
+    if (!dev) {
+      config.resolve.alias['@/config/whyDidYouRender'] = false;
+    }
+    
     return config;
   },
 }
