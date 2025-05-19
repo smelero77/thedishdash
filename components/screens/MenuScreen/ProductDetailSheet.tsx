@@ -12,21 +12,11 @@ interface ProductDetailSheetProps {
 const sheetVariants = {
   hidden: { y: '100%', opacity: 0 },
   visible: { 
-    y: '-120px', 
-    opacity: 1, 
-    transition: { 
-      type: 'spring', 
-      stiffness: 200, 
-      damping: 25 
-    } 
+    y: '0%',
+    opacity: 1,
+    transition: { type: 'spring', stiffness: 200, damping: 25 }
   },
-  exit: { 
-    y: '100%', 
-    opacity: 0, 
-    transition: { 
-      duration: 0.2 
-    } 
-  },
+  exit: { y: '100%', opacity: 0, transition: { duration: 0.2 } },
 };
 
 export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, onClose, product, children }) => {
@@ -56,7 +46,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, 
           onClick={onClose}
         >
           <motion.div
-            className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative max-h-[98vh]"
+            className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative h-[calc(100vh-120px)] overflow-y-auto"
             onClick={e => e.stopPropagation()}
             drag="y"
             dragConstraints={{ top: 0 }}
