@@ -38,7 +38,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, 
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-end justify-center"
+          className="fixed bottom-0 left-0 right-0 z-[100] flex items-end justify-center"
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -46,27 +46,31 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ isOpen, 
           onClick={onClose}
         >
           <motion.div
-            className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative h-[calc(100vh-120px)] overflow-y-auto"
+            className="w-full bg-black/50 rounded-t-3xl"
             onClick={e => e.stopPropagation()}
-            drag="y"
-            dragConstraints={{ top: 0 }}
-            dragElastic={0.2}
-            onDragEnd={handleDragEnd}
-            style={{ y, opacity }}
-            animate={controls}
           >
-            {/* Botón de cerrar */}
-            <button
-              onClick={onClose}
-              aria-label="Cerrar ficha"
-              className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/60 text-[#0e1b19] hover:bg-white/80 shadow-md focus:outline-none focus:ring-2 focus:ring-[#1ce3cf]"
+            <motion.div
+              className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative h-[calc(100vh-120px)] overflow-y-auto"
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.2}
+              onDragEnd={handleDragEnd}
+              style={{ y, opacity }}
+              animate={controls}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            {/* Aquí irán los subcomponentes modulares */}
-            {children}
+              {/* Botón de cerrar */}
+              <button
+                onClick={onClose}
+                aria-label="Cerrar ficha"
+                className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/60 text-[#0e1b19] shadow-md active:bg-white/80"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              {/* Aquí irán los subcomponentes modulares */}
+              {children}
+            </motion.div>
           </motion.div>
         </motion.div>
       )}

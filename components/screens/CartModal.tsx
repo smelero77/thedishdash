@@ -86,7 +86,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(({
   }, [actions]);
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-[150]">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: isVisible ? 0.5 : 0 }}

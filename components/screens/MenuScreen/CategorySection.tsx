@@ -66,6 +66,17 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
     setIsAnyDetailOpen && setIsAnyDetailOpen(false);
   };
 
+  // Handler para ver el carrito desde el detalle
+  const handleViewCartFromDetail = () => {
+    console.log("→ handleViewCartFromDetail called");
+    // Primero cerramos el detalle
+    setIsDetailOpen(false);
+    setSelectedProduct(null);
+    setIsAnyDetailOpen && setIsAnyDetailOpen(false);
+    // Luego abrimos el carrito
+    onOpenCart();
+  };
+
   return (
     <div ref={ref} id={`category-${category.id}`} className="divide-y divide-gray-200/10">
       {category.image_url && (
@@ -126,7 +137,7 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
                 hasModifiers={selectedProduct.modifiers?.length > 0}
                 onAdd={() => onAddToCart(selectedProduct.id)}
                 onRemove={() => onRemoveFromCart(selectedProduct.id)}
-                onOpenCart={() => onOpenCart()}
+                onOpenCart={handleViewCartFromDetail}
               />
             </div>
             <ProductDescription description={selectedProduct.description ?? ''} />
