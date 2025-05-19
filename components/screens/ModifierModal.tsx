@@ -111,8 +111,11 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
 
     // Reset selected options and set initial active modifier when modal opens
     useEffect(() => {
-      if (isOpen) {
-        setIsVisible(true);
+      const initializeModal = () => {
+        setIsVisible(isOpen);
+
+        if (!isOpen) return;
+
         // Initialize selected options with default values
         const initialOptions: Record<string, string[]> = {};
         modifiers.forEach((modifier) => {
@@ -124,13 +127,14 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
           }
         });
         setSelectedOptions(initialOptions);
+
         // Set first modifier as active
         if (modifiers.length > 0) {
           setActiveModifier(modifiers[0].id);
         }
-      } else {
-        setIsVisible(false);
-      }
+      };
+
+      initializeModal();
     }, [isOpen, modifiers]);
 
     // Función para hacer scroll a un modificador específico

@@ -187,74 +187,79 @@ function useCart(
       hasMenuItems: !!menuItems,
     });
 
-    if (typeof tableNumber !== 'number' || tableNumber <= 0) {
-      console.log('[useCart: InitEffect] No valid table number provided, skipping initialization');
-      return;
-    }
+    const initializeCartData = async () => {
+      if (typeof tableNumber !== 'number' || tableNumber <= 0) {
+        console.log(
+          '[useCart: InitEffect] No valid table number provided, skipping initialization',
+        );
+        return;
+      }
 
-    if (!menuItems || menuItems.length === 0) {
-      console.log(
-        '[useCart: InitEffect] menuItems not available, skipping cart items processing, but will try init OrderID',
-      );
-    }
+      if (!menuItems || menuItems.length === 0) {
+        console.log(
+          '[useCart: InitEffect] menuItems not available, skipping cart items processing, but will try init OrderID',
+        );
+      }
 
-    console.log('[useCart: InitEffect] Llamando a initializeCart con tableNumber:', tableNumber);
-    initializeCart(tableNumber)
-      .then(async (id) => {
+      console.log('[useCart: InitEffect] Llamando a initializeCart con tableNumber:', tableNumber);
+      try {
+        const id = await initializeCart(tableNumber);
         console.log('[useCart: InitEffect] Temporary order ID obtenido:', id);
         setTemporaryOrderId(id);
 
-        if (menuItems && menuItems.length > 0) {
-          const { data: items, error } = await supabase
-            .from('temporary_order_items')
-            .select('*')
-            .eq('temporary_order_id', id);
-
-          if (error) {
-            console.error('[useCart: InitEffect] Error al cargar items del carrito:', error);
-            return;
-          }
-          console.log('[useCart: InitEffect] Items cargados desde la DB:', items);
-
-          const initialCartState: Cart = {};
-          items?.forEach((item) => {
-            const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
-            if (menuItem) {
-              const cartKey = getCartKey(
-                item.menu_item_id,
-                item.modifiers_data ?? null,
-                item.alias,
-              );
-              initialCartState[cartKey] = {
-                id: item.menu_item_id,
-                quantity: item.quantity,
-                modifiers: item.modifiers_data ?? {},
-                item: menuItem,
-                client_alias: item.alias,
-              };
-            } else {
-              console.warn(
-                `[useCart: InitEffect] MenuItemData (ID: ${item.menu_item_id}) no encontrado en menuItems prop. Item no se añadirá.`,
-              );
-            }
-          });
-          console.log(
-            '[useCart: InitEffect] Estado inicial del carrito construido:',
-            initialCartState,
-          );
-          setCart(initialCartState);
-          updateCartTotal(initialCartState, menuItems);
-        } else {
+        if (!menuItems?.length) {
           console.log(
             '[useCart: InitEffect] menuItems no disponibles al procesar items, carrito inicializado vacío.',
           );
           setCart({});
           setCartTotal(0);
+          return;
         }
-      })
-      .catch((error) => {
+
+        const { data: items, error } = await supabase
+          .from('temporary_order_items')
+          .select('*')
+          .eq('temporary_order_id', id);
+
+        if (error) {
+          console.error('[useCart: InitEffect] Error al cargar items del carrito:', error);
+          return;
+        }
+
+        console.log('[useCart: InitEffect] Items cargados desde la DB:', items);
+
+        const initialCartState: Cart = {};
+        items?.forEach((item) => {
+          const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
+          if (!menuItem) {
+            console.warn(
+              `[useCart: InitEffect] MenuItemData (ID: ${item.menu_item_id}) no encontrado en menuItems prop. Item no se añadirá.`,
+            );
+            return;
+          }
+
+          const cartKey = getCartKey(item.menu_item_id, item.modifiers_data ?? null, item.alias);
+          initialCartState[cartKey] = {
+            id: item.menu_item_id,
+            quantity: item.quantity,
+            modifiers: item.modifiers_data ?? {},
+            item: menuItem,
+            client_alias: item.alias,
+          };
+        });
+
+        console.log(
+          '[useCart: InitEffect] Estado inicial del carrito construido:',
+          initialCartState,
+        );
+        setCart(initialCartState);
+        updateCartTotal(initialCartState, menuItems);
+      } catch (error) {
         console.error('[useCart: InitEffect] Error al inicializar carrito:', error);
-      });
+      }
+    };
+
+    initializeCartData();
   }, [tableNumber, menuItems, getCartKey, updateCartTotal]);
 
   useEffect(() => {

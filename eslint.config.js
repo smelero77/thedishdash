@@ -1,7 +1,7 @@
 // eslint.config.js
 import js from '@eslint/js';
 import parser from '@typescript-eslint/parser';
-import plugin from '@typescript-eslint/eslint-plugin';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import prettierPlugin from 'eslint-plugin-prettier';
@@ -9,19 +9,12 @@ import nextPlugin from '@next/eslint-plugin-next';
 
 export default [
   {
-    ignores: [
-      'node_modules/',
-      'build/',
-      '.next/',
-      'eslint.config.js',
-      'next.config.js',
-    ],
+    ignores: ['types/supabase.ts'],
   },
-
-  // Config base JS
+  {
+    ignores: ['node_modules/', '.next/', 'build/', 'dist/', '*.config.js'],
+  },
   js.configs.recommended,
-
-  // ✅ BLOQUE GENERAL para todos los .ts y .tsx
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -33,9 +26,28 @@ export default [
         sourceType: 'module',
         ecmaFeatures: { jsx: true },
       },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        fetch: 'readonly',
+        localStorage: 'readonly',
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        React: 'readonly',
+        NodeJS: 'readonly',
+      },
     },
     plugins: {
-      '@typescript-eslint': plugin,
+      '@typescript-eslint': tsPlugin,
       react: reactPlugin,
       'react-hooks': reactHooksPlugin,
       prettier: prettierPlugin,
@@ -45,56 +57,60 @@ export default [
       react: { version: 'detect' },
     },
     rules: {
-      // TypeScript
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
       }],
-
-      // React
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-
-      // Next.js
       '@next/next/no-html-link-for-pages': 'error',
-      '@next/next/no-img-element': 'error',
-      '@next/next/no-unwanted-polyfillio': 'error',
-
-      // Prettier
+      '@next/next/no-img-element': 'warn',
       'prettier/prettier': ['error', {}, { usePrettierrc: true }],
-
-      // General
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
       'no-unused-vars': 'off',
+      'no-undef': 'off',
+      'no-useless-escape': 'warn',
     },
   },
 
-  // ✅ BLOQUE EXCLUSIVO PARA SERVER (Node.js) — `lib`, `utils`, `scripts`, etc.
+  // Scripts en Node.js
   {
-    files: ['lib/**/*.ts', 'utils/**/*.ts', 'scripts/**/*.ts'],
+    files: ['scripts/**/*.js', 'scripts/**/*.ts'],
     languageOptions: {
       globals: {
-        console: 'readonly',
-        process: 'readonly',
-        __dirname: 'readonly',
         require: 'readonly',
         module: 'readonly',
-        Buffer: 'readonly',
+        __dirname: 'readonly',
+        console: 'readonly',
       },
     },
   },
 
-  // ✅ BLOQUE EXCLUSIVO PARA CLIENTE — archivos que usan `'use client'`
+  // Service workers
   {
-    files: ['app/**/*.tsx', 'components/**/*.tsx'],
+    files: ['public/sw.js'],
     languageOptions: {
       globals: {
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
+        self: 'readonly',
+        caches: 'readonly',
+        fetch: 'readonly',
+      },
+    },
+  },
+
+  // Cypress tests
+  {
+    files: ['cypress/**/*.ts', 'cypress/**/*.js'],
+    languageOptions: {
+      globals: {
+        cy: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
       },
     },
   },

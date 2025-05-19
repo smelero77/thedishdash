@@ -75,6 +75,7 @@ interface MenuScreenProps {
 
 const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
   ({ initialSlots, initialCategories, initialMenuItems, initialCurrentSlot }, ref) => {
+    // 1. Todos los hooks al principio
     const { slots, currentSlot, categories, loading, error } = useMenuData();
     const orderedCategories = useCategoryOrder({
       categories,
@@ -109,16 +110,19 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const memoizedInitialMenuItems = useMemo(() => initialMenuItems, [initialMenuItems]);
     const memoizedModifiers = useMemo(() => modifiers, [modifiers]);
 
-    const itemQuantities = useMemo(() => {
-      if (!cart || !alias) return {};
-      const quantities: Record<string, number> = {};
-      Object.entries(cart).forEach(([id, item]) => {
-        if (item.client_alias === alias) {
-          quantities[id] = item.quantity;
-        }
-      });
-      return quantities;
-    }, [cart, alias]);
+    const itemQuantities = useMemo(
+      () =>
+        Object.entries(cart || {}).reduce(
+          (quantities, [id, item]) => {
+            if (item.client_alias === alias) {
+              quantities[id] = item.quantity;
+            }
+            return quantities;
+          },
+          {} as Record<string, number>,
+        ),
+      [cart, alias],
+    );
 
     const handleItemClick = useCallback(
       async (itemId: string) => {
@@ -185,16 +189,14 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       [memoizedCartActions],
     );
 
-    // Función para detectar la categoría visible
     const handleScroll = useCallback(() => {
       if (!menuScrollRef.current || isScrollingProgrammatically.current) return;
 
       const scrollTop = menuScrollRef.current.scrollTop;
       const viewportHeight = menuScrollRef.current.clientHeight;
       const scrollBottom = scrollTop + viewportHeight;
-      const tolerance = 50; // Margen de tolerancia para la detección
+      const tolerance = 50;
 
-      // Encontrar la categoría más visible
       let mostVisibleCategory: string | null = null;
       let maxVisibility = 0;
 
@@ -204,18 +206,15 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
           const elementTop = rect.top + scrollTop;
           const elementBottom = elementTop + rect.height;
 
-          // Calcular cuánto del elemento es visible
           const visibleTop = Math.max(elementTop, scrollTop);
           const visibleBottom = Math.min(elementBottom, scrollBottom);
           const visibleHeight = Math.max(0, visibleBottom - visibleTop);
 
-          // Añadir bonus de visibilidad si el elemento está cerca del centro del viewport
           const elementCenter = elementTop + rect.height / 2;
           const viewportCenter = scrollTop + viewportHeight / 2;
           const distanceFromCenter = Math.abs(elementCenter - viewportCenter);
           const centerBonus = Math.max(0, 1 - distanceFromCenter / (viewportHeight / 2));
 
-          // Añadir bonus si es el último elemento y estamos cerca del final
           const isLastElement = id === orderedCategories[orderedCategories.length - 1].id;
           const isNearBottom = scrollBottom >= menuScrollRef.current.scrollHeight - tolerance;
           const lastElementBonus = isLastElement && isNearBottom ? 1 : 0;
@@ -234,12 +233,10 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
     }, [orderedCategories, activeTab]);
 
-    // Añadir y remover el event listener de scroll
     useEffect(() => {
       const menuScroll = menuScrollRef.current;
       if (menuScroll) {
         menuScroll.addEventListener('scroll', handleScroll);
-        // Ejecutar una vez al montar para establecer la categoría inicial
         handleScroll();
         return () => menuScroll.removeEventListener('scroll', handleScroll);
       }
@@ -288,7 +285,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       if (!searchActive) {
         resetSearch(setSearchQuery, setFilteredItems, setSearchActive);
       }
-    }, [currentSlot, activeTab]);
+    }, [currentSlot, activeTab, searchActive]);
 
     useEffect(() => {
       if (searchActive) {
@@ -296,12 +293,13 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         document.body.style.height = '100vh';
         document.documentElement.style.overflow = 'hidden';
         document.documentElement.style.height = '100vh';
-      } else {
-        document.body.style.overflow = 'auto';
-        document.body.style.height = 'auto';
-        document.documentElement.style.overflow = 'auto';
-        document.documentElement.style.height = 'auto';
+        return;
       }
+
+      document.body.style.overflow = 'auto';
+      document.body.style.height = 'auto';
+      document.documentElement.style.overflow = 'auto';
+      document.documentElement.style.height = 'auto';
 
       return () => {
         document.body.style.overflow = 'auto';
@@ -311,11 +309,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       };
     }, [searchActive]);
 
-    // Set first category as active when orderedCategories changes
     useEffect(() => {
-      if (orderedCategories.length > 0 && !activeTab) {
-        setActiveTab(orderedCategories[0].id);
-      }
+      if (orderedCategories.length === 0 || activeTab) return;
+      setActiveTab(orderedCategories[0].id);
     }, [orderedCategories, activeTab]);
 
     const menuHeaderProps = useMemo(
@@ -360,139 +356,145 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       [searchQuery, searchActive, filteredItems, handleSearch, handleResetSearch],
     );
 
-    if (loading && categories.length === 0) {
-      return <LoadingScreen />;
-    }
+    // 2. Función para renderizar el contenido condicional
+    const renderContent = () => {
+      if (loading && categories.length === 0) {
+        return <LoadingScreen />;
+      }
 
-    if (error) {
-      return <ErrorScreen error={error.message} />;
-    }
+      if (error) {
+        return <ErrorScreen error={error.message} />;
+      }
 
-    if (cart === null || cartTotal === null || !cartActions) {
-      console.warn('[MenuScreen] Esperando contextos del carrito...');
-      return <LoadingScreen message="Inicializando carrito..." />;
-    }
+      if (cart === null || cartTotal === null || !cartActions) {
+        console.warn('[MenuScreen] Esperando contextos del carrito...');
+        return <LoadingScreen message="Inicializando carrito..." />;
+      }
 
-    return (
-      <div className="relative min-h-screen bg-gray-50 overflow-hidden">
-        <MenuHeader
-          {...menuHeaderProps}
-          style={{ display: isAnyDetailOpen ? 'none' : undefined }}
-        />
+      return (
+        <div className="relative min-h-screen bg-gray-50 overflow-hidden">
+          <MenuHeader
+            {...menuHeaderProps}
+            style={{ display: isAnyDetailOpen ? 'none' : undefined }}
+          />
 
-        <div
-          ref={menuScrollRef}
-          className="fixed top-[120px] bottom-0 left-0 right-0 overflow-y-auto no-scrollbar pb-20"
-        >
-          <CategoryTabs {...categoryTabsProps} />
+          <div
+            ref={menuScrollRef}
+            className="fixed top-[120px] bottom-0 left-0 right-0 overflow-y-auto no-scrollbar pb-20"
+          >
+            <CategoryTabs {...categoryTabsProps} />
 
-          {orderedCategories.map((category: CategoryWithItems) => (
-            <CategorySection
-              key={category.id}
-              category={category}
-              itemQuantities={itemQuantities}
-              onAddToCart={handleItemClick}
-              onRemoveFromCart={handleDecrementItem}
-              onOpenCart={() => setShowCartModal(true)}
-              ref={(el) => {
-                categoryRefs.current[category.id] = el;
+            {orderedCategories.map((category: CategoryWithItems) => (
+              <CategorySection
+                key={category.id}
+                category={category}
+                itemQuantities={itemQuantities}
+                onAddToCart={handleItemClick}
+                onRemoveFromCart={handleDecrementItem}
+                onOpenCart={() => setShowCartModal(true)}
+                ref={(el) => {
+                  categoryRefs.current[category.id] = el;
+                }}
+                setIsAnyDetailOpen={setIsAnyDetailOpen}
+              />
+            ))}
+          </div>
+
+          <div className="fixed bottom-4 left-4 right-4 flex items-center gap-4 z-[300]">
+            <FloatingCartButton {...floatingCartButtonProps} />
+            <ChatButton onClick={() => setShowChatModal(true)} />
+          </div>
+
+          <SearchButton onClick={() => setSearchActive(true)} />
+
+          <SearchOverlay {...searchOverlayProps} />
+
+          {showModifierModal && selectedItem && (
+            <ModifierModal
+              isOpen={showModifierModal}
+              itemName={selectedItem.name}
+              itemDescription={selectedItem.description ?? undefined}
+              itemAllergens={selectedItem.allergens}
+              modifiers={memoizedModifiers.map((modifier) => ({
+                ...modifier,
+                options: modifier.options.map((option) => ({
+                  ...option,
+                  icon_url: option.icon_url ?? undefined,
+                  related_menu_item_id: option.related_menu_item_id ?? undefined,
+                })),
+              }))}
+              menuItems={memoizedInitialMenuItems ?? []}
+              onConfirm={onModifierSubmit}
+              onClose={() => {
+                setShowModifierModal(false);
+                setSelectedItem(null);
               }}
-              setIsAnyDetailOpen={setIsAnyDetailOpen}
             />
-          ))}
+          )}
+
+          {showCartModal && (
+            <CartModal
+              onClose={() => setShowCartModal(false)}
+              currentClientAlias={alias ?? undefined}
+            />
+          )}
+
+          {showAliasModal && (
+            <AliasModal
+              isOpen={showAliasModal}
+              onClose={() => setShowAliasModal(false)}
+              onConfirm={handleAliasConfirm}
+            />
+          )}
+
+          <ChatIA
+            isOpen={showChatModal}
+            onClose={() => setShowChatModal(false)}
+            userAlias={alias ?? 'Cliente'}
+          />
+
+          <style jsx global>{`
+            @keyframes shine {
+              0% {
+                transform: translateX(-100%);
+              }
+              50% {
+                transform: translateX(100%);
+              }
+              100% {
+                transform: translateX(100%);
+              }
+            }
+            @keyframes colorChange {
+              0% {
+                color: #ffffff;
+              }
+              16.6% {
+                color: #fef3c7;
+              }
+              33.3% {
+                color: #fbbf24;
+              }
+              50% {
+                color: #f59e0b;
+              }
+              66.6% {
+                color: #d97706;
+              }
+              83.3% {
+                color: #b45309;
+              }
+              100% {
+                color: #ffffff;
+              }
+            }
+          `}</style>
         </div>
+      );
+    };
 
-        <div className="fixed bottom-4 left-4 right-4 flex items-center gap-4 z-[300]">
-          <FloatingCartButton {...floatingCartButtonProps} />
-          <ChatButton onClick={() => setShowChatModal(true)} />
-        </div>
-
-        <SearchButton onClick={() => setSearchActive(true)} />
-
-        <SearchOverlay {...searchOverlayProps} />
-
-        {showModifierModal && selectedItem && (
-          <ModifierModal
-            isOpen={showModifierModal}
-            itemName={selectedItem.name}
-            itemDescription={selectedItem.description ?? undefined}
-            itemAllergens={selectedItem.allergens}
-            modifiers={memoizedModifiers.map((modifier) => ({
-              ...modifier,
-              options: modifier.options.map((option) => ({
-                ...option,
-                icon_url: option.icon_url ?? undefined,
-                related_menu_item_id: option.related_menu_item_id ?? undefined,
-              })),
-            }))}
-            menuItems={memoizedInitialMenuItems ?? []}
-            onConfirm={onModifierSubmit}
-            onClose={() => {
-              setShowModifierModal(false);
-              setSelectedItem(null);
-            }}
-          />
-        )}
-
-        {showCartModal && (
-          <CartModal
-            onClose={() => setShowCartModal(false)}
-            currentClientAlias={alias ?? undefined}
-          />
-        )}
-
-        {showAliasModal && (
-          <AliasModal
-            isOpen={showAliasModal}
-            onClose={() => setShowAliasModal(false)}
-            onConfirm={handleAliasConfirm}
-          />
-        )}
-
-        <ChatIA
-          isOpen={showChatModal}
-          onClose={() => setShowChatModal(false)}
-          userAlias={alias ?? 'Cliente'}
-        />
-
-        <style jsx global>{`
-          @keyframes shine {
-            0% {
-              transform: translateX(-100%);
-            }
-            50% {
-              transform: translateX(100%);
-            }
-            100% {
-              transform: translateX(100%);
-            }
-          }
-          @keyframes colorChange {
-            0% {
-              color: #ffffff;
-            }
-            16.6% {
-              color: #fef3c7;
-            }
-            33.3% {
-              color: #fbbf24;
-            }
-            50% {
-              color: #f59e0b;
-            }
-            66.6% {
-              color: #d97706;
-            }
-            83.3% {
-              color: #b45309;
-            }
-            100% {
-              color: #ffffff;
-            }
-          }
-        `}</style>
-      </div>
-    );
+    // 3. Retorno del componente
+    return renderContent();
   },
 );
 

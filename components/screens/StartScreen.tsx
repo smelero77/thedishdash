@@ -191,55 +191,43 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
       screenState,
       'fondo cargado:',
       backgroundLoaded,
-    ); // Solo ejecutar si estamos en el estado 'idle' inicial
+    );
 
-    if (screenState === 'idle') {
-      const code = searchParams.get('code');
-      const storedCode = localStorage.getItem('tableCode');
+    if (screenState !== 'idle') return;
 
-      if (code || storedCode) {
-        const codeToValidate = code || storedCode!;
-        console.log('[StartScreen Effect 1] Código encontrado, dispatch START_VALIDATION.');
-        dispatch({ type: 'START_VALIDATION' }); // Usar una función async separada dentro del efecto
+    const code = searchParams.get('code');
+    const storedCode = localStorage.getItem('tableCode');
 
-        const performValidation = async () => {
-          const { table, error: hookError } = await validateCode(codeToValidate);
+    if (!code && !storedCode) return;
 
-          if (hookError || !table) {
-            console.error('[StartScreen Effect 1] Error de validación hook:', hookError);
-            dispatch({
-              type: 'VALIDATION_ERROR',
-              payload: { message: hookError || 'Código inválido' },
-            });
-          } else {
-            console.log('[StartScreen Effect 1] Validación exitosa, dispatch VALIDATION_SUCCESS.'); // Guardar datos de mesa (fuera del reducer)
-            setTableNumber(table.table_number);
-            localStorage.setItem('tableNumber', table.table_number.toString());
-            localStorage.setItem('tableCode', table.id);
-            dispatch({
-              type: 'VALIDATION_SUCCESS',
-              payload: { tableNumber: table.table_number, tableId: table.id },
-            });
-          }
-        };
-        performValidation(); // Ejecutar la función async
-      } else {
-        // No hay código, pasar a estado de espera de QR (posiblemente después de cargar fondo)
-        console.log('[StartScreen Effect 1] No hay código encontrado.'); // La transición a 'initial-qr' la maneja el efecto de carga de fondo si backgroundLoaded es falso/true
-        if (backgroundLoaded) {
-          // Si el fondo ya cargó, vamos directo a initial-qr
-          dispatch({ type: 'NO_CODE_FOUND' });
-        } else {
-          // Si el fondo no cargó, el estado se mantiene en 'idle',
-          // y el efecto 2 (carga de fondo) hará el dispatch({ type: 'NO_CODE_FOUND' })
-          // cuando termine de cargar.
-          console.log('[StartScreen Effect 1] Esperando fondo antes de dispatch NO_CODE_FOUND.');
-        }
+    const codeToValidate = code || storedCode!;
+    console.log('[StartScreen Effect 1] Código encontrado, dispatch START_VALIDATION.');
+    dispatch({ type: 'START_VALIDATION' });
+
+    const performValidation = async () => {
+      const { table, error: hookError } = await validateCode(codeToValidate);
+
+      if (hookError || !table) {
+        console.error('[StartScreen Effect 1] Error de validación hook:', hookError);
+        dispatch({
+          type: 'VALIDATION_ERROR',
+          payload: { message: hookError || 'Código inválido' },
+        });
+        return;
       }
-    } // Dependencias: dispatch, searchParams (leído aquí), validateCode (usado aquí),
-    // setTableNumber (usado aquí), backgroundLoaded (para decidir la transición si no hay código),
-    // screenState (para la guardia 'idle').
-  }, [dispatch, searchParams, validateCode, setTableNumber, backgroundLoaded, screenState]); // Efecto 2: Cargar la imagen de fondo y transicionar a 'initial-qr' si no hay código (solo si está en idle)
+
+      console.log('[StartScreen Effect 1] Validación exitosa, dispatch VALIDATION_SUCCESS.');
+      setTableNumber(table.table_number);
+      localStorage.setItem('tableNumber', table.table_number.toString());
+      localStorage.setItem('tableCode', table.id);
+      dispatch({
+        type: 'VALIDATION_SUCCESS',
+        payload: { tableNumber: table.table_number, tableId: table.id },
+      });
+    };
+
+    performValidation();
+  }, [screenState, backgroundLoaded, searchParams, dispatch]);
 
   useEffect(() => {
     console.log(
@@ -307,66 +295,59 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
   useEffect(() => {
     console.log('[StartScreen Effect 3] Manejando estado:', screenState);
 
-    if (screenState === 'success-navigate') {
-      console.log('[StartScreen Effect 3] Estado success-navigate, inicializando carrito...');
+    if (screenState !== 'success-navigate') return;
 
-      // Usamos una función async inmediatamente invocada (IIFE)
-      (async () => {
-        const currentTableNumberStr = localStorage.getItem('tableNumber');
+    console.log('[StartScreen Effect 3] Estado success-navigate, inicializando carrito...');
 
-        if (currentTableNumberStr) {
-          const currentTableNumber = parseInt(currentTableNumberStr, 10);
+    (async () => {
+      const currentTableNumberStr = localStorage.getItem('tableNumber');
 
-          // Validar que el número de mesa es un número válido
-          if (!isNaN(currentTableNumber)) {
-            try {
-              console.log(
-                '[StartScreen Effect 3] Llamando initializeCart con:',
-                currentTableNumber,
-              );
-              await initializeCart(currentTableNumber);
-              console.log('[StartScreen Effect 3] Carrito inicializado. Navegando...');
+      if (currentTableNumberStr) {
+        const currentTableNumber = parseInt(currentTableNumberStr, 10);
 
-              // Navegar después de inicializar carrito
-              const code = localStorage.getItem('tableCode');
-              if (code) {
-                router.replace(`/menu?code=${code}`); // Usar replace para no volver a StartScreen
-              } else {
-                router.replace('/menu');
-              }
-              // Opcional: dispatch({ type: 'NAVIGATION_COMPLETE' }); si necesitas un estado final aquí
-            } catch (cartError: any) {
-              // Captura de error más específica
-              console.error('[StartScreen Effect 3] Error al inicializar carrito:', cartError);
-              dispatch({
-                type: 'INITIALIZE_CART_ERROR',
-                payload: {
-                  message: cartError?.message || 'Error desconocido al inicializar carrito',
-                },
-              });
+        // Validar que el número de mesa es un número válido
+        if (!isNaN(currentTableNumber)) {
+          try {
+            console.log('[StartScreen Effect 3] Llamando initializeCart con:', currentTableNumber);
+            await initializeCart(currentTableNumber);
+            console.log('[StartScreen Effect 3] Carrito inicializado. Navegando...');
+
+            // Navegar después de inicializar carrito
+            const code = localStorage.getItem('tableCode');
+            if (code) {
+              router.replace(`/menu?code=${code}`); // Usar replace para no volver a StartScreen
+            } else {
+              router.replace('/menu');
             }
-          } else {
-            console.error(
-              '[StartScreen Effect 3] Número de mesa de localStorage no es un número válido:',
-              currentTableNumberStr,
-            );
+            // Opcional: dispatch({ type: 'NAVIGATION_COMPLETE' }); si necesitas un estado final aquí
+          } catch (cartError: any) {
+            // Captura de error más específica
+            console.error('[StartScreen Effect 3] Error al inicializar carrito:', cartError);
             dispatch({
               type: 'INITIALIZE_CART_ERROR',
-              payload: { message: 'Error al obtener número de mesa válido' },
+              payload: {
+                message: cartError?.message || 'Error desconocido al inicializar carrito',
+              },
             });
           }
         } else {
-          console.error('[StartScreen Effect 3] No se encontró número de mesa en localStorage.');
+          console.error(
+            '[StartScreen Effect 3] Número de mesa de localStorage no es un número válido:',
+            currentTableNumberStr,
+          );
           dispatch({
             type: 'INITIALIZE_CART_ERROR',
-            payload: { message: 'Número de mesa no encontrado' },
+            payload: { message: 'Error al obtener número de mesa válido' },
           });
         }
-      })(); // Invocar la función async inmediatamente
-    }
-
-    // Dependencias: screenState (para activarse), initializeCart (estable), router (estable), dispatch (estable)
-    // No necesitamos localStorage aquí como dependencia, lo leemos dentro del efecto cuando el estado es 'success-navigate'.
+      } else {
+        console.error('[StartScreen Effect 3] No se encontró número de mesa en localStorage.');
+        dispatch({
+          type: 'INITIALIZE_CART_ERROR',
+          payload: { message: 'Número de mesa no encontrado' },
+        });
+      }
+    })();
   }, [screenState, initializeCart, router, dispatch]);
 
   // --- Handlers de Eventos ---

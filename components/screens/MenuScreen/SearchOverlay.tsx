@@ -32,15 +32,18 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
 
     // Efecto para controlar el estado de búsqueda
     useEffect(() => {
-      if (searchQuery.trim().length >= 3) {
-        setIsSearching(true);
-        const timer = setTimeout(() => {
-          setIsSearching(false);
-        }, 300); // Mismo tiempo que el debounce
-        return () => clearTimeout(timer);
-      } else {
-        setIsSearching(false);
-      }
+      const isSearching = searchQuery.trim().length >= 3;
+      setIsSearching(isSearching);
+
+      const timer = isSearching
+        ? setTimeout(() => {
+            setIsSearching(false);
+          }, 300)
+        : undefined;
+
+      return () => {
+        if (timer) clearTimeout(timer);
+      };
     }, [searchQuery]);
 
     const handleAddToCart = useCallback(
