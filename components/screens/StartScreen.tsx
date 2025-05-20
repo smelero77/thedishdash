@@ -76,27 +76,28 @@ type ReducerAction =
   | { type: 'START_VALIDATION'; payload?: { code?: string | null; storedCode?: string | null } }
   | { type: 'VALIDATION_SUCCESS'; payload: { tableNumber: number; tableId: string } }
   | { type: 'VALIDATION_ERROR'; payload: { message: string | null } }
-  | { type: 'BACKGROUND_LOADED' } // Acción cuando la imagen de fondo ha cargado
-  | { type: 'NO_CODE_FOUND' } // Acción si no se encuentra código en URL ni LocalStorage
-  | { type: 'TRANSITION_COMPLETE'; payload: { fromState: ScreenState } } // Indica de qué estado se completó la transición
+  | { type: 'BACKGROUND_LOADED' }
+  | { type: 'NO_CODE_FOUND' }
+  | { type: 'TRANSITION_COMPLETE'; payload: { fromState: ScreenState } }
   | { type: 'START_SAVE_ALIAS' }
-  | { type: 'SAVE_ALIAS_SUCCESS' }
+  | { type: 'SAVE_ALIAS_SUCCESS'; payload: { wantsFullscreenThisSession: boolean } }
   | { type: 'SAVE_ALIAS_ERROR'; payload: { message?: string } }
   | { type: 'CANCEL_ALIAS_MODAL' }
   | { type: 'INITIALIZE_CART_ERROR'; payload: { message: string } }
-  | { type: 'NAVIGATION_COMPLETE' } // Opcional: para manejar el estado después de navegar
-  | { type: 'RETRY' }; // Acción para reintentar
+  | { type: 'NAVIGATION_COMPLETE' }
+  | { type: 'RETRY' };
 
 // Definimos la forma del estado del reducer
 interface ReducerState {
   screenState: ScreenState;
-  validationError: string | null; // backgroundLoaded se mantiene como un useState separado ya que es un evento externo
-  // isSavingAlias se mantiene como estado del hook useCustomer
+  validationError: string | null;
+  wantsFullscreenForCurrentSession?: boolean;
 }
 
 const initialState: ReducerState = {
   screenState: 'idle',
   validationError: null,
+  wantsFullscreenForCurrentSession: false,
 };
 
 // La función reducer que maneja todas las transiciones de estado
@@ -135,7 +136,12 @@ function screenReducer(state: ReducerState, action: ReducerAction): ReducerState
       return { ...state, screenState: 'saving-alias' };
 
     case 'SAVE_ALIAS_SUCCESS':
-      return { ...state, screenState: 'success-navigate', validationError: null };
+      return {
+        ...state,
+        screenState: 'success-navigate',
+        validationError: null,
+        wantsFullscreenForCurrentSession: action.payload.wantsFullscreenThisSession,
+      };
 
     case 'SAVE_ALIAS_ERROR': // Volvemos al modal, posiblemente con un mensaje de error
       console.error('[StartScreen Reducer] Error al guardar alias:', action.payload.message);
@@ -297,58 +303,48 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
 
     if (screenState !== 'success-navigate') return;
 
-    console.log('[StartScreen Effect 3] Estado success-navigate, inicializando carrito...');
+    console.log('[StartScreen Effect 3] Estado success-navigate. ¿Quiere fullscreen?', state.wantsFullscreenForCurrentSession);
 
     (async () => {
-      const currentTableNumberStr = localStorage.getItem('tableNumber');
+      // Intentar activar pantalla completa SI el usuario lo decidió en el modal
+      if (state.wantsFullscreenForCurrentSession && typeof document !== 'undefined' && document.documentElement && !document.fullscreenElement) {
+        console.log("Activando pantalla completa ANTES de inicializar carrito y navegar...");
+        try {
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+          } else if ((document.documentElement as any).mozRequestFullScreen) {
+            await (document.documentElement as any).mozRequestFullScreen();
+          } else if ((document.documentElement as any).webkitRequestFullscreen) {
+            await (document.documentElement as any).webkitRequestFullscreen();
+          } else if ((document.documentElement as any).msRequestFullscreen) {
+            await (document.documentElement as any).msRequestFullscreen();
+          }
+          // Pequeña pausa para dar tiempo a la transición de pantalla completa si es necesario
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.warn('No se pudo activar pantalla completa:', error);
+        }
+      }
 
+      const currentTableNumberStr = localStorage.getItem('tableNumber');
       if (currentTableNumberStr) {
         const currentTableNumber = parseInt(currentTableNumberStr, 10);
-
-        // Validar que el número de mesa es un número válido
         if (!isNaN(currentTableNumber)) {
           try {
-            console.log('[StartScreen Effect 3] Llamando initializeCart con:', currentTableNumber);
             await initializeCart(currentTableNumber);
-            console.log('[StartScreen Effect 3] Carrito inicializado. Navegando...');
-
-            // Navegar después de inicializar carrito
             const code = localStorage.getItem('tableCode');
-            if (code) {
-              router.replace(`/menu?code=${code}`); // Usar replace para no volver a StartScreen
-            } else {
-              router.replace('/menu');
-            }
-            // Opcional: dispatch({ type: 'NAVIGATION_COMPLETE' }); si necesitas un estado final aquí
+            router.replace(code ? `/menu?code=${code}` : '/menu');
           } catch (cartError: any) {
-            // Captura de error más específica
-            console.error('[StartScreen Effect 3] Error al inicializar carrito:', cartError);
-            dispatch({
-              type: 'INITIALIZE_CART_ERROR',
-              payload: {
-                message: cartError?.message || 'Error desconocido al inicializar carrito',
-              },
-            });
+            dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: cartError?.message || 'Error desconocido al inicializar carrito' } });
           }
         } else {
-          console.error(
-            '[StartScreen Effect 3] Número de mesa de localStorage no es un número válido:',
-            currentTableNumberStr,
-          );
-          dispatch({
-            type: 'INITIALIZE_CART_ERROR',
-            payload: { message: 'Error al obtener número de mesa válido' },
-          });
+          dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: 'Error al obtener número de mesa válido' } });
         }
       } else {
-        console.error('[StartScreen Effect 3] No se encontró número de mesa en localStorage.');
-        dispatch({
-          type: 'INITIALIZE_CART_ERROR',
-          payload: { message: 'Número de mesa no encontrado' },
-        });
+        dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: 'Número de mesa no encontrado' } });
       }
     })();
-  }, [screenState, initializeCart, router, dispatch]);
+  }, [screenState, state.wantsFullscreenForCurrentSession, router, dispatch]);
 
   // --- Handlers de Eventos ---
 
@@ -362,28 +358,20 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
 
   // Función para manejar la confirmación del alias en el modal
   const handleAliasConfirm = useCallback(
-    async (alias: string): Promise<boolean> => {
-      console.log('[StartScreen Handler] Alias confirmado:', { alias });
+    async (alias: string, wantsFullscreenThisSession: boolean): Promise<boolean> => {
+      console.log('[StartScreen Handler] Alias confirmado:', { alias, wantsFullscreenThisSession });
       dispatch({ type: 'START_SAVE_ALIAS' });
-
       const success = await saveAlias(alias);
-      console.log('[StartScreen Handler] Resultado guardado:', { success });
-
       if (success) {
-        dispatch({ type: 'SAVE_ALIAS_SUCCESS' });
+        dispatch({ type: 'SAVE_ALIAS_SUCCESS', payload: { wantsFullscreenThisSession } });
         return true;
       } else {
-        console.error('[StartScreen Handler] Error al guardar alias (saveAlias falló)');
-        // Puedes obtener un mensaje de error más detallado de saveAlias si lo proporciona
-        dispatch({
-          type: 'SAVE_ALIAS_ERROR',
-          payload: { message: 'No se pudo guardar el alias.' },
-        });
+        dispatch({ type: 'SAVE_ALIAS_ERROR', payload: { message: 'No se pudo guardar el alias.' } });
         return false;
       }
     },
     [saveAlias, dispatch],
-  ); // Depende de saveAlias y dispatch
+  );
 
   // Función para cerrar el modal de alias (ej. si se cancela)
   const handleAliasModalClose = useCallback(() => {

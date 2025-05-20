@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { useTable } from '@/context/TableContext';
 import { useWeather } from '@/hooks/useWeather';
+import FullscreenToggle from './FullscreenToggle';
 
 // Opcionales: loader y error genéricos si quieres mostrarlos dentro del modal
 import { CodeValidationLoader } from '@/components/ui/CodeValidationLoader';
@@ -14,7 +15,7 @@ import { CodeValidationError } from '@/components/ui/CodeValidationError';
 export interface AliasModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (alias: string) => Promise<boolean>;
+  onConfirm: (alias: string, wantsFullscreenThisSession: boolean) => Promise<boolean>;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -45,11 +46,13 @@ function AliasModalComponent({
   );
 
   const [alias, setAlias] = useState(initialGeneratedAlias);
+  const [wantsFullscreenThisSession, setWantsFullscreenThisSession] = useState(false);
 
   // Reset alias cuando se abra el modal sin alias previo
   useEffect(() => {
     if (isOpen) {
       setAlias(initialGeneratedAlias);
+      setWantsFullscreenThisSession(false);
     }
   }, [isOpen, initialGeneratedAlias]);
 
@@ -57,12 +60,12 @@ function AliasModalComponent({
     async (e: React.FormEvent) => {
       e.preventDefault();
       const finalAlias = alias.trim() || generateRandomAlias(tableNumberString);
-      const success = await onConfirm(finalAlias);
+      const success = await onConfirm(finalAlias, wantsFullscreenThisSession);
       if (success) {
         onClose();
       }
     },
-    [alias, onConfirm, onClose, tableNumberString],
+    [alias, onConfirm, onClose, tableNumberString, wantsFullscreenThisSession],
   );
 
   return (
@@ -124,6 +127,24 @@ function AliasModalComponent({
                 }}
               />
             )}
+
+            <motion.div
+              className="my-5 w-full flex flex-col items-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <FullscreenToggle
+                label="Activar pantalla completa"
+                labelPosition="top"
+                className="text-white"
+                initialVisualState={wantsFullscreenThisSession}
+                onVisualToggle={setWantsFullscreenThisSession}
+              />
+              <p className="text-xs text-white/60 mt-1 px-4">
+                (Recomendado para una mejor experiencia)
+              </p>
+            </motion.div>
 
             <motion.form
               onSubmit={handleSubmit}
