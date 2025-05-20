@@ -82,9 +82,10 @@ const FullscreenToggle: React.FC<FullscreenToggleProps> = ({
     setIsUIToggled(initialVisualState);
   }, [initialVisualState]);
 
-  if (!isApiAvailable) {
-    return null;
-  }
+  // MODIFICACIÓN TEMPORAL: Comentamos la condición para que siempre se renderice
+  // if (!isApiAvailable) {
+  //   return null;
+  // }
 
   const labelElement = label && <span className="text-sm font-medium text-white">{label}</span>;
 
