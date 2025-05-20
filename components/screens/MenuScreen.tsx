@@ -376,31 +376,43 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <div className="relative min-h-screen bg-gray-50">
+        <div>
           <MenuHeader
             {...menuHeaderProps}
-            style={{ display: isAnyDetailOpen ? 'none' : undefined }}
+            style={{
+              display: isAnyDetailOpen ? 'none' : undefined,
+              position: 'sticky',
+              top: 0,
+              zIndex: 30,
+            }}
           />
 
-          <div className="pt-[120px]">
+          <div
+            style={{
+              position: 'sticky',
+              top: '120px',
+              zIndex: 20,
+              backgroundColor: 'rgb(249 250 251)',
+            }}
+          >
             <CategoryTabs {...categoryTabsProps} />
-            <div className="overflow-x-hidden">
-              {orderedCategories.map((category: CategoryWithItems) => (
-                <CategorySection
-                  key={category.id}
-                  category={category}
-                  itemQuantities={itemQuantities}
-                  onAddToCart={handleItemClick}
-                  onRemoveFromCart={handleDecrementItem}
-                  onOpenCart={() => setShowCartModal(true)}
-                  ref={(el) => {
-                    categoryRefs.current[category.id] = el;
-                  }}
-                  setIsAnyDetailOpen={setIsAnyDetailOpen}
-                />
-              ))}
-            </div>
           </div>
+
+          {orderedCategories.map((category: CategoryWithItems) => (
+            <div key={category.id} id={`category-${category.id}`}>
+              <CategorySection
+                category={category}
+                itemQuantities={itemQuantities}
+                onAddToCart={handleItemClick}
+                onRemoveFromCart={handleDecrementItem}
+                onOpenCart={() => setShowCartModal(true)}
+                ref={(el) => {
+                  categoryRefs.current[category.id] = el;
+                }}
+                setIsAnyDetailOpen={setIsAnyDetailOpen}
+              />
+            </div>
+          ))}
 
           <div
             className={`fixed bottom-4 left-4 right-4 flex items-center gap-4 z-[300] transition-opacity duration-200 ${
