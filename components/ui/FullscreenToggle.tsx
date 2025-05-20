@@ -86,16 +86,14 @@ const FullscreenToggle: React.FC<FullscreenToggleProps> = ({
     return null;
   }
 
-  const labelElement = label && (
-    <span className="text-sm font-medium text-white">{label}</span>
-  );
+  const labelElement = label && <span className="text-sm font-medium text-white">{label}</span>;
 
   return (
     <div
       className={cn(
         'group flex items-center gap-2 cursor-pointer select-none',
         labelPosition === 'top' || labelPosition === 'bottom' ? 'flex-col' : 'flex-row',
-        className
+        className,
       )}
       onClick={handleClick}
       role="switch"
@@ -113,13 +111,13 @@ const FullscreenToggle: React.FC<FullscreenToggleProps> = ({
       <div
         className={cn(
           'relative inline-flex items-center h-7 w-12 flex-shrink-0 rounded-full transition-colors duration-200 ease-in-out',
-          isUIToggled ? 'bg-[#1ce3cf]' : 'bg-white/30 group-hover:bg-white/40'
+          isUIToggled ? 'bg-[#1ce3cf]' : 'bg-white/30 group-hover:bg-white/40',
         )}
       >
         <span
           className={cn(
             'inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out',
-            isUIToggled ? 'translate-x-6' : 'translate-x-1'
+            isUIToggled ? 'translate-x-6' : 'translate-x-1',
           )}
         />
       </div>
@@ -128,4 +126,4 @@ const FullscreenToggle: React.FC<FullscreenToggleProps> = ({
   );
 };
 
-export default FullscreenToggle; 
+export default FullscreenToggle;

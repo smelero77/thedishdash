@@ -303,12 +303,20 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
 
     if (screenState !== 'success-navigate') return;
 
-    console.log('[StartScreen Effect 3] Estado success-navigate. ¿Quiere fullscreen?', state.wantsFullscreenForCurrentSession);
+    console.log(
+      '[StartScreen Effect 3] Estado success-navigate. ¿Quiere fullscreen?',
+      state.wantsFullscreenForCurrentSession,
+    );
 
     (async () => {
       // Intentar activar pantalla completa SI el usuario lo decidió en el modal
-      if (state.wantsFullscreenForCurrentSession && typeof document !== 'undefined' && document.documentElement && !document.fullscreenElement) {
-        console.log("Activando pantalla completa ANTES de inicializar carrito y navegar...");
+      if (
+        state.wantsFullscreenForCurrentSession &&
+        typeof document !== 'undefined' &&
+        document.documentElement &&
+        !document.fullscreenElement
+      ) {
+        console.log('Activando pantalla completa ANTES de inicializar carrito y navegar...');
         try {
           if (document.documentElement.requestFullscreen) {
             await document.documentElement.requestFullscreen();
@@ -320,7 +328,7 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
             await (document.documentElement as any).msRequestFullscreen();
           }
           // Pequeña pausa para dar tiempo a la transición de pantalla completa si es necesario
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         } catch (error) {
           console.warn('No se pudo activar pantalla completa:', error);
         }
@@ -335,13 +343,24 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
             const code = localStorage.getItem('tableCode');
             router.replace(code ? `/menu?code=${code}` : '/menu');
           } catch (cartError: any) {
-            dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: cartError?.message || 'Error desconocido al inicializar carrito' } });
+            dispatch({
+              type: 'INITIALIZE_CART_ERROR',
+              payload: {
+                message: cartError?.message || 'Error desconocido al inicializar carrito',
+              },
+            });
           }
         } else {
-          dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: 'Error al obtener número de mesa válido' } });
+          dispatch({
+            type: 'INITIALIZE_CART_ERROR',
+            payload: { message: 'Error al obtener número de mesa válido' },
+          });
         }
       } else {
-        dispatch({ type: 'INITIALIZE_CART_ERROR', payload: { message: 'Número de mesa no encontrado' } });
+        dispatch({
+          type: 'INITIALIZE_CART_ERROR',
+          payload: { message: 'Número de mesa no encontrado' },
+        });
       }
     })();
   }, [screenState, state.wantsFullscreenForCurrentSession, router, dispatch]);
@@ -366,7 +385,10 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
         dispatch({ type: 'SAVE_ALIAS_SUCCESS', payload: { wantsFullscreenThisSession } });
         return true;
       } else {
-        dispatch({ type: 'SAVE_ALIAS_ERROR', payload: { message: 'No se pudo guardar el alias.' } });
+        dispatch({
+          type: 'SAVE_ALIAS_ERROR',
+          payload: { message: 'No se pudo guardar el alias.' },
+        });
         return false;
       }
     },
