@@ -194,10 +194,10 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     );
 
     const handleScroll = useCallback(() => {
-      if (!menuScrollRef.current || isScrollingProgrammatically.current) return;
+      if (isScrollingProgrammatically.current) return;
 
-      const scrollTop = menuScrollRef.current.scrollTop;
-      const viewportHeight = menuScrollRef.current.clientHeight;
+      const scrollTop = window.scrollY;
+      const viewportHeight = window.innerHeight;
       const scrollBottom = scrollTop + viewportHeight;
       const tolerance = 50;
 
@@ -205,7 +205,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       let maxVisibility = 0;
 
       Object.entries(categoryRefs.current).forEach(([id, element]) => {
-        if (element && menuScrollRef.current) {
+        if (element) {
           const rect = element.getBoundingClientRect();
           const elementTop = rect.top + scrollTop;
           const elementBottom = elementTop + rect.height;
@@ -220,7 +220,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
           const centerBonus = Math.max(0, 1 - distanceFromCenter / (viewportHeight / 2));
 
           const isLastElement = id === orderedCategories[orderedCategories.length - 1].id;
-          const isNearBottom = scrollBottom >= menuScrollRef.current.scrollHeight - tolerance;
+          const isNearBottom = scrollBottom >= document.documentElement.scrollHeight - tolerance;
           const lastElementBonus = isLastElement && isNearBottom ? 1 : 0;
 
           const totalVisibility = visibleHeight + centerBonus * 100 + lastElementBonus * 200;
@@ -238,12 +238,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     }, [orderedCategories, activeTab]);
 
     useEffect(() => {
-      const menuScroll = menuScrollRef.current;
-      if (menuScroll) {
-        menuScroll.addEventListener('scroll', handleScroll);
-        handleScroll();
-        return () => menuScroll.removeEventListener('scroll', handleScroll);
-      }
+      window.addEventListener('scroll', handleScroll);
+      handleScroll();
+      return () => window.removeEventListener('scroll', handleScroll);
     }, [handleScroll]);
 
     const handleCategoryClick = useCallback((categoryId: string) => {
@@ -251,7 +248,10 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       const categoryElement = document.getElementById(`category-${categoryId}`);
       if (categoryElement) {
         isScrollingProgrammatically.current = true;
-        categoryElement.scrollIntoView({ behavior: 'smooth' });
+        window.scrollTo({
+          top: categoryElement.offsetTop - 120, // Ajustar para el header
+          behavior: 'smooth',
+        });
         if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
         scrollTimeout.current = setTimeout(() => {
           isScrollingProgrammatically.current = false;
@@ -382,10 +382,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
             style={{ display: isAnyDetailOpen ? 'none' : undefined }}
           />
 
-          <div
-            ref={menuScrollRef}
-            className="fixed top-[120px] bottom-0 left-0 right-0 overflow-y-auto no-scrollbar pb-20"
-          >
+          <div className="pt-[120px]">
             <CategoryTabs {...categoryTabsProps} />
             <div className="overflow-x-hidden">
               {orderedCategories.map((category: CategoryWithItems) => (
