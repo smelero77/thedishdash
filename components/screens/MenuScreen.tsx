@@ -376,7 +376,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <div className="relative min-h-screen bg-gray-50 overflow-hidden">
+        <div className="relative min-h-screen bg-gray-50">
           <MenuHeader
             {...menuHeaderProps}
             style={{ display: isAnyDetailOpen ? 'none' : undefined }}
