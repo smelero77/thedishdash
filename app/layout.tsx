@@ -5,6 +5,9 @@ import './globals.css';
 import Providers from '@/components/Providers';
 import { getMenuItems, getCurrentSlot } from '@/lib/data';
 import { processMenuItem } from '@/utils/menu';
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -47,7 +50,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           Ahí es donde inyectamos why-did-you-render (en desarrollo)
           y levantamos todos los contextos.
         */}
-        <Providers menuItems={processedMenuItems}>{children}</Providers>
+        <Providers menuItems={processedMenuItems}>
+          <ServiceWorkerRegistration />
+          {children}
+          <Analytics />
+          <SpeedInsights />
+        </Providers>
       </body>
     </html>
   );
