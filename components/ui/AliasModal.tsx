@@ -45,13 +45,11 @@ function AliasModalComponent({
   );
 
   const [alias, setAlias] = useState(initialGeneratedAlias);
-  const [wantsFullscreenThisSession, setWantsFullscreenThisSession] = useState(false);
 
   // Reset alias cuando se abra el modal sin alias previo
   useEffect(() => {
     if (isOpen) {
       setAlias(initialGeneratedAlias);
-      setWantsFullscreenThisSession(false);
     }
   }, [isOpen, initialGeneratedAlias]);
 
@@ -59,12 +57,12 @@ function AliasModalComponent({
     async (e: React.FormEvent) => {
       e.preventDefault();
       const finalAlias = alias.trim() || generateRandomAlias(tableNumberString);
-      const success = await onConfirm(finalAlias, wantsFullscreenThisSession);
+      const success = await onConfirm(finalAlias, false);
       if (success) {
         onClose();
       }
     },
-    [alias, onConfirm, onClose, tableNumberString, wantsFullscreenThisSession],
+    [alias, onConfirm, onClose, tableNumberString],
   );
 
   return (
@@ -142,23 +140,6 @@ function AliasModalComponent({
                 className="w-full px-5 py-4 text-white bg-white/10 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1ce3cf] placeholder-white/50 text-lg"
                 disabled={isLoading}
               />
-
-              <div className="flex items-center justify-between w-full px-2">
-                <label className="text-white text-sm">Pantalla completa</label>
-                <button
-                  type="button"
-                  onClick={() => setWantsFullscreenThisSession(!wantsFullscreenThisSession)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1ce3cf] focus:ring-offset-2 ${
-                    wantsFullscreenThisSession ? 'bg-[#1ce3cf]' : 'bg-white/10'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      wantsFullscreenThisSession ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
 
               <motion.button
                 type="submit"

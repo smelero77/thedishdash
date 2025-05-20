@@ -387,26 +387,27 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
             className="fixed top-[120px] bottom-0 left-0 right-0 overflow-y-auto no-scrollbar pb-20"
           >
             <CategoryTabs {...categoryTabsProps} />
-
-            {orderedCategories.map((category: CategoryWithItems) => (
-              <CategorySection
-                key={category.id}
-                category={category}
-                itemQuantities={itemQuantities}
-                onAddToCart={handleItemClick}
-                onRemoveFromCart={handleDecrementItem}
-                onOpenCart={() => setShowCartModal(true)}
-                ref={(el) => {
-                  categoryRefs.current[category.id] = el;
-                }}
-                setIsAnyDetailOpen={setIsAnyDetailOpen}
-              />
-            ))}
+            <div className="overflow-x-hidden">
+              {orderedCategories.map((category: CategoryWithItems) => (
+                <CategorySection
+                  key={category.id}
+                  category={category}
+                  itemQuantities={itemQuantities}
+                  onAddToCart={handleItemClick}
+                  onRemoveFromCart={handleDecrementItem}
+                  onOpenCart={() => setShowCartModal(true)}
+                  ref={(el) => {
+                    categoryRefs.current[category.id] = el;
+                  }}
+                  setIsAnyDetailOpen={setIsAnyDetailOpen}
+                />
+              ))}
+            </div>
           </div>
 
           <div
             className={`fixed bottom-4 left-4 right-4 flex items-center gap-4 z-[300] transition-opacity duration-200 ${
-              showCartModal ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              showCartModal || showModifierModal ? 'opacity-0 pointer-events-none' : 'opacity-100'
             }`}
           >
             <FloatingCartButton {...floatingCartButtonProps} />
@@ -422,13 +423,22 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
               isOpen={showModifierModal}
               itemName={selectedItem.name}
               itemDescription={selectedItem.description ?? undefined}
-              itemAllergens={selectedItem.allergens}
+              itemAllergens={selectedItem.allergens.map((allergen, index) => ({
+                ...allergen,
+                id: allergen.id || `allergen-${index}`,
+                icon_url: allergen.icon_url || '',
+              }))}
               modifiers={memoizedModifiers.map((modifier) => ({
                 ...modifier,
                 options: modifier.options.map((option) => ({
                   ...option,
-                  icon_url: option.icon_url ?? undefined,
-                  related_menu_item_id: option.related_menu_item_id ?? undefined,
+                  icon_url: option.icon_url ?? '',
+                  related_menu_item_id: option.related_menu_item_id ?? '',
+                  allergens: option.allergens.map((allergen, index) => ({
+                    ...allergen,
+                    id: allergen.id || `option-allergen-${index}`,
+                    icon_url: allergen.icon_url || '',
+                  })),
                 })),
               }))}
               menuItems={memoizedInitialMenuItems ?? []}
@@ -460,48 +470,10 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
             onClose={() => setShowChatModal(false)}
             userAlias={alias ?? 'Cliente'}
           />
-
-          <style jsx global>{`
-            @keyframes shine {
-              0% {
-                transform: translateX(-100%);
-              }
-              50% {
-                transform: translateX(100%);
-              }
-              100% {
-                transform: translateX(100%);
-              }
-            }
-            @keyframes colorChange {
-              0% {
-                color: #ffffff;
-              }
-              16.6% {
-                color: #fef3c7;
-              }
-              33.3% {
-                color: #fbbf24;
-              }
-              50% {
-                color: #f59e0b;
-              }
-              66.6% {
-                color: #d97706;
-              }
-              83.3% {
-                color: #b45309;
-              }
-              100% {
-                color: #ffffff;
-              }
-            }
-          `}</style>
         </div>
       );
     };
 
-    // 3. Retorno del componente
     return renderContent();
   },
 );
