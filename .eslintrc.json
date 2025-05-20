@@ -1,8 +1,5 @@
 {
-  "extends": [
-    "next/core-web-vitals",
-    "eslint:recommended"
-  ],
+  "extends": ["next/core-web-vitals", "eslint:recommended"],
   "env": {
     "browser": true,
     "node": true,
@@ -15,4 +12,4 @@
   "rules": {
     "no-undef": "error"
   }
-} 
+}
