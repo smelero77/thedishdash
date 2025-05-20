@@ -186,7 +186,7 @@ body {
   left: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  overflow: hidden !important;
+  /* overflow: hidden !important; */
   z-index: 2147483647 !important;
   background-color: var(--background);
 }
