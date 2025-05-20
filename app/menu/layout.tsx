@@ -1,17 +1,61 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { CartProvider } from '@/context/CartProvider';
 import Providers from '@/components/Providers';
+import { Toaster } from '@/components/ui/Toaster';
+import { TableProvider } from '@/context/TableContext';
+import { CustomerProvider } from '@/context/CustomerContext';
 import { getMenuItems, getCurrentSlot } from '@/lib/data';
 import type { MenuItemData } from '@/types/menu';
 import { processMenuItem } from '@/utils/menu';
+import { FullscreenWrapper } from '@/components/FullscreenWrapper';
 
-export default async function MenuLayout({ children }: { children: React.ReactNode }) {
-  // ① fetch de datos en el servidor
-  const [menuItems, slot] = await Promise.all([getMenuItems(), getCurrentSlot()]);
+// Cache para los slots
+let slotsCache: any[] | null = null;
 
-  // Convertir los tipos usando la función existente
-  const processedMenuItems: MenuItemData[] = menuItems.map(processMenuItem);
+export default function MenuLayout({ children }: { children: React.ReactNode }) {
+  const [menuItems, setMenuItems] = useState<MenuItemData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // Cargar slots solo si no están en caché
+        if (!slotsCache) {
+          slotsCache = await getCurrentSlot();
+        }
+
+        // Cargar items del menú
+        const items = await getMenuItems();
+        const processedItems = items.map(processMenuItem);
+        setMenuItems(processedItems);
+      } catch (error) {
+        console.error('Error loading menu data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  if (isLoading) {
+    return <div>Cargando...</div>;
+  }
 
   return (
-    // ② pasamos los datos como prop
-    <Providers menuItems={processedMenuItems}>{children}</Providers>
+    <Providers menuItems={menuItems}>
+      <CustomerProvider>
+        <TableProvider>
+          <CartProvider menuItems={menuItems}>
+            <FullscreenWrapper>
+              <div className="flex flex-col min-h-screen">{children}</div>
+              <Toaster />
+            </FullscreenWrapper>
+          </CartProvider>
+        </TableProvider>
+      </CustomerProvider>
+    </Providers>
   );
 }

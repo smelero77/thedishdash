@@ -80,7 +80,7 @@ type ReducerAction =
   | { type: 'NO_CODE_FOUND' }
   | { type: 'TRANSITION_COMPLETE'; payload: { fromState: ScreenState } }
   | { type: 'START_SAVE_ALIAS' }
-  | { type: 'SAVE_ALIAS_SUCCESS'; payload: { wantsFullscreenThisSession: boolean } }
+  | { type: 'SAVE_ALIAS_SUCCESS' }
   | { type: 'SAVE_ALIAS_ERROR'; payload: { message?: string } }
   | { type: 'CANCEL_ALIAS_MODAL' }
   | { type: 'INITIALIZE_CART_ERROR'; payload: { message: string } }
@@ -91,13 +91,11 @@ type ReducerAction =
 interface ReducerState {
   screenState: ScreenState;
   validationError: string | null;
-  wantsFullscreenForCurrentSession?: boolean;
 }
 
 const initialState: ReducerState = {
   screenState: 'idle',
   validationError: null,
-  wantsFullscreenForCurrentSession: false,
 };
 
 // La función reducer que maneja todas las transiciones de estado
@@ -136,12 +134,7 @@ function screenReducer(state: ReducerState, action: ReducerAction): ReducerState
       return { ...state, screenState: 'saving-alias' };
 
     case 'SAVE_ALIAS_SUCCESS':
-      return {
-        ...state,
-        screenState: 'success-navigate',
-        validationError: null,
-        wantsFullscreenForCurrentSession: action.payload.wantsFullscreenThisSession,
-      };
+      return { ...state, screenState: 'success-navigate' };
 
     case 'SAVE_ALIAS_ERROR': // Volvemos al modal, posiblemente con un mensaje de error
       console.error('[StartScreen Reducer] Error al guardar alias:', action.payload.message);
@@ -303,37 +296,7 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
 
     if (screenState !== 'success-navigate') return;
 
-    console.log(
-      '[StartScreen Effect 3] Estado success-navigate. ¿Quiere fullscreen?',
-      state.wantsFullscreenForCurrentSession,
-    );
-
     (async () => {
-      // Intentar activar pantalla completa SI el usuario lo decidió en el modal
-      if (
-        state.wantsFullscreenForCurrentSession &&
-        typeof document !== 'undefined' &&
-        document.documentElement &&
-        !document.fullscreenElement
-      ) {
-        console.log('Activando pantalla completa ANTES de inicializar carrito y navegar...');
-        try {
-          if (document.documentElement.requestFullscreen) {
-            await document.documentElement.requestFullscreen();
-          } else if ((document.documentElement as any).mozRequestFullScreen) {
-            await (document.documentElement as any).mozRequestFullScreen();
-          } else if ((document.documentElement as any).webkitRequestFullscreen) {
-            await (document.documentElement as any).webkitRequestFullscreen();
-          } else if ((document.documentElement as any).msRequestFullscreen) {
-            await (document.documentElement as any).msRequestFullscreen();
-          }
-          // Pequeña pausa para dar tiempo a la transición de pantalla completa si es necesario
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        } catch (error) {
-          console.warn('No se pudo activar pantalla completa:', error);
-        }
-      }
-
       const currentTableNumberStr = localStorage.getItem('tableNumber');
       if (currentTableNumberStr) {
         const currentTableNumber = parseInt(currentTableNumberStr, 10);
@@ -363,7 +326,7 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
         });
       }
     })();
-  }, [screenState, state.wantsFullscreenForCurrentSession, router, dispatch]);
+  }, [screenState, router, dispatch]);
 
   // --- Handlers de Eventos ---
 
@@ -382,7 +345,7 @@ const StartScreenComponent = forwardRef<HTMLDivElement, StartScreenProps>((props
       dispatch({ type: 'START_SAVE_ALIAS' });
       const success = await saveAlias(alias);
       if (success) {
-        dispatch({ type: 'SAVE_ALIAS_SUCCESS', payload: { wantsFullscreenThisSession } });
+        dispatch({ type: 'SAVE_ALIAS_SUCCESS' });
         return true;
       } else {
         dispatch({
