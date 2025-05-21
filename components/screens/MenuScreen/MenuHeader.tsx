@@ -10,19 +10,23 @@ interface MenuHeaderProps {
   onAliasClick: () => void;
   setSearchActive: (active: boolean) => void;
   onChat?: () => void;
+  style?: React.CSSProperties;
+  searchActive?: boolean;
 }
 
 const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(
-  ({ alias, tableNumber, onAliasClick, setSearchActive, onChat }, ref) => (
+  ({ alias, tableNumber, onAliasClick, setSearchActive, onChat, style, searchActive }, ref) => (
     <header
       ref={ref}
       className="sticky top-0 z-50 flex items-center justify-between bg-white/95 backdrop-blur py-0 px-4 h-14 mb-0"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      style={{ paddingTop: 'env(safe-area-inset-top)', ...style }}
     >
-      {/* 🔍 Búsqueda */}
+      {/* �� Búsqueda */}
       <button
         onClick={() => setSearchActive(true)}
-        className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md"
+        className={`w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md transition-opacity ${
+          searchActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
       >
         <Search size={22} color="#4f968f" />
       </button>

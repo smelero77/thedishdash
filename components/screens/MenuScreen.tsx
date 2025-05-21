@@ -323,12 +323,18 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       () => ({
         alias,
         tableNumber,
-        currentSlot,
-        slots,
         onAliasClick: () => setShowAliasModal(true),
         setSearchActive,
+        onChat: () => setShowChatModal(true),
+        searchActive,
+        style: {
+          display: isAnyDetailOpen ? 'none' : undefined,
+          position: 'sticky' as const,
+          top: 0,
+          zIndex: 30,
+        }
       }),
-      [alias, tableNumber, currentSlot, slots],
+      [alias, tableNumber, isAnyDetailOpen, searchActive],
     );
 
     const categoryTabsProps = useMemo(
@@ -380,12 +386,6 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         <div>
           <MenuHeader
             {...menuHeaderProps}
-            style={{
-              display: isAnyDetailOpen ? 'none' : undefined,
-              position: 'sticky',
-              top: 0,
-              zIndex: 30,
-            }}
           />
 
           <div
