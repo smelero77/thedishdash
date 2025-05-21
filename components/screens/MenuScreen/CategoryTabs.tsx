@@ -41,7 +41,7 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
       <div className="sticky top-0 bg-[#f8fbfb] shadow-sm z-20">
         <div
           ref={tabsContainerRef}
-          className="flex overflow-x-auto no-scrollbar border-b border-[#d0e6e4] px-4 gap-6 relative scroll-smooth"
+          className="flex overflow-x-auto no-scrollbar px-4 gap-4 relative scroll-smooth mt-0 pt-0"
         >
           {categories.map((category) => (
             <div

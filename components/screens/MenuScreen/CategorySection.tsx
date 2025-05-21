@@ -28,11 +28,12 @@ interface CategorySectionProps {
   onRemoveFromCart: (itemId: string, modifiers?: SelectedModifiers | null) => void;
   onOpenCart: () => void;
   setIsAnyDetailOpen?: (open: boolean) => void;
+  isFirst?: boolean;
 }
 
 const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps>(
   (
-    { category, itemQuantities, onAddToCart, onRemoveFromCart, onOpenCart, setIsAnyDetailOpen },
+    { category, itemQuantities, onAddToCart, onRemoveFromCart, onOpenCart, setIsAnyDetailOpen, isFirst },
     ref,
   ) => {
     const [selectedProduct, setSelectedProduct] = useState<MenuItemData | null>(null);
@@ -74,9 +75,9 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
     };
 
     return (
-      <div ref={ref} id={`category-${category.id}`} className="divide-y divide-gray-200/10">
+      <div ref={ref} id={`category-${category.id}`} className="divide-y divide-gray-200/10 bg-[#f8fbfb]">
         {category.image_url && (
-          <div className="relative w-full h-64">
+          <div className={`relative w-full h-64 z-0 bg-[#f8fbfb]`}>
             <Image
               src={category.image_url}
               alt={category.name}

@@ -49,6 +49,7 @@ import SearchButton from './SearchButton';
 import { useCategoryOrder } from '@/hooks/useCategoryOrder';
 import { ChatIA } from './ChatIA';
 import ChatButton from '@/components/chat/ChatButton';
+import { TextLogoSvg } from '../TextLogoSvg';
 
 // Load heavy libraries dynamically
 const ModifierModal = dynamic(() => import('./ModifierModal'), { ssr: false });
@@ -83,7 +84,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const { tableNumber } = useTable();
 
     // 2. Data fetching hooks
-    const { slots, currentSlot, categories, loading, error } = useMenuData();
+    const { slots, currentSlot, categories, loading, error, menuItems } = useMenuData();
     const { modifiers, fetchModifiers } = useModifiers();
     const orderedCategories = useCategoryOrder({
       categories,
@@ -260,7 +261,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     }, []);
 
     const debouncedSearch = useDebounce((query: string) => {
-      const results = searchMenuItems(query, memoizedInitialMenuItems);
+      const results = searchMenuItems(query, menuItems);
       setFilteredItems(results);
     }, 300);
 
@@ -390,7 +391,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
           <div
             style={{
               position: 'sticky',
-              top: '120px',
+              top: '56px',
               zIndex: 20,
               backgroundColor: 'rgb(249 250 251)',
             }}
@@ -398,7 +399,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
             <CategoryTabs {...categoryTabsProps} />
           </div>
 
-          {orderedCategories.map((category: CategoryWithItems) => (
+          {orderedCategories.map((category: CategoryWithItems, idx) => (
             <div key={category.id} id={`category-${category.id}`}>
               <CategorySection
                 category={category}
@@ -410,6 +411,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
                   categoryRefs.current[category.id] = el;
                 }}
                 setIsAnyDetailOpen={setIsAnyDetailOpen}
+                isFirst={idx === 0}
               />
             </div>
           ))}
@@ -422,8 +424,6 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
             <FloatingCartButton {...floatingCartButtonProps} />
             <ChatButton onClick={() => setShowChatModal(true)} />
           </div>
-
-          <SearchButton onClick={() => setSearchActive(true)} />
 
           <SearchOverlay {...searchOverlayProps} />
 

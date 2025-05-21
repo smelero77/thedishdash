@@ -82,6 +82,15 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
       [cart, alias],
     );
 
+    // DEBUG: Verificar si los alérgenos tienen icon_url en los resultados de búsqueda
+    if (filteredItems && filteredItems.length > 0) {
+      console.log('DEBUG filteredItems:', filteredItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        allergens: item.allergens
+      })));
+    }
+
     return (
       <AnimatePresence>
         {searchActive && (
@@ -90,7 +99,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-0 z-40 bg-white/90 backdrop-blur-md flex flex-col overflow-hidden"
+            className="fixed inset-0 z-40 bg-white/90 backdrop-blur-md flex flex-col overflow-hidden pt-14"
             ref={ref}
           >
             <div className="flex flex-col h-full">
@@ -137,15 +146,11 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                       <div className="space-y-2">
                         {filteredItems.map((item) => {
                           const quantity = getCartQuantityForItem(item.id);
-
                           return (
                             <MenuItem
                               key={item.id}
                               {...item}
-                              allergens={(item.allergens ?? []).map((allergen) => ({
-                                ...allergen,
-                                icon_url: allergen.icon_url ?? '',
-                              }))}
+                              allergens={item.allergens}
                               onAddToCart={() => handleAddToCart(item.id)}
                               onRemoveFromCart={() => handleRemoveFromCart(item.id)}
                               quantity={quantity}
