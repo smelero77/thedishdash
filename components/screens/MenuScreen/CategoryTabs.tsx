@@ -1,9 +1,5 @@
 import React, { useEffect, useRef, forwardRef } from 'react';
-
-interface Category {
-  id: string;
-  name: string;
-}
+import { Category } from '@/types/menu';
 
 interface CategoryTabsProps {
   categories: Category[];
@@ -41,21 +37,24 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
       <div className="bg-[#f8fbfb] shadow-sm w-full h-full">
         <div
           ref={tabsContainerRef}
-          className="flex allow-horizontal-scroll no-scrollbar px-4 gap-4 relative scroll-smooth pt-0"
+          className="flex overflow-x-auto no-scrollbar px-4 gap-4 relative scroll-smooth pt-0"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-x',
+            overscrollBehaviorX: 'contain',
           }}
         >
-          <div className="flex space-x-4 w-full">
+          <div className="flex space-x-4">
             {categories.map((category) => (
               <div
                 key={category.id}
                 data-category-id={category.id}
                 onClick={() => setActiveTab(category.id)}
-                className={`flex-shrink-0 flex items-center justify-center px-5 py-3 cursor-pointer transition-all duration-300 ${
+                className={`flex-shrink-0 flex items-center justify-center px-5 py-3 cursor-pointer transition-all duration-300 relative touch-none ${
                   activeTab === category.id
-                    ? 'text-[#0e1b19] font-bold border-b-4 border-[#1ce3cf]'
+                    ? 'text-[#0e1b19] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1 after:bg-[#1ce3cf] after:z-10'
                     : 'text-[#4f968f] hover:text-[#0e1b19]'
                 }`}
               >

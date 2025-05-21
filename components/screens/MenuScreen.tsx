@@ -385,7 +385,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <div className="min-h-screen flex flex-col max-w-screen allow-scroll">
+        <div className="min-h-screen flex flex-col max-w-screen overflow-x-hidden">
           <MenuHeader {...menuHeaderProps} />
 
           <div
@@ -404,7 +404,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
             <CategoryTabs {...categoryTabsProps} />
           </div>
 
-          <div className="mt-[112px]">
+          <div className="mt-[112px] overflow-y-auto allow-scroll overflow-x-hidden">
             {orderedCategories.map((category: CategoryWithItems, idx) => (
               <div key={category.id} id={`category-${category.id}`}>
                 <CategorySection
