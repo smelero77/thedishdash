@@ -20,7 +20,10 @@ const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       {/* 🔍 Búsqueda */}
-      <button onClick={() => setSearchActive(true)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md">
+      <button
+        onClick={() => setSearchActive(true)}
+        className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md"
+      >
         <Search size={22} color="#4f968f" />
       </button>
 

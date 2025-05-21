@@ -21,4 +21,4 @@ export const TableBadge: React.FC<TableBadgeProps> = ({
       {tableNumber}
     </span>
   </div>
-); 
+);

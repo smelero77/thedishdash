@@ -33,7 +33,15 @@ interface CategorySectionProps {
 
 const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps>(
   (
-    { category, itemQuantities, onAddToCart, onRemoveFromCart, onOpenCart, setIsAnyDetailOpen, isFirst },
+    {
+      category,
+      itemQuantities,
+      onAddToCart,
+      onRemoveFromCart,
+      onOpenCart,
+      setIsAnyDetailOpen,
+      isFirst,
+    },
     ref,
   ) => {
     const [selectedProduct, setSelectedProduct] = useState<MenuItemData | null>(null);
@@ -75,7 +83,11 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
     };
 
     return (
-      <div ref={ref} id={`category-${category.id}`} className="divide-y divide-gray-200/10 bg-[#f8fbfb]">
+      <div
+        ref={ref}
+        id={`category-${category.id}`}
+        className="divide-y divide-gray-200/10 bg-[#f8fbfb]"
+      >
         {category.image_url && (
           <div className={`relative w-full h-64 z-0 bg-[#f8fbfb]`}>
             <Image

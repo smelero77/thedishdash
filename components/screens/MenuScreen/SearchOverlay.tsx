@@ -84,11 +84,14 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
 
     // DEBUG: Verificar si los alérgenos tienen icon_url en los resultados de búsqueda
     if (filteredItems && filteredItems.length > 0) {
-      console.log('DEBUG filteredItems:', filteredItems.map(item => ({
-        id: item.id,
-        name: item.name,
-        allergens: item.allergens
-      })));
+      console.log(
+        'DEBUG filteredItems:',
+        filteredItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          allergens: item.allergens,
+        })),
+      );
     }
 
     return (
