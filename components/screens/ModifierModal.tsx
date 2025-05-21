@@ -299,11 +299,10 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
             {modifiers.length > 1 && (
               <div className="relative">
                 <div
-                  className="overflow-x-auto"
+                  className="allow-horizontal-scroll"
                   style={{
                     msOverflowStyle: 'none',
                     scrollbarWidth: 'none',
-                    WebkitOverflowScrolling: 'touch',
                   }}
                 >
                   <div className="flex gap-2 pb-2 min-w-full">

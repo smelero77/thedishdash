@@ -41,11 +41,10 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
       <div className="bg-[#f8fbfb] shadow-sm w-full h-full">
         <div
           ref={tabsContainerRef}
-          className="flex overflow-x-auto no-scrollbar px-4 gap-4 relative scroll-smooth pt-0"
+          className="flex allow-horizontal-scroll no-scrollbar px-4 gap-4 relative scroll-smooth pt-0"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch',
           }}
         >
           <div className="flex space-x-4 w-full">

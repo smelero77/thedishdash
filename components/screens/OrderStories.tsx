@@ -40,7 +40,7 @@ export const OrderStories = ({ groupedItems, currentClientAlias }: OrderStoriesP
 
   return (
     <div className="relative h-28 sm:h-32">
-      <div className="absolute inset-0 overflow-x-auto no-scrollbar">
+      <div className="absolute inset-0 allow-horizontal-scroll no-scrollbar">
         <div className="flex gap-2 sm:gap-3 px-2 sm:px-4 min-w-full">
           {sortedEntries.map(([alias, { items, itemCount }]) => (
             <StoryBubble

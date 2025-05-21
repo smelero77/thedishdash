@@ -10,6 +10,18 @@ body {
   overscroll-behavior: none;
 }
 
+/* Reglas globales para controlar el scroll */
+* {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Clases utilitarias para scroll horizontal */
+.allow-horizontal-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
