@@ -329,10 +329,12 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         searchActive,
         style: {
           display: isAnyDetailOpen ? 'none' : undefined,
-          position: 'sticky' as const,
+          position: 'fixed' as const,
           top: 0,
-          zIndex: 30,
-        }
+          left: 0,
+          right: 0,
+          zIndex: 50,
+        },
       }),
       [alias, tableNumber, isAnyDetailOpen, searchActive],
     );
@@ -383,38 +385,40 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <div>
-          <MenuHeader
-            {...menuHeaderProps}
-          />
+        <div className="min-h-screen flex flex-col max-w-screen">
+          <MenuHeader {...menuHeaderProps} />
 
-          <div
-            style={{
-              position: 'sticky',
-              top: '56px',
-              zIndex: 20,
-              backgroundColor: 'rgb(249 250 251)',
-            }}
-          >
-            <CategoryTabs {...categoryTabsProps} />
-          </div>
-
-          {orderedCategories.map((category: CategoryWithItems, idx) => (
-            <div key={category.id} id={`category-${category.id}`}>
-              <CategorySection
-                category={category}
-                itemQuantities={itemQuantities}
-                onAddToCart={handleItemClick}
-                onRemoveFromCart={handleDecrementItem}
-                onOpenCart={() => setShowCartModal(true)}
-                ref={(el) => {
-                  categoryRefs.current[category.id] = el;
-                }}
-                setIsAnyDetailOpen={setIsAnyDetailOpen}
-                isFirst={idx === 0}
-              />
+          <main className="flex-1 flex flex-col">
+            <div
+              style={{
+                position: 'sticky',
+                top: '56px',
+                zIndex: 20,
+                backgroundColor: 'rgb(249 250 251)',
+              }}
+            >
+              <CategoryTabs {...categoryTabsProps} />
             </div>
-          ))}
+
+            <div className="flex-1">
+              {orderedCategories.map((category: CategoryWithItems, idx) => (
+                <div key={category.id} id={`category-${category.id}`}>
+                  <CategorySection
+                    category={category}
+                    itemQuantities={itemQuantities}
+                    onAddToCart={handleItemClick}
+                    onRemoveFromCart={handleDecrementItem}
+                    onOpenCart={() => setShowCartModal(true)}
+                    ref={(el) => {
+                      categoryRefs.current[category.id] = el;
+                    }}
+                    setIsAnyDetailOpen={setIsAnyDetailOpen}
+                    isFirst={idx === 0}
+                  />
+                </div>
+              ))}
+            </div>
+          </main>
 
           <div
             className={`fixed bottom-4 left-4 right-4 flex items-center gap-4 z-[300] transition-opacity duration-200 ${

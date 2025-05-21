@@ -41,22 +41,31 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
       <div className="sticky top-0 bg-[#f8fbfb] shadow-sm z-20">
         <div
           ref={tabsContainerRef}
-          className="flex overflow-x-auto no-scrollbar px-4 gap-4 relative scroll-smooth mt-0 pt-0"
+          className="flex overflow-x-auto no-scrollbar px-4 gap-4 relative scroll-smooth mt-4 pt-0"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+          }}
         >
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              data-category-id={category.id}
-              onClick={() => setActiveTab(category.id)}
-              className={`flex items-center justify-center px-4 py-2 cursor-pointer transition-all duration-300 ${
-                activeTab === category.id
-                  ? 'text-[#0e1b19] font-bold border-b-4 border-[#1ce3cf]'
-                  : 'text-[#4f968f] hover:text-[#0e1b19]'
-              }`}
-            >
-              <p className="text-sm leading-normal tracking-[0.015em] px-1">{category.name}</p>
-            </div>
-          ))}
+          <div className="flex space-x-4">
+            {categories.map((category) => (
+              <div
+                key={category.id}
+                data-category-id={category.id}
+                onClick={() => setActiveTab(category.id)}
+                className={`flex-shrink-0 flex items-center justify-center px-5 py-3 cursor-pointer transition-all duration-300 ${
+                  activeTab === category.id
+                    ? 'text-[#0e1b19] font-bold border-b-4 border-[#1ce3cf]'
+                    : 'text-[#4f968f] hover:text-[#0e1b19]'
+                }`}
+              >
+                <p className="text-base leading-normal tracking-[0.015em] whitespace-nowrap">
+                  {category.name}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

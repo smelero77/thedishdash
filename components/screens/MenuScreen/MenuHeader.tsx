@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import { motion } from 'framer-motion';
-import { UserCircle, Search, MessageSquare } from 'lucide-react';
+import { UserCircle, Search } from 'lucide-react';
 import { TableBadge } from './TableBadge';
 import { TextLogoSvg } from '@/components/TextLogoSvg';
 
@@ -9,50 +9,44 @@ interface MenuHeaderProps {
   tableNumber: number;
   onAliasClick: () => void;
   setSearchActive: (active: boolean) => void;
-  onChat?: () => void;
   style?: React.CSSProperties;
   searchActive?: boolean;
 }
 
 const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(
-  ({ alias, tableNumber, onAliasClick, setSearchActive, onChat, style, searchActive }, ref) => (
+  ({ alias, tableNumber, onAliasClick, setSearchActive, style, searchActive }, ref) => (
     <header
       ref={ref}
-      className="sticky top-0 z-50 flex items-center justify-between bg-white/95 backdrop-blur py-0 px-4 h-14 mb-0"
-      style={{ paddingTop: 'env(safe-area-inset-top)', ...style }}
+      className="sticky top-0 z-50 flex items-center justify-between bg-white backdrop-blur px-4 h-16 mb-2"
+      style={{
+        paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
+        paddingBottom: '0.5rem',
+        width: '100%',
+        maxWidth: '100vw',
+        ...style,
+      }}
     >
-      {/* �� Búsqueda */}
-      <button
-        onClick={() => setSearchActive(true)}
-        className={`w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md transition-opacity ${
-          searchActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
-        }`}
-      >
-        <Search size={22} color="#4f968f" />
-      </button>
+      <div className="flex items-center h-12 flex-shrink-0">
+        <button
+          onClick={() => setSearchActive(true)}
+          className={`w-12 h-12 flex items-center justify-center rounded-full bg-white shadow-md transition-opacity ${
+            searchActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        >
+          <Search size={24} color="#4f968f" />
+        </button>
+      </div>
 
-      {/* Logo centrado */}
-      <div className="flex-1 flex justify-center">
-        <div className="h-12 w-auto mb-0 pb-0">
-          <TextLogoSvg className="h-full w-auto" />
+      <div className="flex-1 flex justify-center min-w-0">
+        <div className="h-12 flex items-center">
+          <TextLogoSvg className="h-12 w-auto" />
         </div>
       </div>
 
-      {/* Alias + Mesa + Chat */}
-      <div className="flex items-center space-x-3">
-        {/* Mesa integrada en icono */}
-        <div className="flex items-center justify-center">
-          <div className="rounded-full bg-white shadow-md w-10 h-10 flex items-center justify-center">
-            <span className="text-[#4f968f] text-lg font-bold">{tableNumber}</span>
-          </div>
+      <div className="flex items-center h-12 flex-shrink-0">
+        <div className="rounded-full bg-white shadow-md w-12 h-12 flex items-center justify-center">
+          <span className="text-[#4f968f] text-lg font-bold">{tableNumber}</span>
         </div>
-
-        {/* Chat opcional */}
-        {onChat && (
-          <button onClick={onChat} className="p-1">
-            <MessageSquare size={20} color="#1ce3cf" />
-          </button>
-        )}
       </div>
     </header>
   ),
