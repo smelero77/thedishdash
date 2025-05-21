@@ -385,7 +385,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <div className="min-h-screen flex flex-col max-w-screen">
+        <div className="min-h-screen flex flex-col max-w-screen allow-scroll">
           <MenuHeader {...menuHeaderProps} />
 
           <div
