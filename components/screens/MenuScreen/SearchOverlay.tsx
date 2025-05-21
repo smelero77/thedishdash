@@ -202,18 +202,6 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 )}
               </div>
             </div>
-            <div className="fixed bottom-4 left-4 right-4 flex items-center gap-4">
-              <FloatingCartButton
-                onClick={() => setShowCartModal(true)}
-                getTotalItems={
-                  cartActions && typeof cartActions === 'object' && 'getTotalItems' in cartActions
-                    ? (cartActions as any).getTotalItems
-                    : () => 0
-                }
-                cartTotal={cartTotal as number}
-              />
-              <ChatButton onClick={() => setShowChatModal(true)} />
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -3,18 +3,20 @@ import { motion } from 'framer-motion';
 import { UserCircle, Search } from 'lucide-react';
 import { TableBadge } from './TableBadge';
 import { TextLogoSvg } from '@/components/TextLogoSvg';
+import ChatButton from '@/components/chat/ChatButton';
 
 interface MenuHeaderProps {
   alias: string | null | undefined;
   tableNumber: number;
   onAliasClick: () => void;
   setSearchActive: (active: boolean) => void;
+  onChat: () => void;
   style?: React.CSSProperties;
   searchActive?: boolean;
 }
 
 const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(
-  ({ alias, tableNumber, onAliasClick, setSearchActive, style, searchActive }, ref) => (
+  ({ alias, tableNumber, onAliasClick, setSearchActive, onChat, style, searchActive }, ref) => (
     <header
       ref={ref}
       className="sticky top-0 z-50 flex items-center justify-between bg-white backdrop-blur px-4 h-16 mb-2"
@@ -44,9 +46,12 @@ const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(
       </div>
 
       <div className="flex items-center h-12 flex-shrink-0">
-        <div className="rounded-full bg-white shadow-md w-12 h-12 flex items-center justify-center">
-          <span className="text-[#4f968f] text-lg font-bold">{tableNumber}</span>
-        </div>
+        <button
+          onClick={onChat}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-white shadow-md"
+        >
+          <ChatButton onClick={() => {}} />
+        </button>
       </div>
     </header>
   ),
