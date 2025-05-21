@@ -401,12 +401,22 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
               maxWidth: '100vw',
               overflow: 'hidden',
               touchAction: 'pan-x',
+              WebkitOverflowScrolling: 'touch',
+              backfaceVisibility: 'hidden',
+              transform: 'translateZ(0)',
             }}
           >
             <CategoryTabs {...categoryTabsProps} />
           </div>
 
-          <div className="mt-[112px] overflow-y-auto allow-scroll overflow-x-hidden">
+          <div
+            className="mt-[112px] overflow-y-auto allow-scroll overflow-x-hidden"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              backfaceVisibility: 'hidden',
+              transform: 'translateZ(0)',
+            }}
+          >
             {orderedCategories.map((category: CategoryWithItems, idx) => (
               <div key={category.id} id={`category-${category.id}`}>
                 <CategorySection
