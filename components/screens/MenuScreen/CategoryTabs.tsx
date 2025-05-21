@@ -12,7 +12,7 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
   ({ categories, activeTab, setActiveTab, menuScrollRef }, ref) => {
     const tabsContainerRef = useRef<HTMLDivElement>(null);
 
-    // Efecto para mantener la pestaña activa visible en la barra de categorías
+    // Efecto para mantener la pestaña activa visible en la barra de las categorías
     useEffect(() => {
       if (!tabsContainerRef.current) return;
 
