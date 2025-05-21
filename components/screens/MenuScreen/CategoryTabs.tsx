@@ -42,11 +42,15 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
-            touchAction: 'pan-x',
             overscrollBehaviorX: 'contain',
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            userSelect: 'none',
+            touchAction: 'pan-x pinch-zoom',
+            willChange: 'transform',
           }}
         >
-          <div className="flex space-x-4">
+          <div className="flex space-x-4 min-w-max">
             {categories.map((category) => (
               <div
                 key={category.id}
