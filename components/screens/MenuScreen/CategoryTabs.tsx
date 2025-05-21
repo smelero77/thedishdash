@@ -34,27 +34,23 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
     }, [activeTab]);
 
     return (
-      <div className="bg-[#f8fbfb] shadow-sm w-full h-full">
+      <div className="w-full h-full bg-[#f8fbfb] shadow-sm">
         <div
           ref={tabsContainerRef}
-          className="flex overflow-x-auto no-scrollbar px-4 gap-4 relative scroll-smooth pt-0 allow-horizontal-scroll"
+          className="w-full h-full flex overflow-x-auto scrollbar-none"
           style={{
+            WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch',
             overscrollBehaviorX: 'contain',
             WebkitTouchCallout: 'none',
             WebkitUserSelect: 'none',
             userSelect: 'none',
             touchAction: 'pan-x',
             willChange: 'transform',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            whiteSpace: 'nowrap',
-            WebkitTapHighlightColor: 'transparent',
           }}
         >
-          <div className="flex space-x-4 min-w-max">
+          <div className="flex h-full items-center px-4 space-x-4">
             {categories.map((category) => (
               <div
                 key={category.id}
