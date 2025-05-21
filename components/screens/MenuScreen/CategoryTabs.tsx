@@ -38,17 +38,17 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
     }, [activeTab]);
 
     return (
-      <div className="sticky top-0 bg-[#f8fbfb] shadow-sm z-20">
+      <div className="bg-[#f8fbfb] shadow-sm w-full h-full">
         <div
           ref={tabsContainerRef}
-          className="flex overflow-x-auto no-scrollbar px-4 gap-4 relative scroll-smooth mt-4 pt-0"
+          className="flex overflow-x-auto no-scrollbar px-4 gap-4 relative scroll-smooth pt-0"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          <div className="flex space-x-4">
+          <div className="flex space-x-4 w-full">
             {categories.map((category) => (
               <div
                 key={category.id}

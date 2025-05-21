@@ -388,101 +388,106 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         <div className="min-h-screen flex flex-col max-w-screen">
           <MenuHeader {...menuHeaderProps} />
 
-          <main className="flex-1 flex flex-col">
-            <div
-              style={{
-                position: 'sticky',
-                top: '56px',
-                zIndex: 20,
-                backgroundColor: 'rgb(249 250 251)',
-              }}
-            >
-              <CategoryTabs {...categoryTabsProps} />
-            </div>
-
-            <div className="flex-1">
-              {orderedCategories.map((category: CategoryWithItems, idx) => (
-                <div key={category.id} id={`category-${category.id}`}>
-                  <CategorySection
-                    category={category}
-                    itemQuantities={itemQuantities}
-                    onAddToCart={handleItemClick}
-                    onRemoveFromCart={handleDecrementItem}
-                    onOpenCart={() => setShowCartModal(true)}
-                    ref={(el) => {
-                      categoryRefs.current[category.id] = el;
-                    }}
-                    setIsAnyDetailOpen={setIsAnyDetailOpen}
-                    isFirst={idx === 0}
-                  />
-                </div>
-              ))}
-            </div>
-          </main>
-
           <div
-            className={`fixed bottom-4 left-4 right-4 flex items-center gap-4 z-[300] transition-opacity duration-200 ${
-              showCartModal || showModifierModal ? 'opacity-0 pointer-events-none' : 'opacity-100'
-            }`}
+            style={{
+              position: 'fixed',
+              top: '64px',
+              left: 0,
+              right: 0,
+              height: '48px',
+              zIndex: 20,
+              backgroundColor: '#f8fbfb',
+              width: '100%',
+              maxWidth: '100vw',
+            }}
           >
-            <FloatingCartButton {...floatingCartButtonProps} />
-            <ChatButton onClick={() => setShowChatModal(true)} />
+            <CategoryTabs {...categoryTabsProps} />
           </div>
 
-          <SearchOverlay {...searchOverlayProps} />
+          <div className="mt-[112px]">
+            {orderedCategories.map((category: CategoryWithItems, idx) => (
+              <div key={category.id} id={`category-${category.id}`}>
+                <CategorySection
+                  category={category}
+                  itemQuantities={itemQuantities}
+                  onAddToCart={handleItemClick}
+                  onRemoveFromCart={handleDecrementItem}
+                  onOpenCart={() => setShowCartModal(true)}
+                  ref={(el) => {
+                    categoryRefs.current[category.id] = el;
+                  }}
+                  setIsAnyDetailOpen={setIsAnyDetailOpen}
+                  isFirst={idx === 0}
+                />
+              </div>
+            ))}
+          </div>
 
-          {showModifierModal && selectedItem && (
-            <ModifierModal
-              isOpen={showModifierModal}
-              itemName={selectedItem.name}
-              itemDescription={selectedItem.description ?? undefined}
-              itemAllergens={selectedItem.allergens.map((allergen, index) => ({
-                ...allergen,
-                id: allergen.id || `allergen-${index}`,
-                icon_url: allergen.icon_url || '',
-              }))}
-              modifiers={memoizedModifiers.map((modifier) => ({
-                ...modifier,
-                options: modifier.options.map((option) => ({
-                  ...option,
-                  icon_url: option.icon_url ?? '',
-                  related_menu_item_id: option.related_menu_item_id ?? '',
-                  allergens: option.allergens.map((allergen, index) => ({
-                    ...allergen,
-                    id: allergen.id || `option-allergen-${index}`,
-                    icon_url: allergen.icon_url || '',
+          <main className="flex-1 flex flex-col">
+            <div
+              className={`fixed bottom-4 left-4 right-4 flex items-center gap-4 z-[300] transition-opacity duration-200 ${
+                showCartModal || showModifierModal ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              }`}
+            >
+              <FloatingCartButton {...floatingCartButtonProps} />
+              <ChatButton onClick={() => setShowChatModal(true)} />
+            </div>
+
+            <SearchOverlay {...searchOverlayProps} />
+
+            {showModifierModal && selectedItem && (
+              <ModifierModal
+                isOpen={showModifierModal}
+                itemName={selectedItem.name}
+                itemDescription={selectedItem.description ?? undefined}
+                itemAllergens={selectedItem.allergens.map((allergen, index) => ({
+                  ...allergen,
+                  id: allergen.id || `allergen-${index}`,
+                  icon_url: allergen.icon_url || '',
+                }))}
+                modifiers={memoizedModifiers.map((modifier) => ({
+                  ...modifier,
+                  options: modifier.options.map((option) => ({
+                    ...option,
+                    icon_url: option.icon_url ?? '',
+                    related_menu_item_id: option.related_menu_item_id ?? '',
+                    allergens: option.allergens.map((allergen, index) => ({
+                      ...allergen,
+                      id: allergen.id || `option-allergen-${index}`,
+                      icon_url: allergen.icon_url || '',
+                    })),
                   })),
-                })),
-              }))}
-              menuItems={memoizedInitialMenuItems ?? []}
-              onConfirm={onModifierSubmit}
-              onClose={() => {
-                setShowModifierModal(false);
-                setSelectedItem(null);
-              }}
-            />
-          )}
+                }))}
+                menuItems={memoizedInitialMenuItems ?? []}
+                onConfirm={onModifierSubmit}
+                onClose={() => {
+                  setShowModifierModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
 
-          {showCartModal && (
-            <CartModal
-              onClose={() => setShowCartModal(false)}
-              currentClientAlias={alias ?? undefined}
-            />
-          )}
+            {showCartModal && (
+              <CartModal
+                onClose={() => setShowCartModal(false)}
+                currentClientAlias={alias ?? undefined}
+              />
+            )}
 
-          {showAliasModal && (
-            <AliasModal
-              isOpen={showAliasModal}
-              onClose={() => setShowAliasModal(false)}
-              onConfirm={handleAliasConfirm}
-            />
-          )}
+            {showAliasModal && (
+              <AliasModal
+                isOpen={showAliasModal}
+                onClose={() => setShowAliasModal(false)}
+                onConfirm={handleAliasConfirm}
+              />
+            )}
 
-          <ChatIA
-            isOpen={showChatModal}
-            onClose={() => setShowChatModal(false)}
-            userAlias={alias ?? 'Cliente'}
-          />
+            <ChatIA
+              isOpen={showChatModal}
+              onClose={() => setShowChatModal(false)}
+              userAlias={alias ?? 'Cliente'}
+            />
+          </main>
         </div>
       );
     };
