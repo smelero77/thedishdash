@@ -99,8 +99,6 @@
 
 /* Clases utilitarias para scroll */
 .allow-scroll {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   position: relative;
   height: 100%;
   width: 100%;
@@ -195,7 +193,7 @@
 
 /* Componentes específicos */
 .menu-header {
-  position: sticky;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -205,14 +203,14 @@
 }
 
 .category-tabs {
-  position: sticky;
-  top: var(--sticky-tabs-top); /* header-height + safe-area-top */
+  position: fixed;
+  top: var(--sticky-tabs-top);
   left: 0;
   right: 0;
   z-index: 49;
   background: hsl(var(--background));
   border-bottom: 1px solid hsl(var(--border));
-  overflow-x: auto; /* sólo horizontal */
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -230,13 +228,13 @@
 }
 
 main {
-  padding-top: var(--content-offset-top); /* space for header+tabs */
+  padding-top: calc(var(--sticky-tabs-top) + 48px);
   padding-bottom: calc(80px + var(--safe-area-bottom));
   display: flex;
   flex-direction: column;
   gap: 1rem;
   background: hsl(var(--card));
-  overflow-x: hidden;
+  overflow: visible;
 }
 
 /* Variables para partículas */
@@ -299,6 +297,5 @@ main {
 
 /* Aplica a cada sección de categoría */
 .category-section {
-  /* como backup, en caso de navegadores no soporten scroll-padding-top */
   scroll-margin-top: var(--content-offset-top);
 }
