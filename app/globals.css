@@ -13,6 +13,15 @@ body {
   width: 100%;
 }
 
+/* Estilos para el modo pantalla completa */
+.fullscreen-css-fallback {
+  /* Sin estilos adicionales, confiamos en los estilos globales de html/body */
+}
+
+.fullscreen-css-fallback body {
+  min-height: 100vh; /* Aseguramos que el body ocupe toda la altura de la ventana */
+}
+
 /* Reglas globales para controlar el scroll */
 * {
   box-sizing: border-box;
@@ -54,6 +63,7 @@ section {
   touch-action: pan-x;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  overflow-y: visible; /* Aseguramos que no interfiera con el scroll vertical */
 }
 
 .category-tabs::-webkit-scrollbar {

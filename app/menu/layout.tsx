@@ -9,7 +9,7 @@ import { CustomerProvider } from '@/context/CustomerContext';
 import { getMenuItems, getCurrentSlot } from '@/lib/data';
 import type { MenuItemData } from '@/types/menu';
 import { processMenuItem } from '@/utils/menu';
-import { FullscreenWrapper } from '@/components/FullscreenWrapper';
+// import { FullscreenWrapper } from '@/components/FullscreenWrapper';
 
 // Cache para los slots
 let slotsCache: any[] | null = null;
@@ -49,10 +49,10 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
       <CustomerProvider>
         <TableProvider>
           <CartProvider menuItems={menuItems}>
-            <FullscreenWrapper>
-              <div className="flex flex-col min-h-screen">{children}</div>
-              <Toaster />
-            </FullscreenWrapper>
+            {/* <FullscreenWrapper> */}
+            <div className="flex flex-col">{children}</div>
+            <Toaster />
+            {/* </FullscreenWrapper> */}
           </CartProvider>
         </TableProvider>
       </CustomerProvider>

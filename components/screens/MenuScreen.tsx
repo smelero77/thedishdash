@@ -295,23 +295,27 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
 
     useEffect(() => {
       if (searchActive) {
+        // Solo cuando la búsqueda está activa, aplicamos estilos restrictivos
         document.body.style.overflow = 'hidden';
         document.body.style.height = '100vh';
         document.documentElement.style.overflow = 'hidden';
         document.documentElement.style.height = '100vh';
-        return;
+      } else {
+        // Cuando la búsqueda no está activa, ELIMINAMOS los estilos en línea
+        // permitiendo que globals.css tome el control
+        document.body.style.overflow = '';
+        document.body.style.height = '';
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.height = '';
       }
 
-      document.body.style.overflow = 'auto';
-      document.body.style.height = 'auto';
-      document.documentElement.style.overflow = 'auto';
-      document.documentElement.style.height = 'auto';
-
+      // La función de limpieza se ejecutará cuando searchActive cambie o el componente se desmonte.
+      // Queremos asegurarnos de que, al final, los estilos de globals.css prevalezcan.
       return () => {
-        document.body.style.overflow = 'auto';
-        document.body.style.height = 'auto';
-        document.documentElement.style.overflow = 'auto';
-        document.documentElement.style.height = 'auto';
+        document.body.style.overflow = '';
+        document.body.style.height = '';
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.height = '';
       };
     }, [searchActive]);
 
@@ -378,28 +382,16 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <main className="min-h-screen overflow-x-hidden">
+        <main className="min-h-screen overflow-y-visible">
           {/* 1) Header siempre sticky */}
           <div className="sticky top-0 z-50 w-full bg-white">
-            <MenuHeader
-              alias={alias}
-              tableNumber={tableNumber}
-              onAliasClick={() => setShowAliasModal(true)}
-              setSearchActive={setSearchActive}
-              onChat={() => setShowChatModal(true)}
-              searchActive={searchActive}
-              style={{ display: isAnyDetailOpen ? 'none' : undefined }}
-            />
+            <MenuHeader {...menuHeaderProps} />
           </div>
 
           {/* 2) Tabs: solo si no estoy en búsqueda, y siempre sticky */}
-          {!searchActive && (
+          {!searchActive && menuItems && menuItems.length > 0 && (
             <div className="sticky top-[64px] z-40 w-full bg-[#f8fbfb] shadow-sm overflow-x-auto whitespace-nowrap">
-              <CategoryTabs
-                categories={orderedCategories}
-                activeTab={activeTab}
-                setActiveTab={handleCategoryClick}
-              />
+              <CategoryTabs {...categoryTabsProps} />
             </div>
           )}
 
