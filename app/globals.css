@@ -27,7 +27,7 @@
     --radius: 0.5rem;
 
     /* Variables de layout */
-    --header-height: 60px;
+    --header-height: 64px;
     --tabs-height: 48px;
     --safe-area-top: env(safe-area-inset-top, 0px);
     --safe-area-bottom: env(safe-area-inset-bottom, 0px);
@@ -71,16 +71,22 @@
     --chart-5: 340 75% 55%;
   }
 
+  /* 1) html gestiona el scroll de la página */
   html {
-    scroll-behavior: smooth;
+    height: 100%; /* ocupa toda la ventana */
+    overflow-x: hidden; /* no scroll horizontal */
+    overflow-y: auto; /* scroll vertical NATIVE aquí */
+    scroll-behavior: smooth; /* anima cualquier scroll, incluidos anchors */
+    scroll-padding-top: var(--content-offset-top); /* reserva espacio arriba */
   }
 
+  /* 2) body deja pasar todo el overflow para que html sea el scroll container */
   body {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-    background-color: hsl(var(--background));
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: visible; /* IMPORTANT: body no captura scroll */
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
     color: hsl(var(--foreground));
-    overflow-x: hidden !important;
   }
 }
 
@@ -191,22 +197,22 @@
 .menu-header {
   position: sticky;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
-  background-color: hsl(var(--background));
+  background: hsl(var(--background));
   border-bottom: 1px solid hsl(var(--border));
-  padding: 0.5rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .category-tabs {
   position: sticky;
-  top: var(--sticky-tabs-top);
-  z-index: 40;
-  background-color: hsl(var(--background));
+  top: var(--sticky-tabs-top); /* header-height + safe-area-top */
+  left: 0;
+  right: 0;
+  z-index: 49;
+  background: hsl(var(--background));
   border-bottom: 1px solid hsl(var(--border));
-  overflow-x: auto;
+  overflow-x: auto; /* sólo horizontal */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -224,28 +230,28 @@
 }
 
 main {
-  flex: 1;
+  padding-top: var(--content-offset-top); /* space for header+tabs */
+  padding-bottom: calc(80px + var(--safe-area-bottom));
   display: flex;
   flex-direction: column;
-  padding: 1rem;
   gap: 1rem;
+  background: hsl(var(--card));
+  overflow-x: hidden;
 }
 
+/* Variables para partículas */
 :root {
   --particle-size: 4px;
   --particle-count: 50;
 }
 
+/* Reset básico */
 * {
   margin: 0;
   padding: 0;
 }
 
-body {
-  overflow: hidden;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-}
-
+/* Animaciones de partículas */
 @keyframes particleFloat {
   0% {
     transform: translateY(0) translateX(0);
@@ -267,6 +273,7 @@ body {
   pointer-events: none;
 }
 
+/* Estilos de scrollbar personalizados */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -288,4 +295,10 @@ body {
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--background));
+}
+
+/* Aplica a cada sección de categoría */
+.category-section {
+  /* como backup, en caso de navegadores no soporten scroll-padding-top */
+  scroll-margin-top: var(--content-offset-top);
 }

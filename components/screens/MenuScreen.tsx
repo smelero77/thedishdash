@@ -95,11 +95,10 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const [showAliasModal, setShowAliasModal] = useState(false);
     const [showChatModal, setShowChatModal] = useState(false);
     const [isAnyDetailOpen, setIsAnyDetailOpen] = useState(false);
+    const [isScrolling, setIsScrolling] = useState(false);
 
     // 4. Refs
     const menuScrollRef = useRef<HTMLDivElement | null>(null);
-    const isScrollingProgrammatically = useRef(false);
-    const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
     const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
     // 5. Memoized values
@@ -121,35 +120,20 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       [cart, alias],
     );
 
-    const handleItemClick = useCallback(
-      async (itemId: string) => {
-        const item = memoizedInitialMenuItems?.find((i) => i.id === itemId);
-        if (!item) {
-          console.error(`[MenuScreen] Item con ID ${itemId} no encontrado en initialMenuItems.`);
-          return;
-        }
-        if (!memoizedCartActions) {
-          console.error('[MenuScreen] Cart actions no están disponibles.');
-          return;
-        }
-
-        if (item.modifiers && item.modifiers.length > 0) {
-          await fetchModifiers(itemId);
-          setSelectedItem({
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            allergens: item.allergens,
-            modifiers: item.modifiers,
-          });
-          setShowModifierModal(true);
-          return;
-        }
-
-        console.log(`[MenuScreen] Añadiendo item ${itemId} sin modificadores.`);
-        memoizedCartActions.handleAddToCart(itemId, {});
+    const handleAddToCart = useCallback(
+      (itemId: string) => {
+        if (!memoizedCartActions) return;
+        memoizedCartActions.handleAddToCart(itemId);
       },
-      [memoizedInitialMenuItems, fetchModifiers, memoizedCartActions],
+      [memoizedCartActions],
+    );
+
+    const handleRemoveFromCart = useCallback(
+      (itemId: string, itemModifiers?: SelectedModifiers | null) => {
+        if (!memoizedCartActions) return;
+        memoizedCartActions.handleDecrementCart(itemId, itemModifiers ?? {});
+      },
+      [memoizedCartActions],
     );
 
     const onModifierSubmit = useCallback(
@@ -165,137 +149,57 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
               setSelectedItem(null);
             },
           );
-        } else {
-          console.error(
-            '[MenuScreen] No se pudo procesar modificadores: falta selectedItem o cartActions.',
-          );
         }
       },
       [selectedItem, memoizedModifiers, memoizedCartActions],
     );
 
-    const handleDecrementItem = useCallback(
-      (itemId: string, itemModifiers: SelectedModifiers | null = null) => {
-        if (!memoizedCartActions) {
-          console.error('[MenuScreen] Cart actions no están disponibles para decrementar.');
-          return;
-        }
-        console.log(`[MenuScreen] Decrementando item ${itemId}. Modifiers:`, itemModifiers);
-        memoizedCartActions.handleDecrementCart(itemId, itemModifiers ?? {});
-      },
-      [memoizedCartActions],
-    );
-
     const handleScroll = useCallback(() => {
-      if (isScrollingProgrammatically.current) return;
+      // Observador que "ve" qué sección está entrando en el viewport
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (isScrolling) return; // No actualizar si estamos en medio de un scroll programado
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const id = entry.target.id.replace('category-', '');
+              setActiveTab(id);
+            }
+          });
+        },
+        {
+          root: null, // viewport de ventana
+          rootMargin: '-112px 0px 0px 0px', // 64px (header) + 48px (tabs) = 112px
+          threshold: 0.5, // 50% visible
+        },
+      );
 
-      const container = document.scrollingElement || document.documentElement;
-      const scrollTop = container.scrollTop;
-      const viewportHeight = window.innerHeight;
-      const scrollBottom = scrollTop + viewportHeight;
-      const tolerance = 50;
-
-      // Obtener el offset del header usando variables CSS
-      const headerHeight =
-        parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) ||
-        64;
-      const safeAreaTop =
-        parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-top')) ||
-        0;
-      const headerOffset = headerHeight + safeAreaTop;
-
-      let mostVisibleCategory: string | null = null;
-      let maxVisibility = 0;
-
-      Object.entries(categoryRefs.current).forEach(([id, element]) => {
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          const elementTop = rect.top + scrollTop;
-          const elementBottom = elementTop + rect.height;
-
-          // Calcular la visibilidad considerando el header
-          const visibleTop = Math.max(elementTop, scrollTop + headerOffset);
-          const visibleBottom = Math.min(elementBottom, scrollBottom);
-          const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-
-          // Bonus por estar cerca del centro del viewport
-          const elementCenter = elementTop + rect.height / 2;
-          const viewportCenter = scrollTop + viewportHeight / 2;
-          const distanceFromCenter = Math.abs(elementCenter - viewportCenter);
-          const centerBonus = Math.max(0, 1 - distanceFromCenter / (viewportHeight / 2));
-
-          // Bonus por ser el último elemento y estar cerca del final
-          const isLastElement = id === orderedCategories[orderedCategories.length - 1].id;
-          const isNearBottom = scrollBottom >= container.scrollHeight - tolerance;
-          const lastElementBonus = isLastElement && isNearBottom ? 1 : 0;
-
-          const totalVisibility = visibleHeight + centerBonus * 100 + lastElementBonus * 200;
-
-          if (totalVisibility > maxVisibility) {
-            maxVisibility = totalVisibility;
-            mostVisibleCategory = id;
-          }
-        }
+      // Observar todas las secciones
+      orderedCategories.forEach((cat) => {
+        const el = categoryRefs.current[cat.id];
+        if (el) observer.observe(el);
       });
 
-      if (mostVisibleCategory && mostVisibleCategory !== activeTab) {
-        setActiveTab(mostVisibleCategory);
-      }
-    }, [orderedCategories, activeTab]);
+      return () => observer.disconnect();
+    }, [orderedCategories, isScrolling]);
 
-    useEffect(() => {
-      window.addEventListener('scroll', handleScroll);
-      handleScroll();
-      return () => window.removeEventListener('scroll', handleScroll);
-    }, [handleScroll]);
-
-    const handleCategoryClick = useCallback((categoryId: string) => {
-      setActiveTab(categoryId);
-      const categoryElement = document.getElementById(`category-${categoryId}`);
-
-      if (categoryElement) {
-        isScrollingProgrammatically.current = true;
-
-        // Obtener el offset del header usando variables CSS
-        const headerHeight =
-          parseInt(
-            getComputedStyle(document.documentElement).getPropertyValue('--header-height'),
-          ) || 64;
-        const safeAreaTop =
-          parseInt(
-            getComputedStyle(document.documentElement).getPropertyValue('--safe-area-top'),
-          ) || 0;
-        const headerOffset = headerHeight + safeAreaTop;
-
-        // Logs para verificar valores
-        console.log('Debug offsets:', {
-          headerHeight,
-          safeAreaTop,
-          headerOffset,
-          elementTop: categoryElement.getBoundingClientRect().top,
-          offsetTop: categoryElement.offsetTop,
-        });
-
-        // Usar scrollIntoView con un offset personalizado
-        categoryElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-
-        // Ajustar el scroll después de que se complete la animación
-        setTimeout(() => {
-          window.scrollBy(0, -headerOffset);
-        }, 100);
-
-        // Resetear la bandera después de la animación
-        if (scrollTimeout.current) {
-          clearTimeout(scrollTimeout.current);
-        }
-        scrollTimeout.current = setTimeout(() => {
-          isScrollingProgrammatically.current = false;
-        }, 500);
-      }
+    // Manejar el click en una pestaña
+    const handleTabClick = useCallback((id: string) => {
+      setIsScrolling(true);
+      setActiveTab(id);
+      // Reactivar el IntersectionObserver después de 1 segundo
+      setTimeout(() => {
+        setIsScrolling(false);
+      }, 1000);
     }, []);
+
+    const categoryTabsProps = useMemo(
+      () => ({
+        categories: orderedCategories,
+        activeTab,
+        onTabClick: handleTabClick,
+      }),
+      [orderedCategories, activeTab, handleTabClick],
+    );
 
     const debouncedSearch = useDebounce((query: string) => {
       const results = searchMenuItems(query, menuItems);
@@ -316,9 +220,6 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
 
     const handleAliasConfirm = useCallback(async (newAlias: string) => {
       console.log('[MenuScreen] Guardando alias:', newAlias);
-      if (scrollTimeout.current) {
-        clearTimeout(scrollTimeout.current);
-      }
       setShowAliasModal(false);
       return true;
     }, []);
@@ -331,34 +232,22 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
 
     useEffect(() => {
       if (searchActive) {
-        // Solo cuando la búsqueda está activa, aplicamos estilos restrictivos
-        document.body.style.overflow = 'hidden';
-        document.body.style.height = '100vh';
+        // Solo cuando la búsqueda está activa, bloqueamos el scroll
         document.documentElement.style.overflow = 'hidden';
-        document.documentElement.style.height = '100vh';
       } else {
-        // Cuando la búsqueda no está activa, ELIMINAMOS los estilos en línea
-        // permitiendo que globals.css tome el control
-        document.body.style.overflow = '';
-        document.body.style.height = '';
+        // Cuando la búsqueda no está activa, permitimos que globals.css maneje el scroll
         document.documentElement.style.overflow = '';
-        document.documentElement.style.height = '';
       }
 
-      // La función de limpieza se ejecutará cuando searchActive cambie o el componente se desmonte.
-      // Queremos asegurarnos de que, al final, los estilos de globals.css prevalezcan.
       return () => {
-        document.body.style.overflow = '';
-        document.body.style.height = '';
         document.documentElement.style.overflow = '';
-        document.documentElement.style.height = '';
       };
     }, [searchActive]);
 
     useEffect(() => {
-      if (orderedCategories.length === 0 || activeTab) return;
+      if (orderedCategories.length === 0) return;
       setActiveTab(orderedCategories[0].id);
-    }, [orderedCategories, activeTab]);
+    }, [orderedCategories]);
 
     const menuHeaderProps = useMemo(
       () => ({
@@ -371,15 +260,6 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         style: { display: isAnyDetailOpen ? 'none' : undefined },
       }),
       [alias, tableNumber, isAnyDetailOpen, searchActive],
-    );
-
-    const categoryTabsProps = useMemo(
-      () => ({
-        categories: orderedCategories,
-        activeTab,
-        setActiveTab: handleCategoryClick,
-      }),
-      [orderedCategories, activeTab, handleCategoryClick],
     );
 
     const floatingCartButtonProps = useMemo(
@@ -415,51 +295,36 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <div
-          ref={menuScrollRef}
-          className="menu-screen-container flex-grow"
-          style={{
-            paddingBottom: 'env(safe-area-inset-bottom)',
-          }}
-        >
-          {/* Header fijo */}
-          <header className="menu-header" suppressHydrationWarning>
+        <>
+          {/* 1) Header pegado */}
+          <header className="menu-header">
             <MenuHeader {...menuHeaderProps} />
           </header>
 
-          {/* Pestañas de categorías fijas */}
-          <nav className="category-tabs" suppressHydrationWarning>
+          {/* 2) Tabs pegadas justo debajo */}
+          <nav className="category-tabs">
             <CategoryTabs {...categoryTabsProps} />
           </nav>
 
-          {/* Contenido principal scrolleable */}
-          <main
-            className="flex-grow relative overflow-y-auto overflow-x-hidden"
-            style={{
-              paddingTop: 'var(--content-offset-top)',
-              paddingBottom: 'calc(80px + var(--safe-area-bottom))',
-            }}
-            suppressHydrationWarning
-          >
-            {orderedCategories.map((category) => (
+          {/* 3) Contenido principal: el scroll es del window */}
+          <main>
+            {orderedCategories.map((cat) => (
               <CategorySection
-                key={category.id}
-                category={category}
-                onAddToCart={handleItemClick}
-                onRemoveFromCart={handleDecrementItem}
+                id={`category-${cat.id}`}
+                key={cat.id}
+                category={cat}
+                onAddToCart={handleAddToCart}
+                onRemoveFromCart={handleRemoveFromCart}
                 itemQuantities={itemQuantities}
                 onOpenCart={() => setShowCartModal(true)}
                 ref={(el) => {
-                  categoryRefs.current[category.id] = el;
+                  categoryRefs.current[cat.id] = el;
                 }}
               />
             ))}
           </main>
 
-          {/* Botón flotante del carrito */}
           <FloatingCartButton {...floatingCartButtonProps} />
-
-          {/* Overlays y Modales */}
           <AnimatePresence>
             {searchActive && <SearchOverlay {...searchOverlayProps} />}
 
@@ -505,7 +370,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
               />
             )}
           </AnimatePresence>
-        </div>
+        </>
       );
     };
 

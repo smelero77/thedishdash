@@ -19,6 +19,7 @@ import React from 'react';
 import ProductQuantityControls from './ProductQuantityControls';
 
 interface CategorySectionProps {
+  id: string;
   category: Category & {
     description?: string;
     items: MenuItemData[];
@@ -35,6 +36,7 @@ interface CategorySectionProps {
 const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps>(
   (
     {
+      id,
       category,
       itemQuantities,
       onAddToCart,
@@ -87,8 +89,8 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
     return (
       <div
         ref={ref}
-        id={`category-${category.id}`}
-        className={`divide-y divide-gray-200/10 bg-[#f8fbfb] ${isFirst ? 'pt-0' : 'pt-6 md:pt-8'} ${className || ''}`}
+        id={id}
+        className={`category-section divide-y divide-gray-200/10 bg-[#f8fbfb] ${isFirst ? 'pt-0' : 'pt-6 md:pt-8'} ${className || ''}`}
       >
         {category.image_url && (
           <div className={`relative w-full h-64 z-0 bg-[#f8fbfb]`}>
