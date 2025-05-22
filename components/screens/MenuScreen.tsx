@@ -429,6 +429,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
               position: 'relative',
               zIndex: 10,
               scrollBehavior: 'smooth',
+              overflowX: 'hidden',
+              maxWidth: '100vw',
+              width: '100%'
             }}
           >
             {orderedCategories.map((category: CategoryWithItems, idx) => (
