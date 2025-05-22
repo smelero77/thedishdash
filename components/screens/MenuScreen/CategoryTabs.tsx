@@ -56,7 +56,7 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
                 key={category.id}
                 data-category-id={category.id}
                 onClick={() => setActiveTab(category.id)}
-                className={`flex-shrink-0 flex items-center justify-center px-5 py-3 cursor-pointer transition-all duration-300 relative touch-none ${
+                className={`flex-shrink-0 flex items-center justify-center px-5 py-3 cursor-pointer transition-all duration-300 relative touch-none max-w-none ${
                   activeTab === category.id
                     ? 'text-[#0e1b19] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1 after:bg-[#1ce3cf] after:z-10'
                     : 'text-[#4f968f] hover:text-[#0e1b19]'

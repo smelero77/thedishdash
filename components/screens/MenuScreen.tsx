@@ -409,13 +409,10 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
               backgroundColor: '#f8fbfb',
               width: '100%',
               maxWidth: '100vw',
-              overflow: 'hidden',
               touchAction: 'pan-x',
               WebkitOverflowScrolling: 'touch',
               backfaceVisibility: 'hidden',
               transform: 'translateZ(0)',
-              display: 'flex',
-              alignItems: 'center',
             }}
           >
             <CategoryTabs {...categoryTabsProps} />
