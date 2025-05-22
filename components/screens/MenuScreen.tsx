@@ -197,11 +197,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const handleScroll = useCallback(() => {
       if (isScrollingProgrammatically.current) return;
 
-      const container = document.querySelector('.overflow-y-auto');
-      if (!container) return;
-
+      const container = document.scrollingElement || document.documentElement;
       const scrollTop = container.scrollTop;
-      const viewportHeight = container.clientHeight;
+      const viewportHeight = window.innerHeight;
       const scrollBottom = scrollTop + viewportHeight;
       const tolerance = 50;
 
@@ -211,8 +209,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       Object.entries(categoryRefs.current).forEach(([id, element]) => {
         if (element) {
           const rect = element.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          const elementTop = rect.top - containerRect.top + scrollTop;
+          const elementTop = rect.top + scrollTop;
           const elementBottom = elementTop + rect.height;
 
           const visibleTop = Math.max(elementTop, scrollTop);
@@ -243,12 +240,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     }, [orderedCategories, activeTab]);
 
     useEffect(() => {
-      const container = document.querySelector('.overflow-y-auto');
-      if (!container) return;
-
-      container.addEventListener('scroll', handleScroll);
+      window.addEventListener('scroll', handleScroll);
       handleScroll();
-      return () => container.removeEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
     }, [handleScroll]);
 
     const handleCategoryClick = useCallback((categoryId: string) => {
@@ -256,13 +250,10 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       const categoryElement = document.getElementById(`category-${categoryId}`);
       if (categoryElement) {
         isScrollingProgrammatically.current = true;
-        const container = document.querySelector('.overflow-y-auto');
-        if (container) {
-          container.scrollTo({
-            top: categoryElement.offsetTop - 112,
-            behavior: 'smooth',
-          });
-        }
+        window.scrollTo({
+          top: categoryElement.offsetTop - 112,
+          behavior: 'smooth',
+        });
         if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
         scrollTimeout.current = setTimeout(() => {
           isScrollingProgrammatically.current = false;
@@ -337,14 +328,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         setSearchActive,
         onChat: () => setShowChatModal(true),
         searchActive,
-        style: {
-          display: isAnyDetailOpen ? 'none' : undefined,
-          position: 'fixed' as const,
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 50,
-        },
+        style: { display: isAnyDetailOpen ? 'none' : undefined },
       }),
       [alias, tableNumber, isAnyDetailOpen, searchActive],
     );
@@ -354,7 +338,6 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         categories: orderedCategories,
         activeTab,
         setActiveTab: handleCategoryClick,
-        menuScrollRef: menuScrollRef as React.RefObject<HTMLDivElement>,
       }),
       [orderedCategories, activeTab, handleCategoryClick],
     );
@@ -395,109 +378,118 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <div className="allow-scroll">
-          <div className="fixed inset-0 flex flex-col bg-white">
-            <MenuHeader {...menuHeaderProps} />
-
-            <div className="fixed top-16 left-0 right-0 z-20">
-              <CategoryTabs {...categoryTabsProps} />
-            </div>
-
-            <div
-              className="flex-1 overflow-y-auto overflow-x-hidden mt-28"
-              style={{
-                WebkitOverflowScrolling: 'touch',
-                backfaceVisibility: 'hidden',
-                transform: 'translateZ(0)',
-                height: 'calc(100vh - 112px)',
-                position: 'relative',
-                zIndex: 10,
-                scrollBehavior: 'smooth',
-                width: '100%',
-              }}
-            >
-              {orderedCategories.map((category: CategoryWithItems, idx) => (
-                <div key={category.id} id={`category-${category.id}`}>
-                  <CategorySection
-                    category={category}
-                    itemQuantities={itemQuantities}
-                    onAddToCart={handleItemClick}
-                    onRemoveFromCart={handleDecrementItem}
-                    onOpenCart={() => setShowCartModal(true)}
-                    ref={(el) => {
-                      categoryRefs.current[category.id] = el;
-                    }}
-                    setIsAnyDetailOpen={setIsAnyDetailOpen}
-                    isFirst={idx === 0}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div
-              className={`fixed bottom-4 left-4 right-4 z-[300] transition-opacity duration-200 ${
-                showCartModal || showModifierModal ? 'opacity-0 pointer-events-none' : 'opacity-100'
-              }`}
-            >
-              <FloatingCartButton {...floatingCartButtonProps} />
-            </div>
-
-            <SearchOverlay {...searchOverlayProps} />
-
-            {showModifierModal && selectedItem && (
-              <ModifierModal
-                isOpen={showModifierModal}
-                itemName={selectedItem.name}
-                itemDescription={selectedItem.description ?? undefined}
-                itemAllergens={selectedItem.allergens.map((allergen, index) => ({
-                  ...allergen,
-                  id: allergen.id || `allergen-${index}`,
-                  icon_url: allergen.icon_url || '',
-                }))}
-                modifiers={memoizedModifiers.map((modifier) => ({
-                  ...modifier,
-                  options: modifier.options.map((option) => ({
-                    ...option,
-                    icon_url: option.icon_url ?? '',
-                    related_menu_item_id: option.related_menu_item_id ?? '',
-                    allergens: option.allergens.map((allergen, index) => ({
-                      ...allergen,
-                      id: allergen.id || `option-allergen-${index}`,
-                      icon_url: allergen.icon_url || '',
-                    })),
-                  })),
-                }))}
-                menuItems={memoizedInitialMenuItems ?? []}
-                onConfirm={onModifierSubmit}
-                onClose={() => {
-                  setShowModifierModal(false);
-                  setSelectedItem(null);
-                }}
-              />
-            )}
-
-            {showCartModal && (
-              <CartModal
-                onClose={() => setShowCartModal(false)}
-                currentClientAlias={alias ?? undefined}
-              />
-            )}
-
-            {showAliasModal && (
-              <AliasModal
-                isOpen={showAliasModal}
-                onClose={() => setShowAliasModal(false)}
-                onConfirm={handleAliasConfirm}
-              />
-            )}
-
-            <ChatIA
-              isOpen={showChatModal}
-              onClose={() => setShowChatModal(false)}
-              userAlias={alias ?? 'Cliente'}
+        <main className="min-h-screen overflow-x-hidden">
+          {/* 1) Header siempre sticky */}
+          <div className="sticky top-0 z-50 w-full bg-white">
+            <MenuHeader
+              alias={alias}
+              tableNumber={tableNumber}
+              onAliasClick={() => setShowAliasModal(true)}
+              setSearchActive={setSearchActive}
+              onChat={() => setShowChatModal(true)}
+              searchActive={searchActive}
+              style={{ display: isAnyDetailOpen ? 'none' : undefined }}
             />
           </div>
-        </div>
+
+          {/* 2) Tabs: solo si no estoy en búsqueda, y siempre sticky */}
+          {!searchActive && (
+            <div className="sticky top-[64px] z-40 w-full bg-[#f8fbfb] shadow-sm overflow-x-auto whitespace-nowrap">
+              <CategoryTabs
+                categories={orderedCategories}
+                activeTab={activeTab}
+                setActiveTab={handleCategoryClick}
+              />
+            </div>
+          )}
+
+          {/* 3) Contenido: el body hace scroll vertical */}
+          <section className="mt-[112px] px-4">
+            {orderedCategories.map((category: CategoryWithItems, idx) => (
+              <div key={category.id} id={`category-${category.id}`}>
+                <CategorySection
+                  category={category}
+                  itemQuantities={itemQuantities}
+                  onAddToCart={handleItemClick}
+                  onRemoveFromCart={handleDecrementItem}
+                  onOpenCart={() => setShowCartModal(true)}
+                  ref={(el) => {
+                    categoryRefs.current[category.id] = el;
+                  }}
+                  setIsAnyDetailOpen={setIsAnyDetailOpen}
+                  isFirst={idx === 0}
+                  className="max-w-full"
+                />
+              </div>
+            ))}
+          </section>
+
+          <div
+            className={`fixed bottom-4 left-4 right-4 z-[300] transition-opacity duration-200 ${
+              showCartModal || showModifierModal ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
+          >
+            <FloatingCartButton {...floatingCartButtonProps} />
+          </div>
+
+          {/* 4) SearchOverlay siempre encima */}
+          <div className="!z-[100]">
+            <SearchOverlay {...searchOverlayProps} />
+          </div>
+
+          {showModifierModal && selectedItem && (
+            <ModifierModal
+              isOpen={showModifierModal}
+              itemName={selectedItem.name}
+              itemDescription={selectedItem.description ?? undefined}
+              itemAllergens={selectedItem.allergens.map((allergen, index) => ({
+                ...allergen,
+                id: allergen.id || `allergen-${index}`,
+                icon_url: allergen.icon_url || '',
+              }))}
+              modifiers={memoizedModifiers.map((modifier) => ({
+                ...modifier,
+                options: modifier.options.map((option) => ({
+                  ...option,
+                  icon_url: option.icon_url ?? '',
+                  related_menu_item_id: option.related_menu_item_id ?? '',
+                  allergens: option.allergens.map((allergen, index) => ({
+                    ...allergen,
+                    id: allergen.id || `option-allergen-${index}`,
+                    icon_url: allergen.icon_url || '',
+                  })),
+                })),
+              }))}
+              menuItems={memoizedInitialMenuItems ?? []}
+              onConfirm={onModifierSubmit}
+              onClose={() => {
+                setShowModifierModal(false);
+                setSelectedItem(null);
+              }}
+            />
+          )}
+
+          {showCartModal && (
+            <CartModal
+              onClose={() => setShowCartModal(false)}
+              currentClientAlias={alias ?? undefined}
+            />
+          )}
+
+          {showAliasModal && (
+            <AliasModal
+              isOpen={showAliasModal}
+              onClose={() => setShowAliasModal(false)}
+              onConfirm={handleAliasConfirm}
+            />
+          )}
+
+          <ChatIA
+            isOpen={showChatModal}
+            onClose={() => setShowChatModal(false)}
+            userAlias={alias ?? 'Cliente'}
+          />
+        </main>
       );
     };
 

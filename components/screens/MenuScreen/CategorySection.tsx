@@ -29,6 +29,7 @@ interface CategorySectionProps {
   onOpenCart: () => void;
   setIsAnyDetailOpen?: (open: boolean) => void;
   isFirst?: boolean;
+  className?: string;
 }
 
 const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps>(
@@ -41,6 +42,7 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
       onOpenCart,
       setIsAnyDetailOpen,
       isFirst,
+      className,
     },
     ref,
   ) => {
@@ -86,7 +88,7 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
       <div
         ref={ref}
         id={`category-${category.id}`}
-        className="divide-y divide-gray-200/10 bg-[#f8fbfb]"
+        className={`divide-y divide-gray-200/10 bg-[#f8fbfb] ${className || ''}`}
       >
         {category.image_url && (
           <div className={`relative w-full h-64 z-0 bg-[#f8fbfb]`}>

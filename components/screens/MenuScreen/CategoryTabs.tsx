@@ -5,9 +5,10 @@ interface Props {
   categories: Category[];
   activeTab: string;
   setActiveTab: (id: string) => void;
+  className?: string;
 }
 
-export default function CategoryTabs({ categories, activeTab, setActiveTab }: Props) {
+export default function CategoryTabs({ categories, activeTab, setActiveTab, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   // Mantener la pestaña activa centrada
@@ -25,7 +26,7 @@ export default function CategoryTabs({ categories, activeTab, setActiveTab }: Pr
   return (
     <div
       ref={ref}
-      className="
+      className={`
         flex
         overflow-x-auto
         whitespace-nowrap
@@ -34,7 +35,8 @@ export default function CategoryTabs({ categories, activeTab, setActiveTab }: Pr
         shadow-sm
         px-4
         py-2
-      "
+        ${className || ''}
+      `}
     >
       {categories.map((cat) => (
         <div
