@@ -1,10 +1,9 @@
+'use client';
 import React from 'react';
 import { Button } from '@/components/ui/Button';
-import useCart from '@/hooks/useCart';
 import { cn } from '@/utils/cn';
-import { useMenuData } from '@/hooks/useMenuData';
-import { useCustomer } from '@/context/CustomerContext';
-import { useTable } from '@/context/TableContext';
+import { CartActionsContext } from '@/context/CartActionsContext';
+import { CartTotalContext } from '@/context/CartTotalContext';
 
 interface FloatingCartButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
   // Mantenemos la flexibilidad de pasar className y otros HTMLAttributes
@@ -12,11 +11,12 @@ interface FloatingCartButtonProps extends React.HTMLAttributes<HTMLButtonElement
 
 const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButtonProps>(
   ({ className, ...props }, ref) => {
-    const { menuItems } = useMenuData();
-    const { alias } = useCustomer();
-    const { tableNumber } = useTable();
+    const actions = React.useContext(CartActionsContext);
+    const cartTotal = React.useContext(CartTotalContext);
 
-    const { cartTotal, actions } = useCart(menuItems, alias, tableNumber);
+    if (!actions || cartTotal === null) {
+      return null;
+    }
 
     const totalItems = actions.getTotalItems();
 
