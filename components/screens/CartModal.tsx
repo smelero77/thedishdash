@@ -114,7 +114,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(
             animate={{ x: isVisible ? 0 : '100%' }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-0 bg-white overflow-hidden"
+            className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white overflow-hidden"
           >
             <div className="flex flex-col h-full">
               <div className="p-4 border-b border-[#d0e6e4]">
@@ -134,7 +134,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(
                 <OrderStories groupedItems={groupedItems} currentClientAlias={currentClientAlias} />
               </div>
 
-              <ScrollProgressBar containerRef={contentRef} className="sticky top-0 z-10" />
+              <ScrollProgressBar containerRef={contentRef} className="sticky top-0 z-20" />
 
               <div ref={contentRef} className="flex-1 overflow-y-auto no-scrollbar p-4 pb-24">
                 {Object.entries(groupedItems)
@@ -236,7 +236,7 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(
                   ))}
               </div>
 
-              <div className="fixed bottom-4 left-0 right-0 z-50 px-4">
+              <div className="fixed bottom-4 left-0 right-0 z-30 px-4">
                 <div className="max-w-2xl mx-auto">
                   <button className="w-full h-12 bg-[#1ce3cf] text-[#0e1b19] text-base font-bold leading-normal tracking-[0.015em] rounded-full shadow-lg hover:bg-[#1ce3cf] hover:text-[#0e1b19]">
                     <span className="flex items-center justify-center gap-3">

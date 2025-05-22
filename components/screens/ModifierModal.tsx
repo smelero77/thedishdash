@@ -5,25 +5,7 @@ import { X } from 'lucide-react';
 import { MenuItemAllergen as Allergen, MenuItemData } from '@/types/menu';
 import { ScrollProgressBar } from '@/components/ScrollProgressBar';
 import { formatPrice } from '@/utils/format';
-
-interface ModifierOption {
-  id: string;
-  name: string;
-  extra_price: number;
-  is_default: boolean;
-  icon_url?: string;
-  related_menu_item_id?: string;
-  allergens: Allergen[];
-}
-
-interface Modifier {
-  id: string;
-  name: string;
-  description: string;
-  required: boolean;
-  multi_select: boolean;
-  options: ModifierOption[];
-}
+import { Modifier, ModifierOption } from '@/types/modifiers';
 
 interface ModifierModalProps {
   isOpen: boolean;
@@ -236,7 +218,7 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 z-50">
+      <div className="fixed inset-0 z-[60]">
         {/* Fondo con blur */}
         <div
           className={`fixed inset-0 backdrop-blur-md transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
@@ -259,7 +241,7 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
           )}
 
           {/* Header fijo */}
-          <div className="sticky top-0 z-10 bg-white dark:bg-[#0f1b1a] px-4 pt-4 pb-2">
+          <div className="sticky top-0 z-30 bg-white dark:bg-[#0f1b1a] px-4 pt-4 pb-2">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-[#0e1b19] dark:text-white text-xl font-bold">{itemName}</h2>

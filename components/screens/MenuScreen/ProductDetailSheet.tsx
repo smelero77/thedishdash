@@ -43,7 +43,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed bottom-0 left-0 right-0 z-[100] flex items-end justify-center"
+          className="fixed inset-0 z-50 flex items-end justify-center"
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -55,12 +55,17 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <motion.div
-              className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative h-[calc(100vh-80px)] overflow-y-auto"
+              className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative overflow-y-auto"
+              style={{
+                height: 'calc(100vh - var(--safe-area-top))',
+                paddingBottom: 'var(--safe-area-bottom)',
+                y,
+                opacity,
+              }}
               drag="y"
               dragConstraints={{ top: 0 }}
               dragElastic={0.2}
               onDragEnd={handleDragEnd}
-              style={{ y, opacity }}
               animate={controls}
             >
               {/* Botón de cerrar */}

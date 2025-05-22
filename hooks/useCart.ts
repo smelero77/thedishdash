@@ -248,114 +248,24 @@ function useCart(
           };
         });
 
-        console.log(
-          '[useCart: InitEffect] Estado inicial del carrito construido:',
-          initialCartState,
-        );
         setCart(initialCartState);
         updateCartTotal(initialCartState, menuItems);
       } catch (error) {
-        console.error('[useCart: InitEffect] Error al inicializar carrito:', error);
+        console.error('[useCart: InitEffect] Error durante la inicialización:', error);
       }
     };
 
     initializeCartData();
   }, [tableNumber, menuItems, getCartKey, updateCartTotal]);
 
+  // Efecto para manejar cambios en tiempo real
   useEffect(() => {
-    console.log('[useCart: RealtimeEffect] triggered. Deps:', {
-      temporaryOrderId,
-      hasMenuItems: !!menuItems,
-    });
-    if (!temporaryOrderId || !menuItems || menuItems.length === 0) {
-      console.log(
-        '[useCart: RealtimeEffect] No temporaryOrderId o menuItems no disponible, no se inicia la suscripción.',
-      );
+    if (!temporaryOrderId) {
+      console.log('[useCart: RealtimeEffect] No temporaryOrderId, skipping subscription');
       return;
     }
-    console.log(
-      '[useCart: RealtimeEffect] Iniciando suscripción con temporaryOrderId:',
-      temporaryOrderId,
-    );
 
-    const handleRealtimeChanges = (payload: RealtimePostgresChangesPayload<TemporaryOrderItem>) => {
-      console.log('[useCart: RealtimeEffect] Payload recibido:', payload);
-      console.log('[useCart: RealtimeEffect] Event type:', payload.eventType);
-
-      const item = (payload.eventType === 'DELETE' ? payload.old : payload.new) as
-        | TemporaryOrderItem
-        | undefined;
-
-      if (!item || !item.temporary_order_id) {
-        console.warn(
-          '[useCart: RealtimeEffect] Payload recibido sin datos válidos (new/old) o sin temporary_order_id.',
-        );
-        return;
-      }
-
-      if (item.temporary_order_id !== temporaryOrderId) {
-        console.log('[useCart: RealtimeEffect] Cambio ignorado: pertenece a otra orden.');
-        return;
-      }
-      console.log('[useCart: RealtimeEffect] Filtro de orden pasado.');
-
-      const cartKey = getCartKey(item.menu_item_id, item.modifiers_data, item.alias);
-      console.log(
-        '[useCart: RealtimeEffect] Procesando cambio para cartKey:',
-        cartKey,
-        'Evento:',
-        payload.eventType,
-      );
-      console.log('[useCart: RealtimeEffect] Datos relevantes:', {
-        menu_item_id: item.menu_item_id,
-        quantity: item.quantity,
-        modifiers_data: item.modifiers_data,
-        alias: item.alias,
-      });
-
-      setCart((prevCart) => {
-        const newCart = { ...prevCart };
-
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          const newItem = payload.new as TemporaryOrderItem;
-          const menuItem = menuItems.find((m) => m.id === newItem.menu_item_id);
-
-          if (!menuItem) {
-            console.warn(
-              `[useCart: RealtimeEffect] MenuItemData not found for ID: ${newItem.menu_item_id}. Cannot process update/insert from payload.`,
-            );
-            return prevCart;
-          }
-
-          // Siempre actualizamos el item, incluso si ya existe
-          const cartKey = getCartKey(newItem.menu_item_id, newItem.modifiers_data, newItem.alias);
-          newCart[cartKey] = {
-            id: newItem.menu_item_id,
-            quantity: newItem.quantity,
-            modifiers: newItem.modifiers_data ?? {},
-            item: menuItem,
-            client_alias: newItem.alias,
-          };
-          console.log(
-            '[useCart: RealtimeEffect] Item actualizado:',
-            cartKey,
-            'Nueva cantidad:',
-            newItem.quantity,
-          );
-        } else if (payload.eventType === 'DELETE') {
-          const oldItem = payload.old as TemporaryOrderItem;
-          const cartKey = getCartKey(oldItem.menu_item_id, oldItem.modifiers_data, oldItem.alias);
-          if (newCart[cartKey]) {
-            delete newCart[cartKey];
-            console.log('[useCart: RealtimeEffect] Item eliminado:', cartKey);
-          }
-        }
-
-        // Siempre actualizamos el total y devolvemos un nuevo objeto
-        updateCartTotal(newCart, menuItems);
-        return { ...newCart };
-      });
-    };
+    console.log('[useCart: RealtimeEffect] Setting up subscription for order:', temporaryOrderId);
 
     const channel = supabase
       .channel(`temporary_order_items:${temporaryOrderId}`)
@@ -367,22 +277,88 @@ function useCart(
           table: 'temporary_order_items',
           filter: `temporary_order_id=eq.${temporaryOrderId}`,
         },
-        handleRealtimeChanges,
+        (payload) => {
+          // Usar requestAnimationFrame para optimizar el rendimiento
+          requestAnimationFrame(() => {
+            handleRealtimeChanges(payload);
+          });
+        },
       )
       .subscribe((status) => {
         console.log('[useCart: RealtimeEffect] Estado de la suscripción:', status);
       });
 
     return () => {
-      console.log(
-        '[useCart: RealtimeEffect] Limpiando suscripción para temporaryOrderId:',
-        temporaryOrderId,
-      );
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+      console.log('[useCart: RealtimeEffect] Cleaning up subscription');
+      channel.unsubscribe();
     };
-  }, [temporaryOrderId, menuItems, getCartKey, updateCartTotal]);
+  }, [temporaryOrderId]);
+
+  const handleRealtimeChanges = useCallback(
+    (payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+      if (!menuItems) {
+        console.warn('[handleRealtimeChanges] menuItems no disponible');
+        return;
+      }
+
+      const { eventType, new: newItem, old: oldItem } = payload;
+
+      // Usar requestAnimationFrame para optimizar el rendimiento
+      requestAnimationFrame(() => {
+        setCart((currentCart) => {
+          const newCart = { ...currentCart };
+
+          // Determinar el item relevante basado en el tipo de evento
+          const relevantItem = eventType === 'DELETE' ? oldItem : newItem;
+          if (!relevantItem || !('menu_item_id' in relevantItem)) {
+            console.warn('[handleRealtimeChanges] Payload inválido o sin menu_item_id');
+            return currentCart;
+          }
+
+          const cartKey = getCartKey(
+            relevantItem.menu_item_id as string,
+            (relevantItem.modifiers_data as SelectedModifiers | null) ?? null,
+            relevantItem.alias as string,
+          );
+
+          switch (eventType) {
+            case 'INSERT':
+            case 'UPDATE': {
+              if (!newItem || !('menu_item_id' in newItem)) return currentCart;
+              const menuItem = menuItems.find((m) => m.id === newItem.menu_item_id);
+              if (!menuItem) {
+                console.warn(
+                  `[handleRealtimeChanges] MenuItemData (ID: ${newItem.menu_item_id}) no encontrado`,
+                );
+                return currentCart;
+              }
+              newCart[cartKey] = {
+                id: newItem.menu_item_id as string,
+                quantity: newItem.quantity as number,
+                modifiers: (newItem.modifiers_data as SelectedModifiers) ?? {},
+                item: menuItem,
+                client_alias: newItem.alias as string,
+              };
+              break;
+            }
+            case 'DELETE': {
+              if (!oldItem || !('menu_item_id' in oldItem)) return currentCart;
+              delete newCart[cartKey];
+              break;
+            }
+          }
+
+          // Actualizar el total después de modificar el carrito
+          requestAnimationFrame(() => {
+            updateCartTotal(newCart, menuItems);
+          });
+
+          return newCart;
+        });
+      });
+    },
+    [menuItems, getCartKey, updateCartTotal],
+  );
 
   // --- Funciones expuestas ---
   const getTotalItems = useCallback(() => {

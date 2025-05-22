@@ -102,8 +102,12 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-0 z-30 bg-white/90 backdrop-blur-md flex flex-col overflow-hidden"
-            style={{ top: '56px' }}
+            className="fixed inset-x-0 bottom-0 z-40 bg-[hsl(var(--background))] overflow-y-auto"
+            style={{
+              top: 'calc(var(--header-height) + var(--safe-area-top))',
+              left: 0,
+              right: 0,
+            }}
             ref={ref}
           >
             <div className="flex flex-col h-full">

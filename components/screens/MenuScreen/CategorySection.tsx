@@ -88,7 +88,7 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
       <div
         ref={ref}
         id={`category-${category.id}`}
-        className={`divide-y divide-gray-200/10 bg-[#f8fbfb] ${className || ''}`}
+        className={`divide-y divide-gray-200/10 bg-[#f8fbfb] ${isFirst ? 'pt-0' : 'pt-6 md:pt-8'} ${className || ''}`}
       >
         {category.image_url && (
           <div className={`relative w-full h-64 z-0 bg-[#f8fbfb]`}>

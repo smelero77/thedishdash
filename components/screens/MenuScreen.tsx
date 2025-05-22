@@ -15,20 +15,12 @@ import MenuItem from './MenuItem';
 import MenuHeader from './MenuScreen/MenuHeader';
 import FloatingCartButton from './MenuScreen/FloatingCartButton';
 import SearchOverlay from './MenuScreen/SearchOverlay';
-import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 import ErrorScreen from './MenuScreen/ErrorScreen';
 import CategoryTabs from './MenuScreen/CategoryTabs';
 import CategorySection from './MenuScreen/CategorySection';
-import {
-  MenuItemData,
-  Category,
-  Slot,
-  CartItem,
-  Cart,
-  SelectedModifiers,
-  Modifier,
-  MenuItemAllergen,
-} from '@/types/menu';
+import { MenuItemData, Category, Slot, CartItem, Cart, SelectedModifiers } from '@/types/menu';
+import { MenuItemAllergen, Modifier } from '@/types/modifiers';
 
 import { CartItemsContext } from '@/context/CartItemsContext';
 import { CartTotalContext } from '@/context/CartTotalContext';
@@ -203,6 +195,15 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       const scrollBottom = scrollTop + viewportHeight;
       const tolerance = 50;
 
+      // Obtener el offset del header usando variables CSS
+      const headerHeight =
+        parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) ||
+        64;
+      const safeAreaTop =
+        parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-top')) ||
+        0;
+      const headerOffset = headerHeight + safeAreaTop;
+
       let mostVisibleCategory: string | null = null;
       let maxVisibility = 0;
 
@@ -212,15 +213,18 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
           const elementTop = rect.top + scrollTop;
           const elementBottom = elementTop + rect.height;
 
-          const visibleTop = Math.max(elementTop, scrollTop);
+          // Calcular la visibilidad considerando el header
+          const visibleTop = Math.max(elementTop, scrollTop + headerOffset);
           const visibleBottom = Math.min(elementBottom, scrollBottom);
           const visibleHeight = Math.max(0, visibleBottom - visibleTop);
 
+          // Bonus por estar cerca del centro del viewport
           const elementCenter = elementTop + rect.height / 2;
           const viewportCenter = scrollTop + viewportHeight / 2;
           const distanceFromCenter = Math.abs(elementCenter - viewportCenter);
           const centerBonus = Math.max(0, 1 - distanceFromCenter / (viewportHeight / 2));
 
+          // Bonus por ser el último elemento y estar cerca del final
           const isLastElement = id === orderedCategories[orderedCategories.length - 1].id;
           const isNearBottom = scrollBottom >= container.scrollHeight - tolerance;
           const lastElementBonus = isLastElement && isNearBottom ? 1 : 0;
@@ -250,14 +254,33 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       const categoryElement = document.getElementById(`category-${categoryId}`);
       if (categoryElement) {
         isScrollingProgrammatically.current = true;
+
+        // Obtener el offset del header usando variables CSS
+        const headerHeight =
+          parseInt(
+            getComputedStyle(document.documentElement).getPropertyValue('--header-height'),
+          ) || 64;
+        const safeAreaTop =
+          parseInt(
+            getComputedStyle(document.documentElement).getPropertyValue('--safe-area-top'),
+          ) || 0;
+        const headerOffset = headerHeight + safeAreaTop;
+
+        const offset =
+          categoryElement.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+
         window.scrollTo({
-          top: categoryElement.offsetTop - 112,
+          top: offset,
           behavior: 'smooth',
         });
-        if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+
+        // Resetear la bandera después de la animación
+        if (scrollTimeout.current) {
+          clearTimeout(scrollTimeout.current);
+        }
         scrollTimeout.current = setTimeout(() => {
           isScrollingProgrammatically.current = false;
-        }, 1000);
+        }, 500);
       }
     }, []);
 
@@ -369,7 +392,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     // 2. Función para renderizar el contenido condicional
     const renderContent = () => {
       if (loading && categories.length === 0) {
-        return <LoadingScreen />;
+        return <LoadingScreen message="Cargando menú..." />;
       }
 
       if (error) {
@@ -377,111 +400,109 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       if (cart === null || cartTotal === null || !cartActions) {
-        console.warn('[MenuScreen] Esperando contextos del carrito...');
         return <LoadingScreen message="Inicializando carrito..." />;
       }
 
       return (
-        <main className="min-h-screen overflow-y-visible">
-          {/* 1) Header siempre sticky */}
-          <div className="sticky top-0 z-50 w-full bg-white">
-            <MenuHeader {...menuHeaderProps} />
-          </div>
-
-          {/* 2) Tabs: solo si no estoy en búsqueda, y siempre sticky */}
-          {!searchActive && menuItems && menuItems.length > 0 && (
-            <div className="sticky top-[64px] z-40 w-full bg-[#f8fbfb] shadow-sm overflow-x-auto whitespace-nowrap">
-              <CategoryTabs {...categoryTabsProps} />
-            </div>
-          )}
-
-          {/* 3) Contenido: el body hace scroll vertical */}
-          <section className="mt-[112px] px-4">
-            {orderedCategories.map((category: CategoryWithItems, idx) => (
-              <div key={category.id} id={`category-${category.id}`}>
-                <CategorySection
-                  category={category}
-                  itemQuantities={itemQuantities}
-                  onAddToCart={handleItemClick}
-                  onRemoveFromCart={handleDecrementItem}
-                  onOpenCart={() => setShowCartModal(true)}
-                  ref={(el) => {
-                    categoryRefs.current[category.id] = el;
-                  }}
-                  setIsAnyDetailOpen={setIsAnyDetailOpen}
-                  isFirst={idx === 0}
-                  className="max-w-full"
-                />
-              </div>
-            ))}
-          </section>
-
-          <div
-            className={`fixed bottom-4 left-4 right-4 z-[300] transition-opacity duration-200 ${
-              showCartModal || showModifierModal ? 'opacity-0 pointer-events-none' : 'opacity-100'
-            }`}
+        <div className="flex flex-col min-h-screen" suppressHydrationWarning>
+          {/* Header fijo */}
+          <header
+            className="sticky top-0 z-50 bg-background border-b"
+            style={{
+              height: 'var(--header-height)',
+              paddingTop: 'var(--safe-area-top)',
+            }}
+            suppressHydrationWarning
           >
-            <FloatingCartButton {...floatingCartButtonProps} />
-          </div>
+            <MenuHeader {...menuHeaderProps} />
+          </header>
 
-          {/* 4) SearchOverlay siempre encima */}
-          <div className="!z-[100]">
-            <SearchOverlay {...searchOverlayProps} />
-          </div>
+          {/* Pestañas de categorías fijas */}
+          <nav
+            className="sticky z-40 bg-background border-b"
+            style={{
+              top: 'var(--sticky-tabs-top)',
+              height: 'var(--tabs-height)',
+            }}
+            suppressHydrationWarning
+          >
+            <CategoryTabs {...categoryTabsProps} />
+          </nav>
 
-          {showModifierModal && selectedItem && (
-            <ModifierModal
-              isOpen={showModifierModal}
-              itemName={selectedItem.name}
-              itemDescription={selectedItem.description ?? undefined}
-              itemAllergens={selectedItem.allergens.map((allergen, index) => ({
-                ...allergen,
-                id: allergen.id || `allergen-${index}`,
-                icon_url: allergen.icon_url || '',
-              }))}
-              modifiers={memoizedModifiers.map((modifier) => ({
-                ...modifier,
-                options: modifier.options.map((option) => ({
-                  ...option,
-                  icon_url: option.icon_url ?? '',
-                  related_menu_item_id: option.related_menu_item_id ?? '',
-                  allergens: option.allergens.map((allergen, index) => ({
-                    ...allergen,
-                    id: allergen.id || `option-allergen-${index}`,
-                    icon_url: allergen.icon_url || '',
-                  })),
-                })),
-              }))}
-              menuItems={memoizedInitialMenuItems ?? []}
-              onConfirm={onModifierSubmit}
-              onClose={() => {
-                setShowModifierModal(false);
-                setSelectedItem(null);
-              }}
-            />
-          )}
+          {/* Contenido principal scrolleable */}
+          <main
+            className="flex-grow relative"
+            style={{
+              paddingTop: '1rem',
+              paddingBottom: 'calc(80px + var(--safe-area-bottom))',
+            }}
+            suppressHydrationWarning
+          >
+            {orderedCategories.map((category) => (
+              <CategorySection
+                key={category.id}
+                category={category}
+                onAddToCart={handleItemClick}
+                onRemoveFromCart={handleDecrementItem}
+                itemQuantities={itemQuantities}
+                onOpenCart={() => setShowCartModal(true)}
+                ref={(el) => {
+                  categoryRefs.current[category.id] = el;
+                }}
+              />
+            ))}
+          </main>
 
-          {showCartModal && (
-            <CartModal
-              onClose={() => setShowCartModal(false)}
-              currentClientAlias={alias ?? undefined}
-            />
-          )}
+          {/* Botón flotante del carrito */}
+          <FloatingCartButton {...floatingCartButtonProps} />
 
-          {showAliasModal && (
-            <AliasModal
-              isOpen={showAliasModal}
-              onClose={() => setShowAliasModal(false)}
-              onConfirm={handleAliasConfirm}
-            />
-          )}
+          {/* Overlays y Modales */}
+          <AnimatePresence>
+            {searchActive && <SearchOverlay {...searchOverlayProps} />}
 
-          <ChatIA
-            isOpen={showChatModal}
-            onClose={() => setShowChatModal(false)}
-            userAlias={alias ?? 'Cliente'}
-          />
-        </main>
+            {showModifierModal && selectedItem && (
+              <ModifierModal
+                isOpen={showModifierModal}
+                itemName={selectedItem.name}
+                itemDescription={selectedItem.description ?? undefined}
+                itemAllergens={selectedItem.allergens as MenuItemAllergen[]}
+                modifiers={memoizedModifiers as Modifier[]}
+                menuItems={memoizedInitialMenuItems ?? []}
+                onConfirm={onModifierSubmit}
+                onClose={() => {
+                  setShowModifierModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
+
+            {showCartModal && (
+              <CartModal
+                onClose={() => setShowCartModal(false)}
+                currentClientAlias={alias ?? undefined}
+              />
+            )}
+
+            {showAliasModal && (
+              <AliasModal
+                isOpen={showAliasModal}
+                onClose={() => setShowAliasModal(false)}
+                onConfirm={async (alias, wantsFullscreen) => {
+                  setShowAliasModal(false);
+                  return true;
+                }}
+              />
+            )}
+
+            {showChatModal && (
+              <ChatIA
+                isOpen={showChatModal}
+                onClose={() => setShowChatModal(false)}
+                userAlias={alias ?? 'Cliente'}
+              />
+            )}
+          </AnimatePresence>
+        </div>
       );
     };
 

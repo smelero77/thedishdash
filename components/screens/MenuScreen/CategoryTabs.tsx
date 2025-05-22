@@ -6,22 +6,31 @@ interface Props {
   activeTab: string;
   setActiveTab: (id: string) => void;
   className?: string;
+  containerRef?: React.RefObject<HTMLDivElement>;
 }
 
-export default function CategoryTabs({ categories, activeTab, setActiveTab, className }: Props) {
+export default function CategoryTabs({
+  categories,
+  activeTab,
+  setActiveTab,
+  className,
+  containerRef,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   // Mantener la pestaña activa centrada
   useEffect(() => {
-    if (!ref.current) return;
-    const el = ref.current.querySelector<HTMLDivElement>(`[data-id="${activeTab}"]`);
+    const scrollContainer = containerRef?.current || ref.current;
+    if (!scrollContainer) return;
+
+    const el = scrollContainer.querySelector<HTMLDivElement>(`[data-id="${activeTab}"]`);
     if (el) {
       const { left, width } = el.getBoundingClientRect();
-      const { left: cLeft, width: cWidth } = ref.current.getBoundingClientRect();
+      const { left: cLeft, width: cWidth } = scrollContainer.getBoundingClientRect();
       const offset = left + width / 2 - (cLeft + cWidth / 2);
-      ref.current.scrollBy({ left: offset, behavior: 'smooth' });
+      scrollContainer.scrollBy({ left: offset, behavior: 'smooth' });
     }
-  }, [activeTab]);
+  }, [activeTab, containerRef]);
 
   return (
     <div
@@ -35,6 +44,7 @@ export default function CategoryTabs({ categories, activeTab, setActiveTab, clas
         shadow-sm
         px-4
         py-2
+        h-full
         ${className || ''}
       `}
     >
@@ -51,7 +61,8 @@ export default function CategoryTabs({ categories, activeTab, setActiveTab, clas
             px-5
             py-2
             cursor-pointer
-            transition
+            transition-colors
+            duration-200
             ${
               activeTab === cat.id
                 ? 'font-bold text-[#0e1b19] border-b-2 border-[#1ce3cf]'

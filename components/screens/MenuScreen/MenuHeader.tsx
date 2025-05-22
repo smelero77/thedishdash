@@ -19,9 +19,10 @@ const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(
   ({ alias, tableNumber, onAliasClick, setSearchActive, onChat, style, searchActive }, ref) => (
     <header
       ref={ref}
-      className="flex items-center justify-between bg-white backdrop-blur px-4 h-16 mb-2"
+      className="flex items-center justify-between bg-white backdrop-blur px-4 mb-2"
       style={{
-        paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
+        height: 'var(--header-height)',
+        paddingTop: 'var(--safe-area-top)',
         paddingBottom: '0.5rem',
         width: '100%',
         maxWidth: '100vw',
