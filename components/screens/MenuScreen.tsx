@@ -395,125 +395,108 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <div className="fixed inset-0 flex flex-col bg-white">
-          <MenuHeader {...menuHeaderProps} />
+        <div className="allow-scroll">
+          <div className="fixed inset-0 flex flex-col bg-white">
+            <MenuHeader {...menuHeaderProps} />
 
-          <div
-            style={{
-              position: 'fixed',
-              top: '64px',
-              left: 0,
-              right: 0,
-              height: '48px',
-              zIndex: 20,
-              backgroundColor: '#f8fbfb',
-              width: '100%',
-              maxWidth: '100vw',
-              touchAction: 'pan-x',
-              WebkitOverflowScrolling: 'touch',
-              backfaceVisibility: 'hidden',
-              transform: 'translateZ(0)',
-            }}
-          >
-            <CategoryTabs {...categoryTabsProps} />
-          </div>
+            <div className="fixed top-16 left-0 right-0 z-20">
+              <CategoryTabs {...categoryTabsProps} />
+            </div>
 
-          <div
-            className="flex-1 overflow-y-auto"
-            style={{
-              marginTop: '112px',
-              WebkitOverflowScrolling: 'touch',
-              backfaceVisibility: 'hidden',
-              transform: 'translateZ(0)',
-              height: 'calc(100vh - 112px)',
-              position: 'relative',
-              zIndex: 10,
-              scrollBehavior: 'smooth',
-              overflowX: 'hidden',
-              maxWidth: '100vw',
-              width: '100%'
-            }}
-          >
-            {orderedCategories.map((category: CategoryWithItems, idx) => (
-              <div key={category.id} id={`category-${category.id}`}>
-                <CategorySection
-                  category={category}
-                  itemQuantities={itemQuantities}
-                  onAddToCart={handleItemClick}
-                  onRemoveFromCart={handleDecrementItem}
-                  onOpenCart={() => setShowCartModal(true)}
-                  ref={(el) => {
-                    categoryRefs.current[category.id] = el;
-                  }}
-                  setIsAnyDetailOpen={setIsAnyDetailOpen}
-                  isFirst={idx === 0}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div
-            className={`fixed bottom-4 left-4 right-4 z-[300] transition-opacity duration-200 ${
-              showCartModal || showModifierModal ? 'opacity-0 pointer-events-none' : 'opacity-100'
-            }`}
-          >
-            <FloatingCartButton {...floatingCartButtonProps} />
-          </div>
-
-          <SearchOverlay {...searchOverlayProps} />
-
-          {showModifierModal && selectedItem && (
-            <ModifierModal
-              isOpen={showModifierModal}
-              itemName={selectedItem.name}
-              itemDescription={selectedItem.description ?? undefined}
-              itemAllergens={selectedItem.allergens.map((allergen, index) => ({
-                ...allergen,
-                id: allergen.id || `allergen-${index}`,
-                icon_url: allergen.icon_url || '',
-              }))}
-              modifiers={memoizedModifiers.map((modifier) => ({
-                ...modifier,
-                options: modifier.options.map((option) => ({
-                  ...option,
-                  icon_url: option.icon_url ?? '',
-                  related_menu_item_id: option.related_menu_item_id ?? '',
-                  allergens: option.allergens.map((allergen, index) => ({
-                    ...allergen,
-                    id: allergen.id || `option-allergen-${index}`,
-                    icon_url: allergen.icon_url || '',
-                  })),
-                })),
-              }))}
-              menuItems={memoizedInitialMenuItems ?? []}
-              onConfirm={onModifierSubmit}
-              onClose={() => {
-                setShowModifierModal(false);
-                setSelectedItem(null);
+            <div
+              className="flex-1 overflow-y-auto overflow-x-hidden mt-28"
+              style={{
+                WebkitOverflowScrolling: 'touch',
+                backfaceVisibility: 'hidden',
+                transform: 'translateZ(0)',
+                height: 'calc(100vh - 112px)',
+                position: 'relative',
+                zIndex: 10,
+                scrollBehavior: 'smooth',
+                width: '100%',
               }}
-            />
-          )}
+            >
+              {orderedCategories.map((category: CategoryWithItems, idx) => (
+                <div key={category.id} id={`category-${category.id}`}>
+                  <CategorySection
+                    category={category}
+                    itemQuantities={itemQuantities}
+                    onAddToCart={handleItemClick}
+                    onRemoveFromCart={handleDecrementItem}
+                    onOpenCart={() => setShowCartModal(true)}
+                    ref={(el) => {
+                      categoryRefs.current[category.id] = el;
+                    }}
+                    setIsAnyDetailOpen={setIsAnyDetailOpen}
+                    isFirst={idx === 0}
+                  />
+                </div>
+              ))}
+            </div>
 
-          {showCartModal && (
-            <CartModal
-              onClose={() => setShowCartModal(false)}
-              currentClientAlias={alias ?? undefined}
-            />
-          )}
+            <div
+              className={`fixed bottom-4 left-4 right-4 z-[300] transition-opacity duration-200 ${
+                showCartModal || showModifierModal ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              }`}
+            >
+              <FloatingCartButton {...floatingCartButtonProps} />
+            </div>
 
-          {showAliasModal && (
-            <AliasModal
-              isOpen={showAliasModal}
-              onClose={() => setShowAliasModal(false)}
-              onConfirm={handleAliasConfirm}
-            />
-          )}
+            <SearchOverlay {...searchOverlayProps} />
 
-          <ChatIA
-            isOpen={showChatModal}
-            onClose={() => setShowChatModal(false)}
-            userAlias={alias ?? 'Cliente'}
-          />
+            {showModifierModal && selectedItem && (
+              <ModifierModal
+                isOpen={showModifierModal}
+                itemName={selectedItem.name}
+                itemDescription={selectedItem.description ?? undefined}
+                itemAllergens={selectedItem.allergens.map((allergen, index) => ({
+                  ...allergen,
+                  id: allergen.id || `allergen-${index}`,
+                  icon_url: allergen.icon_url || '',
+                }))}
+                modifiers={memoizedModifiers.map((modifier) => ({
+                  ...modifier,
+                  options: modifier.options.map((option) => ({
+                    ...option,
+                    icon_url: option.icon_url ?? '',
+                    related_menu_item_id: option.related_menu_item_id ?? '',
+                    allergens: option.allergens.map((allergen, index) => ({
+                      ...allergen,
+                      id: allergen.id || `option-allergen-${index}`,
+                      icon_url: allergen.icon_url || '',
+                    })),
+                  })),
+                }))}
+                menuItems={memoizedInitialMenuItems ?? []}
+                onConfirm={onModifierSubmit}
+                onClose={() => {
+                  setShowModifierModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
+
+            {showCartModal && (
+              <CartModal
+                onClose={() => setShowCartModal(false)}
+                currentClientAlias={alias ?? undefined}
+              />
+            )}
+
+            {showAliasModal && (
+              <AliasModal
+                isOpen={showAliasModal}
+                onClose={() => setShowAliasModal(false)}
+                onConfirm={handleAliasConfirm}
+              />
+            )}
+
+            <ChatIA
+              isOpen={showChatModal}
+              onClose={() => setShowChatModal(false)}
+              userAlias={alias ?? 'Cliente'}
+            />
+          </div>
         </div>
       );
     };
