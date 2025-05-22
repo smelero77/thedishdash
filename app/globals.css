@@ -266,3 +266,27 @@ section {
 .particle {
   animation: particleFloat 2s ease-in-out infinite;
 }
+
+/* Estilos para la barra de scroll */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #1ce3cf;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #1ce3cf/80;
+}
+
+/* Para Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #1ce3cf transparent;
+}

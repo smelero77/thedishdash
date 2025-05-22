@@ -46,7 +46,7 @@ export function useModifiers() {
             icon_url: opt.icon_url ?? undefined,
             related_menu_item_id: opt.related_menu_item_id ?? undefined,
             allergens:
-              opt.modifier_options_allergens?.map((a: any) => ({
+              opt.allergens?.map((a: any) => ({
                 id: a.allergen.id,
                 name: a.allergen.name,
                 icon_url: a.allergen.icon_url ?? '',

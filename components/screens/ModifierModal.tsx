@@ -245,24 +245,26 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-[#0e1b19] dark:text-white text-xl font-bold">{itemName}</h2>
-                {itemAllergens?.map((a) =>
-                  a.icon_url ? (
-                    <img
-                      key={a.id}
-                      src={a.icon_url}
-                      alt={a.name}
-                      title={a.name}
-                      className="w-6 h-6 object-contain"
-                    />
-                  ) : (
-                    <div
-                      key={a.id}
-                      className="text-xs px-2.5 py-1.5 bg-[#f3f7f7] dark:bg-[#1ce3cf]/10 text-[#4f968f] rounded-full"
-                    >
-                      {a.name}
-                    </div>
-                  ),
-                )}
+                {itemAllergens
+                  ?.filter((a) => a.id)
+                  .map((a) =>
+                    a.icon_url ? (
+                      <img
+                        key={a.id}
+                        src={a.icon_url}
+                        alt={a.name}
+                        title={a.name}
+                        className="w-6 h-6 object-contain"
+                      />
+                    ) : (
+                      <div
+                        key={a.id}
+                        className="text-xs px-2.5 py-1.5 bg-[#f3f7f7] dark:bg-[#1ce3cf]/10 text-[#4f968f] rounded-full"
+                      >
+                        {a.name}
+                      </div>
+                    ),
+                  )}
               </div>
               <button
                 onClick={onClose}
@@ -393,16 +395,18 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
                             )}
                           </div>
 
-                          {option.allergens?.length > 0 && (
+                          {option.allergens?.filter((a) => a.id).length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">
-                              {option.allergens.map((a) => (
-                                <div
-                                  key={a.id}
-                                  className="text-xs px-2.5 py-1 bg-[#f3f7f7] dark:bg-[#1ce3cf]/10 text-[#4f968f] rounded-full"
-                                >
-                                  {a.name}
-                                </div>
-                              ))}
+                              {option.allergens
+                                .filter((a) => a.id)
+                                .map((a) => (
+                                  <div
+                                    key={a.id}
+                                    className="text-xs px-2.5 py-1 bg-[#f3f7f7] dark:bg-[#1ce3cf]/10 text-[#4f968f] rounded-full"
+                                  >
+                                    {a.name}
+                                  </div>
+                                ))}
                             </div>
                           )}
                         </div>

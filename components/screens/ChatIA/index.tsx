@@ -7,7 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { ChatResponse } from '@/lib/chat/types/response.types';
 import { SYSTEM_MESSAGE_TYPES } from '@/lib/chat/constants/config';
 import { useTable } from '@/context/TableContext';
-import './animations.css';
 
 export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) => {
   const { tableNumber } = useTable();

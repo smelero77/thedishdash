@@ -248,24 +248,114 @@ function useCart(
           };
         });
 
+        console.log(
+          '[useCart: InitEffect] Estado inicial del carrito construido:',
+          initialCartState,
+        );
         setCart(initialCartState);
         updateCartTotal(initialCartState, menuItems);
       } catch (error) {
-        console.error('[useCart: InitEffect] Error durante la inicialización:', error);
+        console.error('[useCart: InitEffect] Error al inicializar carrito:', error);
       }
     };
 
     initializeCartData();
   }, [tableNumber, menuItems, getCartKey, updateCartTotal]);
 
-  // Efecto para manejar cambios en tiempo real
   useEffect(() => {
-    if (!temporaryOrderId) {
-      console.log('[useCart: RealtimeEffect] No temporaryOrderId, skipping subscription');
+    console.log('[useCart: RealtimeEffect] triggered. Deps:', {
+      temporaryOrderId,
+      hasMenuItems: !!menuItems,
+    });
+    if (!temporaryOrderId || !menuItems || menuItems.length === 0) {
+      console.log(
+        '[useCart: RealtimeEffect] No temporaryOrderId o menuItems no disponible, no se inicia la suscripción.',
+      );
       return;
     }
+    console.log(
+      '[useCart: RealtimeEffect] Iniciando suscripción con temporaryOrderId:',
+      temporaryOrderId,
+    );
 
-    console.log('[useCart: RealtimeEffect] Setting up subscription for order:', temporaryOrderId);
+    const handleRealtimeChanges = (payload: RealtimePostgresChangesPayload<TemporaryOrderItem>) => {
+      console.log('[useCart: RealtimeEffect] Payload recibido:', payload);
+      console.log('[useCart: RealtimeEffect] Event type:', payload.eventType);
+
+      const item = (payload.eventType === 'DELETE' ? payload.old : payload.new) as
+        | TemporaryOrderItem
+        | undefined;
+
+      if (!item || !item.temporary_order_id) {
+        console.warn(
+          '[useCart: RealtimeEffect] Payload recibido sin datos válidos (new/old) o sin temporary_order_id.',
+        );
+        return;
+      }
+
+      if (item.temporary_order_id !== temporaryOrderId) {
+        console.log('[useCart: RealtimeEffect] Cambio ignorado: pertenece a otra orden.');
+        return;
+      }
+      console.log('[useCart: RealtimeEffect] Filtro de orden pasado.');
+
+      const cartKey = getCartKey(item.menu_item_id, item.modifiers_data, item.alias);
+      console.log(
+        '[useCart: RealtimeEffect] Procesando cambio para cartKey:',
+        cartKey,
+        'Evento:',
+        payload.eventType,
+      );
+      console.log('[useCart: RealtimeEffect] Datos relevantes:', {
+        menu_item_id: item.menu_item_id,
+        quantity: item.quantity,
+        modifiers_data: item.modifiers_data,
+        alias: item.alias,
+      });
+
+      setCart((prevCart) => {
+        const newCart = { ...prevCart };
+
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          const newItem = payload.new as TemporaryOrderItem;
+          const menuItem = menuItems.find((m) => m.id === newItem.menu_item_id);
+
+          if (!menuItem) {
+            console.warn(
+              `[useCart: RealtimeEffect] MenuItemData not found for ID: ${newItem.menu_item_id}. Cannot process update/insert from payload.`,
+            );
+            return prevCart;
+          }
+
+          // Siempre actualizamos el item, incluso si ya existe
+          const cartKey = getCartKey(newItem.menu_item_id, newItem.modifiers_data, newItem.alias);
+          newCart[cartKey] = {
+            id: newItem.menu_item_id,
+            quantity: newItem.quantity,
+            modifiers: newItem.modifiers_data ?? {},
+            item: menuItem,
+            client_alias: newItem.alias,
+          };
+          console.log(
+            '[useCart: RealtimeEffect] Item actualizado:',
+            cartKey,
+            'Nueva cantidad:',
+            newItem.quantity,
+          );
+        } else if (payload.eventType === 'DELETE') {
+          const oldItem = payload.old as TemporaryOrderItem;
+          const cartKey = getCartKey(oldItem.menu_item_id, oldItem.modifiers_data, oldItem.alias);
+          if (newCart[cartKey]) {
+            delete newCart[cartKey];
+            console.log('[useCart: RealtimeEffect] Item eliminado:', cartKey);
+          }
+        }
+
+        // Siempre actualizamos el total y devolvemos un nuevo objeto
+        updateCartTotal(newCart, menuItems);
+        return { ...newCart };
+      });
+    };
 
     const channel = supabase
       .channel(`temporary_order_items:${temporaryOrderId}`)
@@ -277,88 +367,22 @@ function useCart(
           table: 'temporary_order_items',
           filter: `temporary_order_id=eq.${temporaryOrderId}`,
         },
-        (payload) => {
-          // Usar requestAnimationFrame para optimizar el rendimiento
-          requestAnimationFrame(() => {
-            handleRealtimeChanges(payload);
-          });
-        },
+        handleRealtimeChanges,
       )
       .subscribe((status) => {
         console.log('[useCart: RealtimeEffect] Estado de la suscripción:', status);
       });
 
     return () => {
-      console.log('[useCart: RealtimeEffect] Cleaning up subscription');
-      channel.unsubscribe();
-    };
-  }, [temporaryOrderId]);
-
-  const handleRealtimeChanges = useCallback(
-    (payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
-      if (!menuItems) {
-        console.warn('[handleRealtimeChanges] menuItems no disponible');
-        return;
+      console.log(
+        '[useCart: RealtimeEffect] Limpiando suscripción para temporaryOrderId:',
+        temporaryOrderId,
+      );
+      if (channel) {
+        supabase.removeChannel(channel);
       }
-
-      const { eventType, new: newItem, old: oldItem } = payload;
-
-      // Usar requestAnimationFrame para optimizar el rendimiento
-      requestAnimationFrame(() => {
-        setCart((currentCart) => {
-          const newCart = { ...currentCart };
-
-          // Determinar el item relevante basado en el tipo de evento
-          const relevantItem = eventType === 'DELETE' ? oldItem : newItem;
-          if (!relevantItem || !('menu_item_id' in relevantItem)) {
-            console.warn('[handleRealtimeChanges] Payload inválido o sin menu_item_id');
-            return currentCart;
-          }
-
-          const cartKey = getCartKey(
-            relevantItem.menu_item_id as string,
-            (relevantItem.modifiers_data as SelectedModifiers | null) ?? null,
-            relevantItem.alias as string,
-          );
-
-          switch (eventType) {
-            case 'INSERT':
-            case 'UPDATE': {
-              if (!newItem || !('menu_item_id' in newItem)) return currentCart;
-              const menuItem = menuItems.find((m) => m.id === newItem.menu_item_id);
-              if (!menuItem) {
-                console.warn(
-                  `[handleRealtimeChanges] MenuItemData (ID: ${newItem.menu_item_id}) no encontrado`,
-                );
-                return currentCart;
-              }
-              newCart[cartKey] = {
-                id: newItem.menu_item_id as string,
-                quantity: newItem.quantity as number,
-                modifiers: (newItem.modifiers_data as SelectedModifiers) ?? {},
-                item: menuItem,
-                client_alias: newItem.alias as string,
-              };
-              break;
-            }
-            case 'DELETE': {
-              if (!oldItem || !('menu_item_id' in oldItem)) return currentCart;
-              delete newCart[cartKey];
-              break;
-            }
-          }
-
-          // Actualizar el total después de modificar el carrito
-          requestAnimationFrame(() => {
-            updateCartTotal(newCart, menuItems);
-          });
-
-          return newCart;
-        });
-      });
-    },
-    [menuItems, getCartKey, updateCartTotal],
-  );
+    };
+  }, [temporaryOrderId, menuItems, getCartKey, updateCartTotal]);
 
   // --- Funciones expuestas ---
   const getTotalItems = useCallback(() => {
@@ -444,7 +468,7 @@ function useCart(
         });
       }
     },
-    [temporaryOrderId, currentClientAlias, menuItems, updateCartTotal],
+    [temporaryOrderId, currentClientAlias, menuItems, updateCartTotal, getCartKey],
   );
 
   const handleDecrementCart = useCallback(
@@ -505,16 +529,39 @@ function useCart(
           }
 
           // Restaurar el item a su estado anterior
-          if (newCart[cartKey]) {
-            newCart[cartKey].quantity += 1;
+          // Esta lógica de revertir es compleja porque si el item no existía antes de la
+          // actualización optimista (en el caso de que decrementáramos a 0 y luego fallara),
+          // necesitaríamos saberlo. Por simplicidad, aquí asumimos que si no está, se vuelve a añadir con cantidad 1.
+          // Una lógica de snapshot más robusta podría ser necesaria para reversiones perfectas.
+          if (prevCart[cartKey] && prevCart[cartKey].quantity > 0) {
+            // Si existía y tenía cantidad
+            newCart[cartKey] = { ...prevCart[cartKey] }; // Restaurar desde el prevCart original de la acción
           } else {
-            newCart[cartKey] = {
-              id: itemId,
-              quantity: 1,
-              modifiers: modifiers ?? {},
-              item: menuItem,
-              client_alias: aliasToUse,
-            };
+            // Si no existía o era 0, y el decremento fue un error, significa que debería volver a 1
+            // Esta parte de la reversión podría necesitar más contexto del estado *antes* de la acción optimista.
+            // La lógica actual de arriba es: si estaba en `newCart` (después del decremento optimista), lo incrementa.
+            // Si no estaba (porque se borró), lo vuelve a añadir.
+            const originalItemInPrevCart = Object.values(prevCart).find(
+              (ci) => getCartKey(ci.id, ci.modifiers, ci.client_alias) === cartKey,
+            );
+            if (originalItemInPrevCart) {
+              newCart[cartKey] = {
+                ...originalItemInPrevCart,
+                quantity: originalItemInPrevCart.quantity + 1,
+              };
+            } else {
+              // Si realmente no estaba antes (lo cual sería extraño si el decremento se aplicó)
+              // o si la lógica de revertir es compleja, lo más seguro es recargar desde DB o
+              // no hacer nada y esperar el update de realtime.
+              // Por ahora, intentamos una restauración simple:
+              newCart[cartKey] = {
+                id: itemId,
+                quantity: 1, // Asumimos que si falló un decremento, al menos debe volver a 1
+                modifiers: modifiers ?? {},
+                item: menuItem,
+                client_alias: aliasToUse,
+              };
+            }
           }
 
           updateCartTotal(newCart, menuItems);
@@ -522,7 +569,7 @@ function useCart(
         });
       }
     },
-    [temporaryOrderId, currentClientAlias, menuItems, updateCartTotal],
+    [temporaryOrderId, currentClientAlias, menuItems, updateCartTotal, getCartKey],
   );
 
   // === Objeto de Acciones Memoizado ===
@@ -540,6 +587,7 @@ function useCart(
     cart,
     cartTotal,
     actions,
+    temporaryOrderId,
   };
 }
 
