@@ -83,5 +83,5 @@ export function FullscreenWrapper({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  return <>{children}</>;
+  return <div className="flex flex-col w-full min-h-screen">{children}</div>;
 }

@@ -416,9 +416,11 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
 
       return (
         <div
-          className="flex flex-col min-h-screen overflow-hidden"
-          suppressHydrationWarning
           ref={menuScrollRef}
+          className="menu-screen-container flex-grow"
+          style={{
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
         >
           {/* Header fijo */}
           <header className="menu-header" suppressHydrationWarning>
