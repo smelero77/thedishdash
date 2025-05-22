@@ -402,36 +402,26 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <div className="flex flex-col min-h-screen" suppressHydrationWarning>
+        <div
+          className="flex flex-col min-h-screen overflow-hidden"
+          suppressHydrationWarning
+          ref={menuScrollRef}
+        >
           {/* Header fijo */}
-          <header
-            className="sticky top-0 z-50 bg-background border-b"
-            style={{
-              height: 'var(--header-height)',
-              paddingTop: 'var(--safe-area-top)',
-            }}
-            suppressHydrationWarning
-          >
+          <header className="menu-header" suppressHydrationWarning>
             <MenuHeader {...menuHeaderProps} />
           </header>
 
           {/* Pestañas de categorías fijas */}
-          <nav
-            className="sticky z-40 bg-background border-b"
-            style={{
-              top: 'var(--sticky-tabs-top)',
-              height: 'var(--tabs-height)',
-            }}
-            suppressHydrationWarning
-          >
+          <nav className="category-tabs" suppressHydrationWarning>
             <CategoryTabs {...categoryTabsProps} />
           </nav>
 
           {/* Contenido principal scrolleable */}
           <main
-            className="flex-grow relative"
+            className="flex-grow relative overflow-y-auto"
             style={{
-              paddingTop: '1rem',
+              paddingTop: 'var(--content-offset-top)',
               paddingBottom: 'calc(80px + var(--safe-area-bottom))',
             }}
             suppressHydrationWarning

@@ -35,18 +35,7 @@ export default function CategoryTabs({
   return (
     <div
       ref={ref}
-      className={`
-        flex
-        overflow-x-auto
-        whitespace-nowrap
-        scrollbar-none
-        bg-[#f8fbfb]
-        shadow-sm
-        px-4
-        py-2
-        h-full
-        ${className || ''}
-      `}
+      className={`category-tabs-inner flex overflow-x-auto whitespace-nowrap scrollbar-none bg-[#f8fbfb] shadow-sm px-4 py-2 h-full ${className || ''}`}
     >
       {categories.map((cat) => (
         <div

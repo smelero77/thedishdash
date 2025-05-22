@@ -12,7 +12,13 @@ export const StoryItem = ({ item }: StoryItemProps) => (
     <div className="flex items-start gap-4">
       {item.item.image_url && (
         <div className="relative w-20 h-20 rounded-xl overflow-hidden">
-          <Image src={item.item.image_url} alt={item.item.name} fill className="object-cover" />
+          <Image
+            src={item.item.image_url}
+            alt={item.item.name}
+            fill
+            sizes="(max-width: 768px) 80px, 80px"
+            className="object-cover"
+          />
         </div>
       )}
       <div className="flex-1">
