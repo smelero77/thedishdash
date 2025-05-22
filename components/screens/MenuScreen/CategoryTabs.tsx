@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Category } from '@/types/menu';
 
 interface Props {
@@ -10,6 +10,16 @@ interface Props {
 
 export default function CategoryTabs({ categories, activeTab, onTabClick, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+
+  // Centrado instantáneo de la pestaña activa
+  useEffect(() => {
+    const container = ref.current;
+    if (!container) return;
+    const activeEl = container.querySelector<HTMLElement>(`[data-id="${activeTab}"]`);
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'auto', inline: 'center' });
+    }
+  }, [activeTab]);
 
   return (
     <div

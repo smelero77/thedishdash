@@ -168,8 +168,8 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         },
         {
           root: null, // viewport de ventana
-          rootMargin: '-112px 0px 0px 0px', // 64px (header) + 48px (tabs) = 112px
-          threshold: 0.5, // 50% visible
+          rootMargin: '-112px 0px -50% 0px', // 112px arriba (header + tabs) y 50% abajo
+          threshold: 0.1, // Solo necesita ser 10% visible
         },
       );
 
@@ -181,6 +181,14 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
 
       return () => observer.disconnect();
     }, [orderedCategories, isScrolling]);
+
+    // Inicializar el IntersectionObserver cuando cambien las categorías
+    useEffect(() => {
+      const cleanup = handleScroll();
+      return () => {
+        if (cleanup) cleanup();
+      };
+    }, [handleScroll]);
 
     // Manejar el click en una pestaña
     const handleTabClick = useCallback((id: string) => {
