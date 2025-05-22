@@ -372,10 +372,8 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const floatingCartButtonProps = useMemo(
       () => ({
         onClick: () => setShowCartModal(true),
-        getTotalItems: () => memoizedCartActions?.getTotalItems() ?? 0,
-        cartTotal: cartTotal ?? 0,
       }),
-      [memoizedCartActions, cartTotal],
+      [],
     );
 
     const searchOverlayProps = useMemo(
