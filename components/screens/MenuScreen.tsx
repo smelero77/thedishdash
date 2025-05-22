@@ -303,7 +303,11 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       }
 
       return (
-        <>
+        <div
+          ref={menuScrollRef}
+          className="menu-screen-container flex-grow"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
           {/* 1) Header pegado */}
           <header className="menu-header">
             <MenuHeader {...menuHeaderProps} />
@@ -378,7 +382,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
               />
             )}
           </AnimatePresence>
-        </>
+        </div>
       );
     };
 
