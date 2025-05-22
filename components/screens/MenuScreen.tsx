@@ -252,6 +252,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const handleCategoryClick = useCallback((categoryId: string) => {
       setActiveTab(categoryId);
       const categoryElement = document.getElementById(`category-${categoryId}`);
+
       if (categoryElement) {
         isScrollingProgrammatically.current = true;
 
@@ -266,13 +267,25 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
           ) || 0;
         const headerOffset = headerHeight + safeAreaTop;
 
-        const offset =
-          categoryElement.getBoundingClientRect().top + window.pageYOffset - headerOffset;
-
-        window.scrollTo({
-          top: offset,
-          behavior: 'smooth',
+        // Logs para verificar valores
+        console.log('Debug offsets:', {
+          headerHeight,
+          safeAreaTop,
+          headerOffset,
+          elementTop: categoryElement.getBoundingClientRect().top,
+          offsetTop: categoryElement.offsetTop,
         });
+
+        // Usar scrollIntoView con un offset personalizado
+        categoryElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+
+        // Ajustar el scroll después de que se complete la animación
+        setTimeout(() => {
+          window.scrollBy(0, -headerOffset);
+        }, 100);
 
         // Resetear la bandera después de la animación
         if (scrollTimeout.current) {
@@ -419,7 +432,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
 
           {/* Contenido principal scrolleable */}
           <main
-            className="flex-grow relative overflow-y-auto"
+            className="flex-grow relative overflow-y-auto overflow-x-hidden"
             style={{
               paddingTop: 'var(--content-offset-top)',
               paddingBottom: 'calc(80px + var(--safe-area-bottom))',

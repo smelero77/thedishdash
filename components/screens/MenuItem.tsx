@@ -92,7 +92,7 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(
           <div className="flex items-center justify-between gap-4">
             {/* Name and allergens */}
             <div className="flex flex-col flex-1 min-w-0">
-              <p className="text-[#0e1b19] text-lg font-bold leading-tight tracking-[-0.015em] break-words whitespace-normal w-full">
+              <p className="text-[#0e1b19] text-lg font-bold leading-tight tracking-[-0.015em] break-words whitespace-normal w-full overflow-hidden">
                 {name}
               </p>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
