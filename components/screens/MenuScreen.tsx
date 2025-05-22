@@ -319,7 +319,13 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
           </nav>
 
           {/* 3) Contenido principal: el scroll es del window */}
-          <main>
+          <main
+            className="flex-grow relative"
+            style={{
+              paddingTop: 'var(--content-offset-top)',
+              paddingBottom: 'calc(80px + var(--safe-area-bottom))',
+            }}
+          >
             {orderedCategories.map((cat) => (
               <CategorySection
                 id={`category-${cat.id}`}
