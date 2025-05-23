@@ -95,11 +95,11 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const [showAliasModal, setShowAliasModal] = useState(false);
     const [showChatModal, setShowChatModal] = useState(false);
     const [isAnyDetailOpen, setIsAnyDetailOpen] = useState(false);
-    const [isScrolling, setIsScrolling] = useState(false);
 
     // 4. Refs
     const menuScrollRef = useRef<HTMLDivElement | null>(null);
     const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const isManualScroll = useRef(false);
 
     // 5. Memoized values
     const memoizedCartActions = useMemo(() => cartActions, [cartActions]);
@@ -154,53 +154,68 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       [selectedItem, memoizedModifiers, memoizedCartActions],
     );
 
-    const handleScroll = useCallback(() => {
-      // Observador que "ve" qué sección está entrando en el viewport
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (isScrolling) return; // No actualizar si estamos en medio de un scroll programado
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              const id = entry.target.id.replace('category-', '');
-              // Solo actualizar si no es la primera carga
-              if (activeTab !== '') {
-                setActiveTab(id);
-              }
-            }
-          });
-        },
-        {
-          root: null, // viewport de ventana
-          rootMargin: '-112px 0px -50% 0px', // 112px arriba (header + tabs) y 50% abajo
-          threshold: 0.1, // Solo necesita ser 10% visible
-        },
+    // Scroll spy handler
+    const handleScrollSpy = useCallback(() => {
+      if (isManualScroll.current) return; // Ignora mientras scroll manual
+
+      const HEADER_HEIGHT = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--header-height'),
+      );
+      const TABS_HEIGHT = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--tabs-height'),
       );
 
-      // Observar todas las secciones
+      const scrollPosition = window.scrollY + HEADER_HEIGHT + TABS_HEIGHT + 10; // +10px "colchón"
+      let current = orderedCategories[0]?.id;
+
       orderedCategories.forEach((cat) => {
         const el = categoryRefs.current[cat.id];
-        if (el) observer.observe(el);
+        if (!el) return;
+        if (el.offsetTop <= scrollPosition) {
+          current = cat.id;
+        }
       });
 
-      return () => observer.disconnect();
-    }, [orderedCategories, isScrolling, activeTab]);
+      setActiveTab(current);
+    }, [orderedCategories]);
 
-    // Inicializar el IntersectionObserver cuando cambien las categorías
+    // Inicializar el scroll spy
     useEffect(() => {
-      const cleanup = handleScroll();
-      return () => {
-        if (cleanup) cleanup();
-      };
-    }, [handleScroll]);
+      window.addEventListener('scroll', handleScrollSpy, { passive: true });
+      // disparar una vez al montar
+      handleScrollSpy();
+      return () => window.removeEventListener('scroll', handleScrollSpy);
+    }, [handleScrollSpy]);
 
     // Manejar el click en una pestaña
     const handleTabClick = useCallback((id: string) => {
-      setIsScrolling(true);
+      isManualScroll.current = true;
       setActiveTab(id);
-      // Reactivar el IntersectionObserver después de 1 segundo
-      setTimeout(() => {
-        setIsScrolling(false);
-      }, 1000);
+
+      const target = document.getElementById(`category-${id}`);
+      if (!target) return;
+
+      // Calcula la posición destino en píxeles
+      const HEADER = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--header-height'),
+      );
+      const TABS = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--tabs-height'),
+      );
+      const topPos = target.offsetTop - (HEADER + TABS);
+
+      // Inicia el scroll suave
+      window.scrollTo({ top: topPos, behavior: 'smooth' });
+
+      // Función que comprueba si ya hemos llegado
+      const onScroll = () => {
+        if (Math.abs(window.scrollY - topPos) < 5) {
+          isManualScroll.current = false;
+          window.removeEventListener('scroll', onScroll);
+        }
+      };
+
+      window.addEventListener('scroll', onScroll, { passive: true });
     }, []);
 
     const categoryTabsProps = useMemo(
