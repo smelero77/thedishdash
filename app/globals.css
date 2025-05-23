@@ -73,18 +73,19 @@
 
   /* 1) html gestiona el scroll de la página */
   html {
-    height: 100%; /* ocupa toda la ventana */
-    overflow-x: hidden; /* no scroll horizontal */
-    overflow-y: auto; /* scroll vertical NATIVE aquí */
-    scroll-behavior: smooth; /* anima cualquier scroll, incluidos anchors */
-    scroll-padding-top: var(--content-offset-top); /* reserva espacio arriba */
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    scroll-padding-top: var(--content-offset-top);
+    -webkit-overflow-scrolling: touch;
   }
 
   /* 2) body deja pasar todo el overflow para que html sea el scroll container */
   body {
-    height: 100%;
+    min-height: 100%;
     overflow-x: hidden;
-    overflow-y: visible; /* IMPORTANT: body no captura scroll */
+    overflow-y: auto;
     background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
     color: hsl(var(--foreground));
   }
@@ -177,9 +178,21 @@
 
 /* Solo para pantallas táctiles/móviles */
 @media (max-width: 768px) {
-  html,
-  body {
+  /* 1) El scroll vertical sale de los contenedores internos */
+  .menu-screen-container,
+  .allow-scroll,
+  main {
+    overflow-y: visible !important;
+    height: auto !important;
+  }
+
+  /* 2) El root gestiona el scroll nativo */
+  html {
+    overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+  }
+  body {
+    overflow-y: visible !important;
   }
 
   ::-webkit-scrollbar {
