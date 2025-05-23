@@ -11,11 +11,8 @@ const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButto
   ({ className, ...props }, ref) => {
     const actions = useContext(CartActionsContext);
     const cartTotal = useContext(CartTotalContext);
-
-    if (!actions || cartTotal === null) return null;
-
-    const totalItems = actions.getTotalItems();
     const [justUpdated, setJustUpdated] = useState(false);
+    const totalItems = actions?.getTotalItems() ?? 0;
 
     // Dispara el anillo cuando cambia totalItems y hay al menos 1 artículo
     useEffect(() => {
@@ -26,7 +23,7 @@ const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButto
       }
     }, [totalItems]);
 
-    if (totalItems === 0) return null;
+    if (!actions || cartTotal === null || totalItems === 0) return null;
 
     return (
       <div className="fixed bottom-4 left-0 right-0 z-40 px-4">
