@@ -35,7 +35,7 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
     }, [activeTab]);
 
     return (
-      <div className="sticky top-0 bg-white shadow-sm z-20">
+      <div className="sticky top-0 bg-white shadow-sm z-20 mt-4">
         <div ref={tabsContainerRef} className="relative overflow-x-auto no-scrollbar bg-white">
           <div className="relative min-w-max">
             <div className="absolute bottom-0 left-0 right-0 h-4 border-b-4 border-[#e6e6e6]" />

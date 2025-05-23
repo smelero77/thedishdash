@@ -92,26 +92,9 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(
           <div className="flex items-center justify-between gap-4">
             {/* Name and allergens */}
             <div className="flex flex-col flex-1 min-w-0">
-              <p className="text-[#0e1b19] text-lg font-bold leading-tight tracking-[-0.015em] break-words whitespace-normal w-full overflow-hidden">
+              <p className="text-[#0e1b19] text-base font-bold leading-tight tracking-[-0.015em] break-words whitespace-normal w-full overflow-hidden">
                 {name}
               </p>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                {allergens?.map((a) => (
-                  <div
-                    key={a.id}
-                    className="w-5 h-5 bg-center bg-no-repeat bg-contain flex-shrink-0"
-                    style={{ backgroundImage: a.icon_url ? `url(${a.icon_url})` : 'none' }}
-                    title={a.name}
-                  >
-                    {/* Fallback si no hay URL de icono */}
-                    {!a.icon_url && (
-                      <div className="w-full h-full flex items-center justify-center bg-[#1ce3cf] rounded-full text-[8px] text-[#0e1b19] font-bold">
-                        {a.name ? a.name.substring(0, 2).toUpperCase() : '?'}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
             </div>
 
             {/* Price and buttons */}
@@ -129,6 +112,25 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(
           {description && ( // Mostrar solo si hay descripción
             <p className="text-[#4f968f] text-sm font-normal leading-normal">{description}</p>
           )}
+
+          {/* Allergens */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {allergens?.map((a) => (
+              <div
+                key={a.id}
+                className="w-5 h-5 bg-center bg-no-repeat bg-contain flex-shrink-0"
+                style={{ backgroundImage: a.icon_url ? `url(${a.icon_url})` : 'none' }}
+                title={a.name}
+              >
+                {/* Fallback si no hay URL de icono */}
+                {!a.icon_url && (
+                  <div className="w-full h-full flex items-center justify-center bg-[#1ce3cf] rounded-full text-[8px] text-[#0e1b19] font-bold">
+                    {a.name ? a.name.substring(0, 2).toUpperCase() : '?'}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
 
           {/* Puedes descomentar y usar las otras props si las necesitas */}
           {/* {food_info && <p className="text-xs text-gray-600">{food_info}</p>} */}

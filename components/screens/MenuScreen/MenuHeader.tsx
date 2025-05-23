@@ -22,7 +22,7 @@ const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(
       className="menu-header flex items-center justify-between bg-white px-4 mb-2"
       style={{
         height: 'var(--header-height)',
-        paddingTop: 'var(--safe-area-top)',
+        paddingTop: 'calc(var(--safe-area-top) + 1rem)',
         paddingBottom: '0.5rem',
         width: '100%',
         maxWidth: '100vw',
