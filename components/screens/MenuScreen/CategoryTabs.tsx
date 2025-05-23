@@ -35,32 +35,35 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
 
     return (
       <div className="sticky top-0 bg-white shadow-sm z-20">
-        <div
-          ref={tabsContainerRef}
-          className="flex overflow-x-auto no-scrollbar border-b border-[#d0e6e4] px-4 gap-4 relative scroll-smooth bg-white"
-        >
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              data-category-id={category.id}
-              onClick={() => {
-                onTabClick(category.id);
-                const target = document.getElementById(`category-${category.id}`);
-                if (target) {
-                  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }}
-              className={`flex items-center justify-center px-6 py-2 cursor-pointer transition-all duration-300 border-b-4 ${
-                activeTab === category.id
-                  ? 'text-[#0e1b19] font-bold border-[#1ce3cf]'
-                  : 'text-[#4f968f] hover:text-[#0e1b19] border-transparent'
-              }`}
-            >
-              <p className="text-sm leading-normal tracking-[0.015em] whitespace-nowrap">
-                {category.name}
-              </p>
+        <div ref={tabsContainerRef} className="relative overflow-x-auto no-scrollbar bg-white">
+          <div className="relative min-w-max">
+            <div className="absolute bottom-0 left-0 right-0 h-4 border-b-4 border-[#e6e6e6]" />
+
+            <div className="flex px-4 gap-4 scroll-smooth">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  data-category-id={category.id}
+                  onClick={() => {
+                    onTabClick(category.id);
+                    const target = document.getElementById(`category-${category.id}`);
+                    if (target) {
+                      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className={`flex items-center justify-center px-6 py-2 cursor-pointer transition-all duration-300 border-b-4 relative ${
+                    activeTab === category.id
+                      ? 'text-[#0e1b19] font-bold border-[#1ce3cf]'
+                      : 'text-[#4f968f] hover:text-[#0e1b19] border-transparent'
+                  }`}
+                >
+                  <p className="text-sm leading-normal tracking-[0.015em] whitespace-nowrap">
+                    {category.name}
+                  </p>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
     );
