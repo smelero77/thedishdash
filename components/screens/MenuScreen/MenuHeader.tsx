@@ -47,9 +47,7 @@ const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(
       </div>
 
       <div className="flex items-center h-12 flex-shrink-0">
-        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white shadow-md">
-          <ChatButton onClick={onChat} />
-        </div>
+        <ChatButton onClick={onChat} />
       </div>
     </header>
   ),
