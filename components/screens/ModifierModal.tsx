@@ -29,6 +29,32 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
     const contentRef = useRef<HTMLDivElement>(null);
     const modifierRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+    // Efecto para controlar el scroll del body
+    useEffect(() => {
+      if (isOpen) {
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.top = `-${window.scrollY}px`;
+      } else {
+        const scrollY = document.body.style.top;
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+      return () => {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
+      };
+    }, [isOpen]);
+
     // Función para detectar el modificador visible
     const handleScroll = useCallback(() => {
       const content = contentRef.current;
