@@ -1,28 +1,32 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
 import { CartActionsContext } from '@/context/CartActionsContext';
 import { CartTotalContext } from '@/context/CartTotalContext';
 
-interface FloatingCartButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
-  // Mantenemos la flexibilidad de pasar className y otros HTMLAttributes
-}
+interface FloatingCartButtonProps extends React.HTMLAttributes<HTMLButtonElement> {}
 
 const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButtonProps>(
   ({ className, ...props }, ref) => {
-    const actions = React.useContext(CartActionsContext);
-    const cartTotal = React.useContext(CartTotalContext);
+    const actions = useContext(CartActionsContext);
+    const cartTotal = useContext(CartTotalContext);
 
-    if (!actions || cartTotal === null) {
-      return null;
-    }
+    if (!actions || cartTotal === null) return null;
 
     const totalItems = actions.getTotalItems();
+    const [justUpdated, setJustUpdated] = useState(false);
 
-    if (totalItems === 0) {
-      return null; // El botón se oculta si el carrito está vacío
-    }
+    // Dispara el anillo cuando cambia totalItems y hay al menos 1 artículo
+    useEffect(() => {
+      if (totalItems > 0) {
+        setJustUpdated(true);
+        const t = setTimeout(() => setJustUpdated(false), 1000);
+        return () => clearTimeout(t);
+      }
+    }, [totalItems]);
+
+    if (totalItems === 0) return null;
 
     return (
       <div className="fixed bottom-4 left-0 right-0 z-40 px-4">
@@ -31,14 +35,12 @@ const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButto
             ref={ref}
             {...props}
             className={cn(
-              // Clases base para posicionamiento y apariencia
-              'w-full flex items-center justify-center rounded-full shadow-lg',
-              // Colores y estilos específicos
-              'bg-[#1ce3cf] text-[#0e1b19] hover:bg-[#1ce3cf] hover:text-[#0e1b19]',
-              // Dimensiones
-              'h-12',
-              // Texto
+              'relative overflow-visible',
+              'w-full h-12 rounded-full bg-[#1ce3cf] text-[#0e1b19]',
+              'flex items-center justify-center shadow-lg',
               'text-base font-bold leading-normal tracking-[0.015em]',
+              'hover:bg-[#1ce3cf] hover:text-[#0e1b19]',
+              justUpdated && 'pulse-ring',
               className,
             )}
             aria-label={`Ver cesta, ${totalItems} artículos, total ${cartTotal.toFixed(2)}€`}
@@ -56,5 +58,4 @@ const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButto
 );
 
 FloatingCartButton.displayName = 'FloatingCartButton';
-
 export default FloatingCartButton;

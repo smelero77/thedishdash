@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ChatResponse } from '@/lib/chat/types/response.types';
 import { SYSTEM_MESSAGE_TYPES } from '@/lib/chat/constants/config';
 import { useTable } from '@/context/TableContext';
+import useLockBodyScroll from '@/hooks/useLockBodyScroll';
 
 export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) => {
   const { tableNumber } = useTable();
@@ -18,6 +19,9 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+
+  // Bloquear el scroll del body cuando el chat está abierto
+  useLockBodyScroll(isOpen);
 
   // Add welcome message from Don Gourmetón when chat opens and there are no messages
   useEffect(() => {

@@ -159,6 +159,21 @@
   animation: slideIn 0.3s ease-out forwards;
 }
 
+/* Animación de flash de fondo */
+@keyframes bg-flash {
+  0%,
+  100% {
+    background-color: #1ce3cf;
+  }
+  50% {
+    background-color: #14bfa3;
+  }
+}
+
+.flash-bg {
+  animation: bg-flash 0.4s ease-out;
+}
+
 /* Utilidades de perspectiva */
 @layer utilities {
   .perspective-1000 {
@@ -175,6 +190,15 @@
 
   .-translate-z-200 {
     transform: translateZ(-200px);
+  }
+
+  .pulse-ring::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 2px solid rgba(28, 227, 207, 0.5);
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
   }
 }
 
@@ -317,33 +341,63 @@ main {
 }
 
 @keyframes gradient-1 {
-  0%, 100% { stop-color: #1ce3cf; }
-  50% { stop-color: #9ca3af; }
+  0%,
+  100% {
+    stop-color: #1ce3cf;
+  }
+  50% {
+    stop-color: #9ca3af;
+  }
 }
 
 @keyframes gradient-2 {
-  0%, 100% { stop-color: #1ce3cf; }
-  50% { stop-color: #9ca3af; }
+  0%,
+  100% {
+    stop-color: #1ce3cf;
+  }
+  50% {
+    stop-color: #9ca3af;
+  }
 }
 
 @keyframes gradient-3 {
-  0%, 100% { stop-color: #9ca3af; }
-  50% { stop-color: #1ce3cf; }
+  0%,
+  100% {
+    stop-color: #9ca3af;
+  }
+  50% {
+    stop-color: #1ce3cf;
+  }
 }
 
 @keyframes gradient-4 {
-  0%, 100% { stop-color: #9ca3af; }
-  50% { stop-color: #1ce3cf; }
+  0%,
+  100% {
+    stop-color: #9ca3af;
+  }
+  50% {
+    stop-color: #1ce3cf;
+  }
 }
 
 @keyframes gradient-5 {
-  0%, 100% { stop-color: #1ce3cf; }
-  50% { stop-color: #9ca3af; }
+  0%,
+  100% {
+    stop-color: #1ce3cf;
+  }
+  50% {
+    stop-color: #9ca3af;
+  }
 }
 
 @keyframes gradient-6 {
-  0%, 100% { stop-color: #1ce3cf; }
-  50% { stop-color: #9ca3af; }
+  0%,
+  100% {
+    stop-color: #1ce3cf;
+  }
+  50% {
+    stop-color: #9ca3af;
+  }
 }
 
 .animate-gradient-1 {
@@ -368,4 +422,12 @@ main {
 
 .animate-gradient-6 {
   animation: gradient-6 2s ease-in-out infinite 1s;
+}
+
+@keyframes ping {
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
