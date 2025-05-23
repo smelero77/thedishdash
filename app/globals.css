@@ -79,6 +79,7 @@
     scroll-behavior: smooth;
     scroll-padding-top: var(--content-offset-top);
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none; /* Evita pull to refresh */
   }
 
   /* 2) body deja pasar todo el overflow para que html sea el scroll container */
@@ -88,6 +89,7 @@
     overflow-y: auto;
     background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
     color: hsl(var(--foreground));
+    overscroll-behavior-y: none; /* Evita pull to refresh */
   }
 }
 
@@ -103,7 +105,7 @@
   position: relative;
   height: 100%;
   width: 100%;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: none; /* Evita pull to refresh */
 }
 
 .allow-horizontal-scroll {
@@ -184,15 +186,18 @@
   main {
     overflow-y: visible !important;
     height: auto !important;
+    overscroll-behavior-y: none !important; /* Evita pull to refresh */
   }
 
   /* 2) El root gestiona el scroll nativo */
   html {
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none !important; /* Evita pull to refresh */
   }
   body {
     overflow-y: visible !important;
+    overscroll-behavior-y: none !important; /* Evita pull to refresh */
   }
 
   ::-webkit-scrollbar {
