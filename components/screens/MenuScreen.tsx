@@ -120,12 +120,42 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       [cart, alias],
     );
 
+    const handleItemClick = useCallback(
+      async (itemId: string) => {
+        const item = memoizedInitialMenuItems?.find((i) => i.id === itemId);
+        if (!item) {
+          console.error(`[MenuScreen] Item con ID ${itemId} no encontrado en initialMenuItems.`);
+          return;
+        }
+        if (!memoizedCartActions) {
+          console.error('[MenuScreen] Cart actions no están disponibles.');
+          return;
+        }
+
+        if (item.modifiers && item.modifiers.length > 0) {
+          await fetchModifiers(itemId);
+          setSelectedItem({
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            allergens: item.allergens,
+            modifiers: item.modifiers,
+          });
+          setShowModifierModal(true);
+          return;
+        }
+
+        console.log(`[MenuScreen] Añadiendo item ${itemId} sin modificadores.`);
+        memoizedCartActions.handleAddToCart(itemId, {});
+      },
+      [memoizedInitialMenuItems, fetchModifiers, memoizedCartActions],
+    );
+
     const handleAddToCart = useCallback(
       (itemId: string) => {
-        if (!memoizedCartActions) return;
-        memoizedCartActions.handleAddToCart(itemId);
+        handleItemClick(itemId);
       },
-      [memoizedCartActions],
+      [handleItemClick],
     );
 
     const handleRemoveFromCart = useCallback(

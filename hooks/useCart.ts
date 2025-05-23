@@ -61,7 +61,7 @@ export async function addOrIncrementCartItem(
   const { error } = await supabase.rpc('increment_item', {
     p_order_id: temporaryOrderId,
     p_menu_item_id: menuItemId,
-    p_modifiers: modifiers,
+    p_modifiers: modifiers ?? {},
     p_alias: alias,
   });
   if (error) {
@@ -86,7 +86,7 @@ export async function decrementOrDeleteCartItem(
   const { error } = await supabase.rpc('decrement_item', {
     p_order_id: temporaryOrderId,
     p_menu_item_id: menuItemId,
-    p_modifiers: modifiers,
+    p_modifiers: modifiers ?? {},
     p_alias: alias,
   });
   if (error) {
@@ -409,9 +409,11 @@ function useCart(
         return;
       }
       const aliasToUse = currentClientAlias || 'guest';
+      // Aseguramos que modifiers nunca sea null
+      const safeModifiers = modifiers || {};
       console.log('[handleAddToCart] Calling addOrIncrementCartItem:', {
         itemId,
-        modifiers,
+        modifiers: safeModifiers,
         temporaryOrderId,
         alias: aliasToUse,
       });
@@ -419,7 +421,7 @@ function useCart(
       // Actualización optimista
       setCart((prevCart) => {
         const newCart = { ...prevCart };
-        const cartKey = getCartKey(itemId, modifiers, aliasToUse);
+        const cartKey = getCartKey(itemId, safeModifiers, aliasToUse);
         const menuItem = menuItems?.find((m) => m.id === itemId);
 
         if (!menuItem) {
@@ -436,7 +438,7 @@ function useCart(
           newCart[cartKey] = {
             id: itemId,
             quantity: 1,
-            modifiers: modifiers ?? {},
+            modifiers: safeModifiers,
             item: menuItem,
             client_alias: aliasToUse,
           };
@@ -448,14 +450,14 @@ function useCart(
       });
 
       try {
-        await addOrIncrementCartItem(temporaryOrderId, itemId, modifiers, aliasToUse);
+        await addOrIncrementCartItem(temporaryOrderId, itemId, safeModifiers, aliasToUse);
         console.log('[handleAddToCart] addOrIncrementCartItem success. Awaiting realtime update.');
       } catch (error) {
         console.error('[handleAddToCart] Error calling addOrIncrementCartItem:', error);
         // Revertir la actualización optimista en caso de error
         setCart((prevCart) => {
           const newCart = { ...prevCart };
-          const cartKey = getCartKey(itemId, modifiers, aliasToUse);
+          const cartKey = getCartKey(itemId, safeModifiers, aliasToUse);
           if (newCart[cartKey]) {
             if (newCart[cartKey].quantity > 1) {
               newCart[cartKey].quantity -= 1;
@@ -478,9 +480,11 @@ function useCart(
         return;
       }
       const aliasToUse = currentClientAlias || 'guest';
+      // Aseguramos que modifiers nunca sea null
+      const safeModifiers = modifiers || {};
       console.log('[handleDecrementCart] Calling decrementOrDeleteCartItem:', {
         itemId,
-        modifiers,
+        modifiers: safeModifiers,
         temporaryOrderId,
         alias: aliasToUse,
       });
@@ -488,7 +492,7 @@ function useCart(
       // Actualización optimista
       setCart((prevCart) => {
         const newCart = { ...prevCart };
-        const cartKey = getCartKey(itemId, modifiers, aliasToUse);
+        const cartKey = getCartKey(itemId, safeModifiers, aliasToUse);
 
         if (newCart[cartKey]) {
           if (newCart[cartKey].quantity > 1) {
@@ -509,7 +513,7 @@ function useCart(
       });
 
       try {
-        await decrementOrDeleteCartItem(temporaryOrderId, itemId, modifiers, aliasToUse);
+        await decrementOrDeleteCartItem(temporaryOrderId, itemId, safeModifiers, aliasToUse);
         console.log(
           '[handleDecrementCart] decrementOrDeleteCartItem success. Awaiting realtime update.',
         );
@@ -518,7 +522,7 @@ function useCart(
         // Revertir la actualización optimista en caso de error
         setCart((prevCart) => {
           const newCart = { ...prevCart };
-          const cartKey = getCartKey(itemId, modifiers, aliasToUse);
+          const cartKey = getCartKey(itemId, safeModifiers, aliasToUse);
           const menuItem = menuItems?.find((m) => m.id === itemId);
 
           if (!menuItem) {
@@ -528,19 +532,9 @@ function useCart(
             return prevCart;
           }
 
-          // Restaurar el item a su estado anterior
-          // Esta lógica de revertir es compleja porque si el item no existía antes de la
-          // actualización optimista (en el caso de que decrementáramos a 0 y luego fallara),
-          // necesitaríamos saberlo. Por simplicidad, aquí asumimos que si no está, se vuelve a añadir con cantidad 1.
-          // Una lógica de snapshot más robusta podría ser necesaria para reversiones perfectas.
           if (prevCart[cartKey] && prevCart[cartKey].quantity > 0) {
-            // Si existía y tenía cantidad
-            newCart[cartKey] = { ...prevCart[cartKey] }; // Restaurar desde el prevCart original de la acción
+            newCart[cartKey] = { ...prevCart[cartKey] };
           } else {
-            // Si no existía o era 0, y el decremento fue un error, significa que debería volver a 1
-            // Esta parte de la reversión podría necesitar más contexto del estado *antes* de la acción optimista.
-            // La lógica actual de arriba es: si estaba en `newCart` (después del decremento optimista), lo incrementa.
-            // Si no estaba (porque se borró), lo vuelve a añadir.
             const originalItemInPrevCart = Object.values(prevCart).find(
               (ci) => getCartKey(ci.id, ci.modifiers, ci.client_alias) === cartKey,
             );
@@ -550,14 +544,10 @@ function useCart(
                 quantity: originalItemInPrevCart.quantity + 1,
               };
             } else {
-              // Si realmente no estaba antes (lo cual sería extraño si el decremento se aplicó)
-              // o si la lógica de revertir es compleja, lo más seguro es recargar desde DB o
-              // no hacer nada y esperar el update de realtime.
-              // Por ahora, intentamos una restauración simple:
               newCart[cartKey] = {
                 id: itemId,
-                quantity: 1, // Asumimos que si falló un decremento, al menos debe volver a 1
-                modifiers: modifiers ?? {},
+                quantity: 1,
+                modifiers: safeModifiers,
                 item: menuItem,
                 client_alias: aliasToUse,
               };
