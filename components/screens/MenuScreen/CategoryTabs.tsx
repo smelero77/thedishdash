@@ -34,10 +34,10 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
     }, [activeTab]);
 
     return (
-      <div className="sticky top-0 bg-[#f8fbfb] shadow-sm z-20">
+      <div className="sticky top-0 bg-white shadow-sm z-20">
         <div
           ref={tabsContainerRef}
-          className="flex overflow-x-auto no-scrollbar border-b border-[#d0e6e4] px-4 gap-6 relative scroll-smooth"
+          className="flex overflow-x-auto no-scrollbar border-b border-[#d0e6e4] px-4 gap-4 relative scroll-smooth bg-white"
         >
           {categories.map((category) => (
             <div
@@ -50,13 +50,15 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
                   target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
               }}
-              className={`flex items-center justify-center px-4 py-2 cursor-pointer transition-all duration-300 ${
+              className={`flex items-center justify-center px-6 py-2 cursor-pointer transition-all duration-300 border-b-4 ${
                 activeTab === category.id
-                  ? 'text-[#0e1b19] font-bold border-b-4 border-[#1ce3cf]'
-                  : 'text-[#4f968f] hover:text-[#0e1b19]'
+                  ? 'text-[#0e1b19] font-bold border-[#1ce3cf]'
+                  : 'text-[#4f968f] hover:text-[#0e1b19] border-transparent'
               }`}
             >
-              <p className="text-sm leading-normal tracking-[0.015em] px-1">{category.name}</p>
+              <p className="text-sm leading-normal tracking-[0.015em] whitespace-nowrap">
+                {category.name}
+              </p>
             </div>
           ))}
         </div>
