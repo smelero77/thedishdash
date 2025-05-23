@@ -162,7 +162,10 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               const id = entry.target.id.replace('category-', '');
-              setActiveTab(id);
+              // Solo actualizar si no es la primera carga
+              if (activeTab !== '') {
+                setActiveTab(id);
+              }
             }
           });
         },
@@ -180,7 +183,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       });
 
       return () => observer.disconnect();
-    }, [orderedCategories, isScrolling]);
+    }, [orderedCategories, isScrolling, activeTab]);
 
     // Inicializar el IntersectionObserver cuando cambien las categorías
     useEffect(() => {
