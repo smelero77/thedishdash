@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, forwardRef } from 'react';
 import { Category } from '@/types/menu';
+import Image from 'next/image';
 
 interface CategoryTabsProps {
   categories: Category[];
@@ -51,12 +52,25 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
                       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                   }}
-                  className={`flex items-center justify-center px-6 py-2 cursor-pointer transition-all duration-300 border-b-4 relative ${
+                  className={`flex flex-col items-center justify-center px-6 py-2 cursor-pointer transition-all duration-300 border-b-4 relative ${
                     activeTab === category.id
                       ? 'text-[#0e1b19] font-bold border-[#1ce3cf]'
                       : 'text-[#4f968f] hover:text-[#0e1b19] border-transparent'
                   }`}
                 >
+                  {category.image_url ? (
+                    <div className="relative w-8 h-8 mb-1">
+                      <Image
+                        src={category.image_url}
+                        alt={category.name}
+                        fill
+                        className="object-contain"
+                        sizes="32px"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 mb-1 bg-[#4f968f] opacity-50" />
+                  )}
                   <p className="text-sm leading-normal tracking-[0.015em] whitespace-nowrap">
                     {category.name}
                   </p>
