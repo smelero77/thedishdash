@@ -315,3 +315,57 @@ main {
 .category-section {
   scroll-margin-top: var(--content-offset-top);
 }
+
+@keyframes gradient-1 {
+  0%, 100% { stop-color: #1ce3cf; }
+  50% { stop-color: #9ca3af; }
+}
+
+@keyframes gradient-2 {
+  0%, 100% { stop-color: #1ce3cf; }
+  50% { stop-color: #9ca3af; }
+}
+
+@keyframes gradient-3 {
+  0%, 100% { stop-color: #9ca3af; }
+  50% { stop-color: #1ce3cf; }
+}
+
+@keyframes gradient-4 {
+  0%, 100% { stop-color: #9ca3af; }
+  50% { stop-color: #1ce3cf; }
+}
+
+@keyframes gradient-5 {
+  0%, 100% { stop-color: #1ce3cf; }
+  50% { stop-color: #9ca3af; }
+}
+
+@keyframes gradient-6 {
+  0%, 100% { stop-color: #1ce3cf; }
+  50% { stop-color: #9ca3af; }
+}
+
+.animate-gradient-1 {
+  animation: gradient-1 2s ease-in-out infinite;
+}
+
+.animate-gradient-2 {
+  animation: gradient-2 2s ease-in-out infinite 0.2s;
+}
+
+.animate-gradient-3 {
+  animation: gradient-3 2s ease-in-out infinite 0.4s;
+}
+
+.animate-gradient-4 {
+  animation: gradient-4 2s ease-in-out infinite 0.6s;
+}
+
+.animate-gradient-5 {
+  animation: gradient-5 2s ease-in-out infinite 0.8s;
+}
+
+.animate-gradient-6 {
+  animation: gradient-6 2s ease-in-out infinite 1s;
+}

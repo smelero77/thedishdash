@@ -92,30 +92,14 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
         id={id}
         className={`category-section divide-y divide-gray-200/10 bg-[#f8fbfb] ${isFirst ? 'pt-0' : 'pt-6 md:pt-8'} ${className || ''}`}
       >
-        {category.image_url && (
-          <div className={`relative w-full h-64 z-0 bg-[#f8fbfb]`}>
-            <Image
-              src={category.image_url}
-              alt={category.name}
-              fill
-              className="object-cover"
-              priority
-            />
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-              <h2 className="text-7xl md:text-7xl font-bold text-white/90">{category.name}</h2>
-            </div>
-          </div>
-        )}
-        {!category.image_url && (
-          <div className="px-4 py-6">
-            <h2 className="text-2xl font-bold text-white">{category.name}</h2>
-            {category.description && <p className="mt-2 text-gray-400">{category.description}</p>}
-          </div>
-        )}
+        <div className="px-4 py-6">
+          <h2 className="text-2xl font-bold text-[#0e1b19]">{category.name}</h2>
+          {category.description && <p className="mt-2 text-[#4f968f]">{category.description}</p>}
+        </div>
         {category.items.map((item) => (
           <div
             key={item.id}
-            className="px-4 py-6 cursor-pointer"
+            className="px-4 py-3 cursor-pointer"
             onClick={() => handleOpenDetail(item)}
           >
             <MenuItem
