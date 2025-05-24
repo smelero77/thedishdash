@@ -320,7 +320,7 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
                       <button
                         key={modifier.id}
                         onClick={() => scrollToModifier(modifier.id)}
-                        className={`flex-shrink-0 px-5 py-3 rounded-full text-sm font-medium transition-all ${
+                        className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-all ${
                           activeModifier === modifier.id
                             ? 'bg-[#1ce3cf] text-[#0e1b19]'
                             : selectedOptions[modifier.id]?.length > 0
@@ -378,80 +378,100 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
                 )}
 
                 <div className="grid gap-3">
-                  {modifier.options.map((option) => {
-                    const relatedItemImage = option.related_menu_item_id
-                      ? menuItems.find((item) => item.id === option.related_menu_item_id)?.image_url
-                      : null;
+                  {modifier.options
+                    .sort((a, b) => {
+                      const aSelected = isOptionSelected(modifier.id, a.id);
+                      const bSelected = isOptionSelected(modifier.id, b.id);
+                      if (aSelected && !bSelected) return -1;
+                      if (!aSelected && bSelected) return 1;
+                      return 0;
+                    })
+                    .map((option) => {
+                      const relatedItemImage = option.related_menu_item_id
+                        ? menuItems.find((item) => item.id === option.related_menu_item_id)
+                            ?.image_url
+                        : null;
 
-                    return (
-                      <button
-                        key={option.id}
-                        onClick={() => handleOptionSelect(modifier.id, option.id)}
-                        className={`w-full flex items-start gap-3 p-4 rounded-2xl border transition-all duration-200 ${
-                          isOptionSelected(modifier.id, option.id)
-                            ? 'bg-[#1ce3cf]/10 border-[#1ce3cf] scale-[1.02]'
-                            : 'border-[#d0e6e4] hover:border-[#1ce3cf] hover:bg-[#1ce3cf]/5'
-                        }`}
-                      >
-                        {relatedItemImage && (
-                          <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
-                            <img
-                              src={relatedItemImage}
-                              alt={option.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start">
-                            <span
-                              className={`text-base font-medium truncate ${
-                                isOptionSelected(modifier.id, option.id)
-                                  ? 'text-[#0e1b19] dark:text-white'
-                                  : 'text-[#4f968f]'
-                              }`}
-                            >
-                              {option.name}
-                            </span>
-                            {option.extra_price > 0 && (
-                              <span className="text-base font-medium text-[#1ce3cf] ml-2 flex-shrink-0">
-                                +{formatPrice(option.extra_price)}
-                              </span>
-                            )}
-                          </div>
-
-                          {option.allergens?.filter((a) => a.id).length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {option.allergens
-                                .filter((a) => a.id)
-                                .map((a) => (
-                                  <div
-                                    key={a.id}
-                                    className="text-xs px-2.5 py-1 bg-[#f3f7f7] dark:bg-[#1ce3cf]/10 text-[#4f968f] rounded-full"
-                                  >
-                                    {a.name}
-                                  </div>
-                                ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Indicador de selección */}
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex-shrink-0 ${
+                      return (
+                        <button
+                          key={option.id}
+                          onClick={() => handleOptionSelect(modifier.id, option.id)}
+                          className={`w-full flex items-start gap-3 p-4 rounded-2xl border transition-all duration-200 ${
                             isOptionSelected(modifier.id, option.id)
-                              ? 'border-[#1ce3cf] bg-[#1ce3cf]'
-                              : 'border-[#d0e6e4]'
+                              ? 'bg-[#1ce3cf]/10 border-[#1ce3cf] scale-[1.02]'
+                              : 'border-[#d0e6e4] hover:border-[#1ce3cf] hover:bg-[#1ce3cf]/5'
                           }`}
                         >
-                          {isOptionSelected(modifier.id, option.id) && (
-                            <div className="w-full h-full rounded-full bg-white scale-[0.4]" />
+                          {relatedItemImage && (
+                            <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
+                              <img
+                                src={relatedItemImage}
+                                alt={option.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
                           )}
-                        </div>
-                      </button>
-                    );
-                  })}
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`text-base font-medium truncate ${
+                                    isOptionSelected(modifier.id, option.id)
+                                      ? 'text-[#0e1b19] dark:text-white'
+                                      : 'text-[#4f968f]'
+                                  }`}
+                                >
+                                  {option.name}
+                                </span>
+                                {option.allergens?.filter((a) => a.id).length > 0 && (
+                                  <div className="flex items-center gap-1.5">
+                                    {option.allergens
+                                      .filter((a) => a.id)
+                                      .map((a) =>
+                                        a.icon_url ? (
+                                          <img
+                                            key={a.id}
+                                            src={a.icon_url}
+                                            alt={a.name}
+                                            title={a.name}
+                                            className="w-5 h-5 object-contain"
+                                          />
+                                        ) : (
+                                          <div
+                                            key={a.id}
+                                            className="text-xs px-2 py-0.5 bg-[#f3f7f7] dark:bg-[#1ce3cf]/10 text-[#4f968f] rounded-full"
+                                          >
+                                            {a.name}
+                                          </div>
+                                        ),
+                                      )}
+                                  </div>
+                                )}
+                              </div>
+                              {option.extra_price > 0 && (
+                                <span className="text-base font-medium text-[#1ce3cf] ml-2 flex-shrink-0">
+                                  +{formatPrice(option.extra_price)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Indicador de selección */}
+                          <div
+                            className={`w-6 h-6 rounded-full border-2 flex-shrink-0 ${
+                              isOptionSelected(modifier.id, option.id)
+                                ? 'border-[#1ce3cf] bg-[#1ce3cf]'
+                                : 'border-[#d0e6e4]'
+                            }`}
+                          >
+                            {isOptionSelected(modifier.id, option.id) && (
+                              <div className="w-full h-full rounded-full bg-white scale-[0.4]" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
             ))}

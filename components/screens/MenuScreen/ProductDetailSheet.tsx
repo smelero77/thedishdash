@@ -49,7 +49,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
           exit="exit"
           variants={sheetVariants}
         >
-          <motion.div className="w-full bg-black/50 rounded-t-3xl">
+          <motion.div className="w-full bg-black/50 rounded-t-3xl overflow-hidden">
             <motion.div
               className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative"
               style={{
