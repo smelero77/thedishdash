@@ -15,7 +15,7 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ description, cl
   <div className="px-4 pb-2">
     <p
       className={cn(
-        'text-[#4f968f] text-base leading-normal break-words whitespace-normal w-full',
+        'text-[#4f968f] text-sm font-normal leading-normal break-words whitespace-normal w-full',
         className,
       )}
     >

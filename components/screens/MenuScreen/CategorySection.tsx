@@ -145,8 +145,10 @@ const CategorySectionComponent = forwardRef<HTMLDivElement, CategorySectionProps
                 alt={selectedProduct.name ?? ''}
                 quantity={getItemQuantity(selectedProduct.id)}
               />
-              <div className="px-4 pb-2 flex items-center justify-between mt-4">
-                <ProductTitle name={selectedProduct.name ?? ''} />
+              <div className="px-4 pb-2 flex items-center justify-between gap-4 mt-4">
+                <div className="flex flex-col flex-1 min-w-0">
+                  <ProductTitle name={selectedProduct.name ?? ''} />
+                </div>
                 <ProductQuantityControls
                   quantity={getItemQuantity(selectedProduct.id)}
                   price={selectedProduct.price}

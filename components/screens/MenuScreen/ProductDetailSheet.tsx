@@ -48,24 +48,16 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
           animate="visible"
           exit="exit"
           variants={sheetVariants}
-          onClick={onClose}
         >
-          <motion.div
-            className="w-full bg-black/50 rounded-t-3xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <motion.div className="w-full bg-black/50 rounded-t-3xl">
             <motion.div
-              className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative overflow-y-auto"
+              className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative"
               style={{
-                height: 'calc(100vh - var(--safe-area-top))',
+                height: 'calc(100vh - var(--safe-area-top) - 60px)',
                 paddingBottom: 'var(--safe-area-bottom)',
                 y,
                 opacity,
               }}
-              drag="y"
-              dragConstraints={{ top: 0 }}
-              dragElastic={0.2}
-              onDragEnd={handleDragEnd}
               animate={controls}
             >
               {/* Botón de cerrar */}

@@ -29,25 +29,27 @@ const MenuHeaderComponent = forwardRef<HTMLDivElement, MenuHeaderProps>(
         ...style,
       }}
     >
-      <div className="flex items-center h-12 flex-shrink-0">
+      <div className="flex items-center h-16 flex-shrink-0">
         <button
           onClick={() => setSearchActive(true)}
-          className={`w-12 h-12 flex items-center justify-center rounded-full bg-white shadow-md transition-opacity ${
+          className={`w-16 h-16 flex items-center justify-center transition-opacity ${
             searchActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}
         >
-          <Search size={24} color="#4f968f" />
+          <Search size={32} strokeWidth={2.5} color="#4f968f" />
         </button>
       </div>
 
       <div className="flex-1 flex justify-center min-w-0">
-        <div className="h-12 flex items-center">
+        <div className="h-16 flex items-center w-[200px]">
           <TextLogoSvg className="h-12 w-auto" />
         </div>
       </div>
 
-      <div className="flex items-center h-12 flex-shrink-0">
-        <ChatButton onClick={onChat} />
+      <div className="flex items-center h-16 flex-shrink-0">
+        <div className="w-16 h-16 flex items-center justify-center">
+          <ChatButton onClick={onChat} />
+        </div>
       </div>
     </header>
   ),
