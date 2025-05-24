@@ -16,6 +16,7 @@ import { CartItem, MenuItemData as CartMenuItemData, SelectedModifiers } from '@
 import { OrderStories } from './OrderStories';
 import { ScrollProgressBar } from '@/components/ScrollProgressBar';
 import { formatPrice } from '@/utils/format';
+import { TextLogoSvg } from '@/components/TextLogoSvg';
 
 import { CartItemsContext } from '@/context/CartItemsContext';
 import { CartTotalContext } from '@/context/CartTotalContext';
@@ -119,9 +120,9 @@ const CartModalComponent = forwardRef<HTMLDivElement, CartModalProps>(
             <div className="flex flex-col h-full">
               <div className="p-4 border-b border-[#d0e6e4]">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-[#0e1b19] text-xl font-bold leading-tight tracking-[-0.015em]">
-                    Tu pedido
-                  </h2>
+                  <div className="h-12 flex items-center">
+                    <TextLogoSvg className="h-10 w-auto" />
+                  </div>
                   <button
                     onClick={handleClose}
                     className="p-2 -m-2 text-[#4f968f] transition-colors"

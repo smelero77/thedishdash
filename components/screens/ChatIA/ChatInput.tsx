@@ -42,7 +42,7 @@ export const ChatInput = ({ onSend, isLoading, alias }: ChatInputProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 pb-2">
+    <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 py-2">
       <span className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-[#1ce3cf] text-white text-sm">
         {getInitials(alias)}
       </span>
@@ -57,6 +57,11 @@ export const ChatInput = ({ onSend, isLoading, alias }: ChatInputProps) => {
           className="w-full rounded-2xl bg-white/80 dark:bg-[#0f1b1a]/80 backdrop-blur-sm border border-[#c7f0ec]/50 px-4 py-2.5 text-sm text-[#111111] dark:text-white placeholder-[#111111]/40 dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#1ce3cf]/50 transition-all duration-200 disabled:opacity-50"
           disabled={isLoading}
           aria-label="Mensaje"
+          enterKeyHint="send"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
         />
       </div>
       <button

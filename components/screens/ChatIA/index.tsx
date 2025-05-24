@@ -221,9 +221,10 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
       <div className="absolute inset-0 flex items-center justify-center p-4">
         <div
           className={`
-            relative w-full max-w-2xl h-[80vh] 
+            relative w-full max-w-2xl h-[90vh] sm:h-[80vh]
             bg-[#f5fefe] dark:bg-[#0f1b1a]
             rounded-3xl shadow-2xl overflow-hidden border border-[#c7f0ec]/30
+            flex flex-col
             ${isOpen ? 'fade-in' : 'opacity-0'}
           `}
         >
@@ -246,7 +247,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
 
           {/* Header */}
           <div
-            className={`absolute top-0 left-0 right-0 h-16 bg-[#1ce3cf] dark:bg-[#1ce3cf]/90 backdrop-blur-md border-b border-[#c7f0ec]/30 ${isOpen ? 'slide-in' : ''}`}
+            className={`h-16 bg-[#1ce3cf] dark:bg-[#1ce3cf]/90 backdrop-blur-md border-b border-[#c7f0ec]/30 ${isOpen ? 'slide-in' : ''}`}
           >
             <div className="flex items-center justify-between h-full px-6">
               <div className="flex items-center space-x-3">
@@ -269,8 +270,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
           <div
             ref={messagesContainerRef}
             className={`
-              absolute top-16 bottom-20 left-0 right-0
-              overflow-y-auto px-4 py-6
+              flex-1 overflow-y-auto px-4 py-6
               scrollbar-thin scrollbar-thumb-[#1ce3cf]/40 scrollbar-track-transparent
               touch-pan-y overscroll-contain
               -webkit-overflow-scrolling: touch
@@ -312,7 +312,7 @@ export const ChatIA = ({ isOpen, onClose, userAlias = 'Cliente' }: ChatIAProps) 
           )}
 
           {/* Input */}
-          <div className="absolute bottom-0 left-0 right-0 h-20 bg-[#f5fefe] dark:bg-[#0f1b1a]">
+          <div className="h-20 bg-[#f5fefe] dark:bg-[#0f1b1a] border-t border-[#c7f0ec]/30">
             <ChatInput onSend={handleSend} isLoading={isLoading} alias={userAlias} />
           </div>
         </div>
