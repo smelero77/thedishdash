@@ -1,0 +1,448 @@
+'use client';
+
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  useContext,
+  forwardRef,
+} from 'react';
+import { Button } from '@/components/ui/Button';
+import { ShoppingCart, Search, X, ArrowLeft, UserCircle, ChefHat } from 'lucide-react';
+import MenuItem from './MenuItem';
+import MenuHeader from './MenuScreen/MenuHeader';
+import FloatingCartButton from './MenuScreen/FloatingCartButton';
+import SearchOverlay from './MenuScreen/SearchOverlay';
+import LoadingScreen from '@/components/ui/LoadingScreen';
+import ErrorScreen from './MenuScreen/ErrorScreen';
+import CategoryTabs from './MenuScreen/CategoryTabs';
+import CategorySection from './MenuScreen/CategorySection';
+import { MenuItemData, Category, Slot, CartItem, Cart, SelectedModifiers } from '@/types/menu';
+import { MenuItemAllergen, Modifier } from '@/types/modifiers';
+
+import { CartItemsContext } from '@/context/CartItemsContext';
+import { CartTotalContext } from '@/context/CartTotalContext';
+import { CartActionsContext } from '@/context/CartActionsContext';
+
+import { useModifiers } from '@/hooks/useModifiers';
+import { handleModifierSubmit } from '@/hooks/useModifierSubmit';
+import { searchMenuItems, resetSearch } from '@/utils/searchUtils';
+import { useCustomer } from '@/context/CustomerContext';
+import { useTable } from '@/context/TableContext';
+import dynamic from 'next/dynamic';
+import ReactDOM from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import useDebounce from '@/hooks/useDebounce';
+import Image from 'next/image';
+import { useMenuData, CategoryWithItems } from '@/hooks/useMenuData';
+import SearchButton from './SearchButton';
+import { useCategoryOrder } from '@/hooks/useCategoryOrder';
+import { ChatIA } from './ChatIA';
+import ChatButton from '@/components/chat/ChatButton';
+import { TextLogoSvg } from '../TextLogoSvg';
+
+// Load heavy libraries dynamically
+const ModifierModal = dynamic(() => import('./ModifierModal'), { ssr: false });
+const CartModal = dynamic(() => import('./CartModal'), { ssr: false });
+const AliasModal = dynamic(
+  () => import('@/components/ui/AliasModal').then((mod) => mod.AliasModal),
+  { ssr: false },
+);
+
+export interface SelectedItem {
+  id: string;
+  name: string;
+  description: string | null;
+  allergens: MenuItemAllergen[];
+  modifiers: Modifier[];
+}
+
+interface MenuScreenProps {
+  initialSlots: Slot[];
+  initialCategories: Category[];
+  initialMenuItems: MenuItemData[];
+  initialCurrentSlot: Slot | null;
+}
+
+const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
+  ({ initialSlots, initialCategories, initialMenuItems, initialCurrentSlot }, ref) => {
+    // 1. Context hooks primero
+    const cart = useContext(CartItemsContext);
+    const cartTotal = useContext(CartTotalContext);
+    const cartActions = useContext(CartActionsContext);
+    const { alias } = useCustomer();
+    const { tableNumber } = useTable();
+
+    // 2. Data fetching hooks
+    const { slots, currentSlot, categories, loading, error, menuItems } = useMenuData();
+    const { modifiers, fetchModifiers } = useModifiers();
+    const orderedCategories = useCategoryOrder({
+      categories,
+      slots,
+      currentSlot,
+    });
+
+    // 3. State hooks
+    const [activeTab, setActiveTab] = useState<string>('');
+    const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+    const [showModifierModal, setShowModifierModal] = useState(false);
+    const [showCartModal, setShowCartModal] = useState(false);
+    const [searchActive, setSearchActive] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filteredItems, setFilteredItems] = useState<MenuItemData[]>([]);
+    const [showAliasModal, setShowAliasModal] = useState(false);
+    const [showChatModal, setShowChatModal] = useState(false);
+    const [isAnyDetailOpen, setIsAnyDetailOpen] = useState(false);
+
+    // 4. Refs
+    const menuScrollRef = useRef<HTMLDivElement | null>(null);
+    const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const isManualScroll = useRef(false);
+
+    // 5. Memoized values
+    const memoizedCartActions = useMemo(() => cartActions, [cartActions]);
+    const memoizedInitialMenuItems = useMemo(() => initialMenuItems, [initialMenuItems]);
+    const memoizedModifiers = useMemo(() => modifiers, [modifiers]);
+
+    const itemQuantities = useMemo(
+      () =>
+        Object.entries(cart || {}).reduce(
+          (quantities, [id, item]: [string, CartItem]) => {
+            if (item.client_alias === alias) {
+              quantities[id] = item.quantity;
+            }
+            return quantities;
+          },
+          {} as Record<string, number>,
+        ),
+      [cart, alias],
+    );
+
+    const handleItemClick = useCallback(
+      async (itemId: string) => {
+        const item = memoizedInitialMenuItems?.find((i) => i.id === itemId);
+        if (!item) {
+          console.error(`[MenuScreen] Item con ID ${itemId} no encontrado en initialMenuItems.`);
+          return;
+        }
+        if (!memoizedCartActions) {
+          console.error('[MenuScreen] Cart actions no están disponibles.');
+          return;
+        }
+
+        if (item.modifiers && item.modifiers.length > 0) {
+          await fetchModifiers(itemId);
+          setSelectedItem({
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            allergens: item.allergens,
+            modifiers: item.modifiers,
+          });
+          setShowModifierModal(true);
+          return;
+        }
+
+        console.log(`[MenuScreen] Añadiendo item ${itemId} sin modificadores.`);
+        memoizedCartActions.handleAddToCart(itemId, {});
+      },
+      [memoizedInitialMenuItems, fetchModifiers, memoizedCartActions],
+    );
+
+    const handleAddToCart = useCallback(
+      (itemId: string) => {
+        handleItemClick(itemId);
+      },
+      [handleItemClick],
+    );
+
+    const handleRemoveFromCart = useCallback(
+      (itemId: string, itemModifiers?: SelectedModifiers | null) => {
+        if (!memoizedCartActions) return;
+        memoizedCartActions.handleDecrementCart(itemId, itemModifiers ?? {});
+      },
+      [memoizedCartActions],
+    );
+
+    const onModifierSubmit = useCallback(
+      (options: Record<string, string[]>) => {
+        if (selectedItem && memoizedCartActions) {
+          handleModifierSubmit(
+            selectedItem,
+            options,
+            memoizedModifiers,
+            memoizedCartActions.handleAddToCart,
+            () => {
+              setShowModifierModal(false);
+              setSelectedItem(null);
+            },
+          );
+        }
+      },
+      [selectedItem, memoizedModifiers, memoizedCartActions],
+    );
+
+    // Scroll spy handler
+    const handleScrollSpy = useCallback(() => {
+      if (isManualScroll.current) return; // Ignora mientras scroll manual
+
+      const HEADER_HEIGHT = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--header-height'),
+      );
+      const TABS_HEIGHT = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--tabs-height'),
+      );
+
+      const scrollPosition = window.scrollY + HEADER_HEIGHT + TABS_HEIGHT + 10; // +10px "colchón"
+      let current = orderedCategories[0]?.id;
+
+      orderedCategories.forEach((cat) => {
+        const el = categoryRefs.current[cat.id];
+        if (!el) return;
+        if (el.offsetTop <= scrollPosition) {
+          current = cat.id;
+        }
+      });
+
+      setActiveTab(current);
+    }, [orderedCategories]);
+
+    // Inicializar el scroll spy
+    useEffect(() => {
+      window.addEventListener('scroll', handleScrollSpy, { passive: true });
+      // disparar una vez al montar
+      handleScrollSpy();
+      return () => window.removeEventListener('scroll', handleScrollSpy);
+    }, [handleScrollSpy]);
+
+    // Manejar el click en una pestaña
+    const handleTabClick = useCallback((id: string) => {
+      isManualScroll.current = true;
+      setActiveTab(id);
+
+      const target = document.getElementById(`category-${id}`);
+      if (!target) return;
+
+      // Calcula la posición destino en píxeles
+      const HEADER = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--header-height'),
+      );
+      const TABS = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--tabs-height'),
+      );
+      const topPos = target.offsetTop - (HEADER + TABS);
+
+      // Inicia el scroll suave
+      window.scrollTo({ top: topPos, behavior: 'smooth' });
+
+      // Función que comprueba si ya hemos llegado
+      const onScroll = () => {
+        if (Math.abs(window.scrollY - topPos) < 5) {
+          isManualScroll.current = false;
+          window.removeEventListener('scroll', onScroll);
+        }
+      };
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }, []);
+
+    const categoryTabsProps = useMemo(
+      () => ({
+        categories: orderedCategories,
+        activeTab,
+        onTabClick: handleTabClick,
+      }),
+      [orderedCategories, activeTab, handleTabClick],
+    );
+
+    const debouncedSearch = useDebounce((query: string) => {
+      const results = searchMenuItems(query, menuItems);
+      setFilteredItems(results);
+    }, 300);
+
+    const handleSearch = useCallback(
+      (query: string) => {
+        setSearchQuery(query);
+        debouncedSearch(query);
+      },
+      [debouncedSearch],
+    );
+
+    const handleResetSearch = useCallback(() => {
+      resetSearch(setSearchQuery, setFilteredItems, setSearchActive);
+    }, []);
+
+    const handleAliasConfirm = useCallback(async (newAlias: string) => {
+      console.log('[MenuScreen] Guardando alias:', newAlias);
+      setShowAliasModal(false);
+      return true;
+    }, []);
+
+    useEffect(() => {
+      if (!searchActive) {
+        resetSearch(setSearchQuery, setFilteredItems, setSearchActive);
+      }
+    }, [currentSlot, activeTab, searchActive]);
+
+    useEffect(() => {
+      if (searchActive) {
+        // Solo cuando la búsqueda está activa, bloqueamos el scroll
+        document.documentElement.style.overflow = 'hidden';
+      } else {
+        // Cuando la búsqueda no está activa, permitimos que globals.css maneje el scroll
+        document.documentElement.style.overflow = '';
+      }
+
+      return () => {
+        document.documentElement.style.overflow = '';
+      };
+    }, [searchActive]);
+
+    useEffect(() => {
+      if (orderedCategories.length === 0) return;
+      setActiveTab(orderedCategories[0].id);
+    }, [orderedCategories]);
+
+    const menuHeaderProps = useMemo(
+      () => ({
+        alias,
+        tableNumber,
+        onAliasClick: () => setShowAliasModal(true),
+        setSearchActive,
+        onChat: () => setShowChatModal(true),
+        searchActive,
+        style: { display: isAnyDetailOpen ? 'none' : undefined },
+      }),
+      [alias, tableNumber, isAnyDetailOpen, searchActive],
+    );
+
+    const floatingCartButtonProps = useMemo(
+      () => ({
+        onClick: () => setShowCartModal(true),
+      }),
+      [],
+    );
+
+    const searchOverlayProps = useMemo(
+      () => ({
+        searchQuery,
+        searchActive,
+        filteredItems,
+        handleSearch,
+        onClose: handleResetSearch,
+      }),
+      [searchQuery, searchActive, filteredItems, handleSearch, handleResetSearch],
+    );
+
+    // 2. Función para renderizar el contenido condicional
+    const renderContent = () => {
+      if (loading && categories.length === 0) {
+        return <LoadingScreen message="Cargando menú..." />;
+      }
+
+      if (error) {
+        return <ErrorScreen error={error.message} />;
+      }
+
+      if (cart === null || cartTotal === null || !cartActions) {
+        return <LoadingScreen message="Inicializando carrito..." />;
+      }
+
+      return (
+        <div
+          ref={menuScrollRef}
+          className="menu-screen-container flex-grow bg-white"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          {/* 1) Header pegado */}
+          <header className="menu-header">
+            <MenuHeader {...menuHeaderProps} />
+          </header>
+
+          {/* 2) Tabs pegadas justo debajo */}
+          <nav className="category-tabs">
+            <CategoryTabs {...categoryTabsProps} />
+          </nav>
+
+          {/* 3) Contenido principal: el scroll es del window */}
+          <main
+            className="flex-grow relative"
+            style={{
+              paddingTop: 'var(--content-offset-top)',
+              paddingBottom: 'calc(80px + var(--safe-area-bottom))',
+            }}
+          >
+            {orderedCategories.map((cat) => (
+              <CategorySection
+                id={`category-${cat.id}`}
+                key={cat.id}
+                category={cat}
+                onAddToCart={handleAddToCart}
+                onRemoveFromCart={handleRemoveFromCart}
+                itemQuantities={itemQuantities}
+                onOpenCart={() => setShowCartModal(true)}
+                ref={(el) => {
+                  categoryRefs.current[cat.id] = el;
+                }}
+              />
+            ))}
+          </main>
+
+          <FloatingCartButton {...floatingCartButtonProps} />
+          <AnimatePresence>
+            {searchActive && <SearchOverlay {...searchOverlayProps} />}
+
+            {showModifierModal && selectedItem && (
+              <ModifierModal
+                isOpen={showModifierModal}
+                itemName={selectedItem.name}
+                itemDescription={selectedItem.description ?? undefined}
+                itemAllergens={selectedItem.allergens as MenuItemAllergen[]}
+                modifiers={memoizedModifiers as Modifier[]}
+                menuItems={memoizedInitialMenuItems ?? []}
+                onConfirm={onModifierSubmit}
+                onClose={() => {
+                  setShowModifierModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
+
+            {showCartModal && (
+              <CartModal
+                onClose={() => setShowCartModal(false)}
+                currentClientAlias={alias ?? undefined}
+              />
+            )}
+
+            {showAliasModal && (
+              <AliasModal
+                isOpen={showAliasModal}
+                onClose={() => setShowAliasModal(false)}
+                onConfirm={async (alias, wantsFullscreen) => {
+                  setShowAliasModal(false);
+                  return true;
+                }}
+              />
+            )}
+
+            {showChatModal && (
+              <ChatIA
+                isOpen={showChatModal}
+                onClose={() => setShowChatModal(false)}
+                userAlias={alias ?? 'Cliente'}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+      );
+    };
+
+    return renderContent();
+  },
+);
+
+MenuScreenComponent.displayName = 'MenuScreen';
+export default React.memo(MenuScreenComponent);
