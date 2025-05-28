@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { cn } from '@/utils/cn';
 
 interface ScrollProgressBarProps {
-  containerRef?: React.RefObject<HTMLElement>;
+  containerRef?: React.RefObject<HTMLDivElement>;
   className?: string;
 }
 
