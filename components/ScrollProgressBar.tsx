@@ -6,9 +6,16 @@ import { cn } from '@/utils/cn';
 interface ScrollProgressBarProps {
   containerRef?: React.RefObject<HTMLDivElement | null>;
   className?: string;
+  barClassName?: string;
+  trackClassName?: string;
 }
 
-export function ScrollProgressBar({ containerRef, className }: ScrollProgressBarProps) {
+export function ScrollProgressBar({
+  containerRef,
+  className,
+  barClassName,
+  trackClassName,
+}: ScrollProgressBarProps) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -31,10 +38,13 @@ export function ScrollProgressBar({ containerRef, className }: ScrollProgressBar
   return (
     <div className={cn('relative h-1', className)}>
       {/* Línea base gris */}
-      <div className="absolute inset-0 bg-[#d0e6e4]" />
+      <div className={cn('absolute inset-0 bg-[#d0e6e4]', trackClassName)} />
       {/* Barra de progreso */}
       <div
-        className="absolute inset-0 bg-[#1ce3cf] transition-transform duration-150"
+        className={cn(
+          'absolute inset-0 bg-[#1ce3cf] transition-transform duration-150',
+          barClassName,
+        )}
         style={{
           transform: `scaleX(${progress})`,
           transformOrigin: 'left',
