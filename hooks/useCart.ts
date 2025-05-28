@@ -409,7 +409,6 @@ function useCart(
         return;
       }
       const aliasToUse = currentClientAlias || 'guest';
-      // Aseguramos que modifiers nunca sea null
       const safeModifiers = modifiers || {};
       console.log('[handleAddToCart] Calling addOrIncrementCartItem:', {
         itemId,
@@ -444,7 +443,6 @@ function useCart(
           };
         }
 
-        // Actualizar el total inmediatamente
         updateCartTotal(newCart, menuItems);
         return newCart;
       });
@@ -468,6 +466,7 @@ function useCart(
           updateCartTotal(newCart, menuItems);
           return newCart;
         });
+        throw error;
       }
     },
     [temporaryOrderId, currentClientAlias, menuItems, updateCartTotal, getCartKey],
@@ -480,7 +479,6 @@ function useCart(
         return;
       }
       const aliasToUse = currentClientAlias || 'guest';
-      // Aseguramos que modifiers nunca sea null
       const safeModifiers = modifiers || {};
       console.log('[handleDecrementCart] Calling decrementOrDeleteCartItem:', {
         itemId,
@@ -501,11 +499,8 @@ function useCart(
               quantity: newCart[cartKey].quantity - 1,
             };
           } else {
-            // Si la cantidad es 1, eliminamos el item
             delete newCart[cartKey];
           }
-
-          // Actualizar el total inmediatamente
           updateCartTotal(newCart, menuItems);
         }
 
@@ -557,6 +552,7 @@ function useCart(
           updateCartTotal(newCart, menuItems);
           return newCart;
         });
+        throw error;
       }
     },
     [temporaryOrderId, currentClientAlias, menuItems, updateCartTotal, getCartKey],

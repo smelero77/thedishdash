@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useMemo } from 'react';
+import React, { ReactNode, useMemo, useState, useEffect } from 'react';
 // Importa los 3 nuevos contextos específicos
 import { CartItemsContext } from './CartItemsContext';
 import { CartTotalContext } from './CartTotalContext';
@@ -43,6 +43,7 @@ export function CartProvider({ children, menuItems }: CartProviderProps) {
   // Obtener dependencias de otros contextos
   const { alias } = useCustomer();
   const { tableNumber } = useTable();
+  const [cartVersion, setCartVersion] = useState(0);
 
   // Llamar al hook useCart con las dependencias obtenidas
   const { cart, cartTotal, actions } = useCart(
@@ -51,21 +52,24 @@ export function CartProvider({ children, menuItems }: CartProviderProps) {
     tableNumber, // Desde useTable
   );
 
-  // Memoizar los valores del provider
-  const safeCart = useMemo(() => cart ?? {}, [cart]);
-  const safeCartTotal = useMemo(() => cartTotal ?? 0, [cartTotal]);
-  const safeActions = useMemo(() => actions ?? defaultCartActions, [actions]);
-
-  // Forzar la actualización cuando cambia el contenido del carrito
-  React.useEffect(() => {
+  // Forzar actualización cuando cambia el carrito
+  useEffect(() => {
     console.log('[CartProvider] Cart updated:', Object.keys(cart).length, 'items');
+    setCartVersion((prev) => prev + 1);
   }, [cart]);
+
+  // Memoizar los valores del provider con la versión del carrito
+  const safeCart = useMemo(() => cart ?? {}, [cart, cartVersion]);
+  const safeCartTotal = useMemo(() => cartTotal ?? 0, [cartTotal, cartVersion]);
+  const safeActions = useMemo(() => actions ?? defaultCartActions, [actions, cartVersion]);
 
   console.log(
     '[CartProvider] Rendering. Cart Items:',
     Object.keys(safeCart).length,
     'Total:',
     safeCartTotal,
+    'Version:',
+    cartVersion,
   );
 
   // Renderizar los providers anidados

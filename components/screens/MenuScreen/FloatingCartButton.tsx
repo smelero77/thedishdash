@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useContext } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
 import { CartActionsContext } from '@/context/CartActionsContext';
@@ -9,6 +10,7 @@ interface FloatingCartButtonProps extends React.HTMLAttributes<HTMLButtonElement
 
 const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButtonProps>(
   ({ className, ...props }, ref) => {
+    const router = useRouter();
     const actions = useContext(CartActionsContext);
     const cartTotal = useContext(CartTotalContext);
     const [justUpdated, setJustUpdated] = useState(false);
@@ -25,11 +27,16 @@ const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButto
 
     if (!actions || cartTotal === null || totalItems === 0) return null;
 
+    const handleClick = () => {
+      router.push('/cart');
+    };
+
     return (
       <div className="fixed bottom-4 left-0 right-0 z-40 px-4">
         <div className="max-w-2xl mx-auto">
           <Button
             ref={ref}
+            onClick={handleClick}
             {...props}
             className={cn(
               'relative overflow-visible',

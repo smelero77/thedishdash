@@ -9,6 +9,7 @@ import React, {
   useContext,
   forwardRef,
 } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { ShoppingCart, Search, X, ArrowLeft, UserCircle, ChefHat } from 'lucide-react';
 import MenuItem from './MenuItem';
@@ -45,7 +46,6 @@ import { TextLogoSvg } from '../TextLogoSvg';
 
 // Load heavy libraries dynamically
 const ModifierModal = dynamic(() => import('./ModifierModal'), { ssr: false });
-const CartModal = dynamic(() => import('./CartModal'), { ssr: false });
 const AliasModal = dynamic(
   () => import('@/components/ui/AliasModal').then((mod) => mod.AliasModal),
   { ssr: false },
@@ -68,6 +68,7 @@ interface MenuScreenProps {
 
 const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
   ({ initialSlots, initialCategories, initialMenuItems, initialCurrentSlot }, ref) => {
+    const router = useRouter();
     // 1. Context hooks primero
     const cart = useContext(CartItemsContext);
     const cartTotal = useContext(CartTotalContext);
@@ -88,12 +89,12 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const [activeTab, setActiveTab] = useState<string>('');
     const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
     const [showModifierModal, setShowModifierModal] = useState(false);
-    const [showCartModal, setShowCartModal] = useState(false);
+    const [showAliasModal, setShowAliasModal] = useState(false);
+    const [showChatModal, setShowChatModal] = useState(false);
     const [searchActive, setSearchActive] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredItems, setFilteredItems] = useState<MenuItemData[]>([]);
-    const [showAliasModal, setShowAliasModal] = useState(false);
-    const [showChatModal, setShowChatModal] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
     const [isAnyDetailOpen, setIsAnyDetailOpen] = useState(false);
 
     // 4. Refs
@@ -320,9 +321,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
 
     const floatingCartButtonProps = useMemo(
       () => ({
-        onClick: () => setShowCartModal(true),
+        onClick: () => router.push('/cart'),
       }),
-      [],
+      [router],
     );
 
     const searchOverlayProps = useMemo(
@@ -382,7 +383,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
                 onAddToCart={handleAddToCart}
                 onRemoveFromCart={handleRemoveFromCart}
                 itemQuantities={itemQuantities}
-                onOpenCart={() => setShowCartModal(true)}
+                onOpenCart={() => router.push('/cart')}
                 ref={(el) => {
                   categoryRefs.current[cat.id] = el;
                 }}
@@ -407,13 +408,6 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
                   setShowModifierModal(false);
                   setSelectedItem(null);
                 }}
-              />
-            )}
-
-            {showCartModal && (
-              <CartModal
-                onClose={() => setShowCartModal(false)}
-                currentClientAlias={alias ?? undefined}
               />
             )}
 
