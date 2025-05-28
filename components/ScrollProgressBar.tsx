@@ -1,48 +1,45 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { cn } from '@/utils/cn';
 
 interface ScrollProgressBarProps {
-  containerRef: React.RefObject<HTMLDivElement | null>;
+  containerRef?: React.RefObject<HTMLElement>;
   className?: string;
-  barClassName?: string;
-  trackClassName?: string;
-  minProgress?: number;
 }
 
-export const ScrollProgressBar = ({
-  containerRef,
-  className = '',
-  barClassName = '',
-  trackClassName = '',
-  minProgress = 5,
-}: ScrollProgressBarProps) => {
-  const [progress, setProgress] = useState(minProgress);
-
-  const handleScroll = useCallback(() => {
-    if (containerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-      const maxScroll = scrollHeight - clientHeight;
-      const newProgress =
-        maxScroll > 0 ? Math.max(minProgress, (scrollTop / maxScroll) * 100) : minProgress;
-      setProgress(newProgress);
-    }
-  }, [containerRef, minProgress]);
+export function ScrollProgressBar({ containerRef, className }: ScrollProgressBarProps) {
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      // Trigger initial calculation
-      handleScroll();
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
-    }
-  }, [containerRef, handleScroll]);
+    // Si no nos pasan containerRef, caeremos en window/document
+    const containerEl = containerRef?.current ?? window;
+    const scrollListener = () => {
+      const scrollTop =
+        containerEl === window ? window.scrollY : (containerEl as HTMLElement).scrollTop;
+      const scrollHeight =
+        containerEl === window
+          ? document.documentElement.scrollHeight - window.innerHeight
+          : (containerEl as HTMLElement).scrollHeight - (containerEl as HTMLElement).clientHeight;
+      setProgress(scrollTop / scrollHeight);
+    };
+
+    containerEl.addEventListener('scroll', scrollListener);
+    return () => containerEl.removeEventListener('scroll', scrollListener);
+  }, [containerRef]);
 
   return (
-    <div className={`h-1 bg-[#d0e6e4] ${className} ${trackClassName}`}>
+    <div className={cn('relative h-1', className)}>
+      {/* Línea base gris */}
+      <div className="absolute inset-0 bg-[#d0e6e4]" />
+      {/* Barra de progreso */}
       <div
-        className={`h-full bg-[#4f968f] transition-all duration-300 ease-out ${barClassName}`}
-        style={{ width: `${progress}%` }}
+        className="absolute inset-0 bg-[#1ce3cf] transition-transform duration-150"
+        style={{
+          transform: `scaleX(${progress})`,
+          transformOrigin: 'left',
+        }}
       />
     </div>
   );
-};
+}

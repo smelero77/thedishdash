@@ -54,14 +54,40 @@ export function CartProvider({ children, menuItems }: CartProviderProps) {
 
   // Forzar actualización cuando cambia el carrito
   useEffect(() => {
-    console.log('[CartProvider] Cart updated:', Object.keys(cart).length, 'items');
+    console.log(
+      '[CartProvider] useEffect[cart] triggered. Cart items:',
+      Object.keys(cart ?? {}).length,
+      'Cart ref:',
+      JSON.stringify(cart, null, 2),
+    );
     setCartVersion((prev) => prev + 1);
   }, [cart]);
 
   // Memoizar los valores del provider con la versión del carrito
-  const safeCart = useMemo(() => cart ?? {}, [cart, cartVersion]);
-  const safeCartTotal = useMemo(() => cartTotal ?? 0, [cartTotal, cartVersion]);
-  const safeActions = useMemo(() => actions ?? defaultCartActions, [actions, cartVersion]);
+  const safeCart = useMemo(() => {
+    console.log(
+      '[CartProvider] Re-memoizing safeCart. CartVersion:',
+      cartVersion,
+      'Input cart ref:',
+      JSON.stringify(cart, null, 2),
+    );
+    return cart ?? {};
+  }, [cart, cartVersion]);
+
+  const safeCartTotal = useMemo(() => {
+    console.log(
+      '[CartProvider] Re-memoizing safeCartTotal. CartVersion:',
+      cartVersion,
+      'Input cartTotal:',
+      cartTotal,
+    );
+    return cartTotal ?? 0;
+  }, [cartTotal, cartVersion]);
+
+  const safeActions = useMemo(() => {
+    console.log('[CartProvider] Re-memoizing safeActions. CartVersion:', cartVersion);
+    return actions ?? defaultCartActions;
+  }, [actions, cartVersion]);
 
   console.log(
     '[CartProvider] Rendering. Cart Items:',
@@ -70,6 +96,8 @@ export function CartProvider({ children, menuItems }: CartProviderProps) {
     safeCartTotal,
     'Version:',
     cartVersion,
+    'SafeCart:',
+    JSON.stringify(safeCart, null, 2),
   );
 
   // Renderizar los providers anidados
