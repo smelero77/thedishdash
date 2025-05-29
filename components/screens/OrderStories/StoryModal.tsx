@@ -96,14 +96,14 @@ export const StoryModal = ({
               <ScrollProgressBar
                 containerRef={contentRef}
                 className="sticky top-0 z-10"
-                barClassName="bg-[#4f968f]"
+                barClassName="bg-[#1ce3cf]"
                 trackClassName="bg-[#d0e6e4]/20"
               />
             </div>
 
             <div
               ref={contentRef}
-              className="h-[calc(100vh-200px)] overflow-y-auto no-scrollbar pt-24 pb-8 px-4"
+              className="h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar pt-24 pb-8 px-4"
             >
               <div className="space-y-4">
                 {visibleItems.map((item, index) => (

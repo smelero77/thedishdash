@@ -24,7 +24,9 @@ export const StoryItem = ({ item }: StoryItemProps) => (
       <div className="flex-1">
         <div className="flex items-center justify-between">
           <h3 className="text-[#0e1b19] font-medium">{item.item.name}</h3>
-          <ItemQuantity quantity={item.quantity} />
+          <div className="self-center">
+            <ItemQuantity quantity={item.quantity} />
+          </div>
         </div>
         {Object.entries(item.modifiers || {}).map(([modifierId, modifier]) => (
           <div key={modifierId} className="mt-1">

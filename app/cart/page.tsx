@@ -4,6 +4,7 @@ import React, { useCallback, useContext, useMemo, useRef, useEffect, useState } 
 import { useRouter } from 'next/navigation';
 import { X, Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
+import { motion, useAnimate } from 'framer-motion';
 import { CartItem } from '@/types/menu';
 import { OrderStories } from '@/components/screens/OrderStories';
 import { ScrollProgressBar } from '@/components/ScrollProgressBar';
@@ -22,6 +23,7 @@ export default function CartPage() {
   const contentRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const [topOffset, setTopOffset] = useState(0);
+  const [scope, animate] = useAnimate();
 
   const cart = useContext(CartItemsContext);
   const cartTotal = useContext(CartTotalContext);
@@ -33,7 +35,19 @@ export default function CartPage() {
     setTopOffset(headerH);
   }, []);
 
-  const handleGoBack = useCallback(() => router.back(), [router]);
+  const handleGoBack = useCallback(async () => {
+    // Animar la salida
+    await animate(scope.current, {
+      opacity: 0,
+      scale: 0.95,
+      y: 10,
+      transition: {
+        duration: 0.2,
+        ease: 'easeOut',
+      },
+    });
+    router.back();
+  }, [router, animate]);
   const handleCheckout = useCallback(() => alert('Redirigiendo al proceso de pago...'), []);
 
   const groupedItems = useMemo(() => {
@@ -86,17 +100,44 @@ export default function CartPage() {
   const totalItems = actions.getTotalItems();
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <motion.div
+      ref={scope}
+      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        transition: {
+          type: 'spring',
+          stiffness: 400,
+          damping: 30,
+          mass: 0.8,
+        },
+      }}
+      className="flex flex-col min-h-screen bg-white"
+    >
       {/* Header + Stories fijos */}
-      <div ref={headerRef} className="fixed top-0 left-0 right-0 z-40 bg-white">
+      <motion.div
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 z-40 bg-white"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.3 }}
+      >
         <div className="p-4">
           <div className="flex justify-between items-center">
             <div className="h-12 flex items-center">
               <TextLogoSvg className="h-10 w-auto" />
             </div>
-            <button onClick={handleGoBack} className="p-2 -m-2 text-[#4f968f]" aria-label="Cerrar">
+            <motion.button
+              onClick={handleGoBack}
+              className="p-2 -m-2 text-[#4f968f]"
+              aria-label="Cerrar"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
               <X className="h-6 w-6" />
-            </button>
+            </motion.button>
           </div>
         </div>
 
@@ -105,13 +146,16 @@ export default function CartPage() {
         </div>
 
         <ScrollProgressBar className="sticky top-0 z-20 -mt-[1px]" />
-      </div>
+      </motion.div>
 
       {/* Contenido desplazado por padding, pero scroll en body */}
-      <main
+      <motion.main
         ref={contentRef}
         className="flex-grow w-full max-w-2xl px-4 pb-48 mx-auto"
         style={{ paddingTop: `${topOffset}px` }}
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
       >
         {totalItems === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] text-center">
@@ -214,11 +258,16 @@ export default function CartPage() {
               ))}
           </div>
         )}
-      </main>
+      </motion.main>
 
       {/* Footer */}
       {totalItems > 0 && (
-        <footer className="fixed bottom-4 left-0 right-0 z-30 px-4">
+        <motion.footer
+          className="fixed bottom-4 left-0 right-0 z-30 px-4"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
+        >
           <div className="max-w-2xl mx-auto">
             <button
               onClick={handleCheckout}
@@ -231,8 +280,8 @@ export default function CartPage() {
               </div>
             </button>
           </div>
-        </footer>
+        </motion.footer>
       )}
-    </div>
+    </motion.div>
   );
 }

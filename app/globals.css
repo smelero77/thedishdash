@@ -347,22 +347,22 @@ main {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: hsl(var(--background));
+  background: #d0e6e4;
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground));
+  background: #1ce3cf;
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--foreground));
+  background: #1ce3cf;
 }
 
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--background));
+  scrollbar-color: #1ce3cf #d0e6e4;
 }
 
 /* Aplica a cada sección de categoría */
