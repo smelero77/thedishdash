@@ -29,7 +29,7 @@ export default function CartPage() {
   const cartTotal = useContext(CartTotalContext);
   const actions = useContext(CartActionsContext);
 
-  // Medir altura del header fijo (que incluye header + stories + barra)
+  // Medir altura del header fijo (que incluye header + stories + barras)
   useEffect(() => {
     const headerH = headerRef.current?.offsetHeight ?? 0;
     setTopOffset(headerH);
