@@ -26,6 +26,18 @@ export const StoryModal = ({
   const [visibleItems, setVisibleItems] = useState<CartItem[]>([]);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Prevenir scroll del body cuando el modal está abierto
+  useEffect(() => {
+    if (isVisible) {
+      document.documentElement.classList.add('modal-open');
+    } else {
+      document.documentElement.classList.remove('modal-open');
+    }
+    return () => {
+      document.documentElement.classList.remove('modal-open');
+    };
+  }, [isVisible]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);

@@ -146,6 +146,15 @@
   overscroll-behavior-x: contain;
 }
 
+/* Bloquear scroll cuando el modal está abierto */
+.modal-open {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+}
+
 /* Hide scrollbar para todos los navegadores */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

@@ -9,7 +9,7 @@ const ProductChefNotes: React.FC<ProductChefNotesProps> = ({ notes }) => {
   return (
     <div className="px-4 pb-2">
       <h3 className="text-sm font-bold text-[#0e1b19] mb-2">Notas del Chef</h3>
-      <p className="text-sm text-[#0e1b19]">{notes}</p>
+      <p className="text-sm text-[#4f968f]">{notes}</p>
     </div>
   );
 };

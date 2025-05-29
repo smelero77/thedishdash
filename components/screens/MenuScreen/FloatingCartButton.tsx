@@ -32,7 +32,7 @@ const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButto
     };
 
     return (
-      <div className="fixed bottom-4 left-0 right-0 z-40 px-4">
+      <div className="fixed bottom-4 left-0 right-0 z-[60] px-4">
         <div className="max-w-2xl mx-auto">
           <Button
             ref={ref}
