@@ -354,10 +354,10 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
             ref={ref}
           >
             <div
-              className="p-4 border-b border-[#d0e6e4]"
-              style={{ paddingTop: 'calc(var(--safe-area-top) + 1rem)' }}
+              className="p-4 border-b border-[#d0e6e4] mb-2"
+              style={{ paddingTop: 'calc(var(--safe-area-top) + 0.25rem)' }}
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between">
                 <button
                   onClick={onClose}
                   className="p-1 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
@@ -365,8 +365,10 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 >
                   <ArrowLeft className="h-6 w-6" />
                 </button>
-                <div className="h-7 w-auto">
-                  <TextLogoSvg className="h-full w-auto" />
+                <div className="flex-1 flex justify-center min-w-0">
+                  <div className="h-16 flex items-center w-[200px]">
+                    <TextLogoSvg className="h-12 w-auto" />
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
