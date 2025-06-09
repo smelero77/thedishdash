@@ -58,19 +58,24 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
                       : 'text-[#4f968f] hover:text-[#0e1b19] border-transparent'
                   }`}
                 >
-                  {category.image_url ? (
-                    <div className="relative w-8 h-8 mb-1">
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 relative mb-2">
+                    {category.image_url ? (
                       <Image
                         src={category.image_url}
                         alt={category.name}
                         fill
-                        className="object-contain"
-                        sizes="32px"
+                        className="object-cover"
+                        sizes="48px"
+                        unoptimized
                       />
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 mb-1 bg-[#4f968f] opacity-50" />
-                  )}
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#e0f2f1]">
+                        <span className="text-2xl text-[#4f968f]">
+                          {category.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   <p className="text-sm leading-normal tracking-[0.015em] whitespace-nowrap">
                     {category.name}
                   </p>

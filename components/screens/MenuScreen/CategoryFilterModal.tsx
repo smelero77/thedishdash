@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Category } from '@/types/menu';
-import { ArrowLeft } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface CategoryFilterModalProps {
   isOpen: boolean;
@@ -32,18 +32,25 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
       className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg"
       style={{ height: 'calc(100vh - 200px)' }}
     >
-      <div className="h-full flex flex-col">
+      {/* Indicador de arrastre */}
+      <div className="absolute top-0 left-0 right-0 flex justify-center pt-2">
+        <div className="w-12 h-1 bg-gray-300 rounded-full" />
+      </div>
+
+      <div className="h-full flex flex-col pt-6">
+        {/* Botón de cerrar */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={onClose}
+            className="p-2 -m-2 text-[#4f968f] hover:text-[#1ce3cf] active:scale-95 transition-all"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[#d0e6e4]">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="p-2 -m-2 text-[#4f968f] hover:text-[#1ce3cf] active:scale-95 transition-all"
-            >
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <h2 className="text-lg font-semibold text-[#0e1b19]">Categorías</h2>
-          </div>
+        <div className="px-4 py-2">
+          <h2 className="text-lg font-semibold text-[#0e1b19]">Categorías</h2>
         </div>
 
         {/* Content */}
