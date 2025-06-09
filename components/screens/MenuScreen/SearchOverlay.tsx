@@ -394,7 +394,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
         </header>
 
         <div className="p-4">
-          <div className="relative mt-4">
+          <div className="relative">
             <input
               ref={inputRef}
               type="text"
