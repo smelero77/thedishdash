@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { Category } from '@/types/menu';
@@ -8,24 +8,50 @@ interface CategoryFilterModalProps {
   isOpen: boolean;
   onClose: () => void;
   categories: Category[];
-  activeCategoryFilters: string[];
   onCategoryFilter: (categoryId: string) => void;
   onModalClose?: () => void;
+  onFilterChange?: (selectedCategories: string[]) => void;
+  selectedCategories: string[];
 }
 
 const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
   isOpen,
   onClose,
   categories,
-  activeCategoryFilters,
   onCategoryFilter,
   onModalClose,
+  onFilterChange,
+  selectedCategories,
 }) => {
+  // Estado temporal para las selecciones dentro del modal
+  const [tempSelectedCategories, setTempSelectedCategories] = useState<string[]>(selectedCategories);
+
+  // Actualizar el estado temporal cuando cambian las categorías seleccionadas
+  useEffect(() => {
+    setTempSelectedCategories(selectedCategories);
+  }, [selectedCategories]);
+
   if (!isOpen) return null;
 
   const handleClose = () => {
+    // Al cerrar sin guardar, reseteamos el estado temporal
+    setTempSelectedCategories(selectedCategories);
     onClose();
     onModalClose?.();
+  };
+
+  const handleShowResults = () => {
+    // Solo cuando se pulsa Mostrar resultados, guardamos los cambios
+    if (onFilterChange) {
+      onFilterChange(tempSelectedCategories);
+    }
+    handleClose();
+  };
+
+  const handleCategoryClick = (categoryId: string) => {
+    setTempSelectedCategories(prev =>
+      prev.includes(categoryId) ? prev.filter(id => id !== categoryId) : [...prev, categoryId]
+    );
   };
 
   console.log('Categories with images:', categories.map(cat => ({ name: cat.name, image_url: cat.image_url })));
@@ -78,13 +104,13 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
                 <div className="p-4 pb-20">
                   <div className="grid grid-cols-4 gap-4">
                     {categories.map((category) => {
-                      const isActive = activeCategoryFilters.includes(category.id);
+                      const isActive = tempSelectedCategories.includes(category.id);
                       const rotateDeg = isActive ? -12 : 0;
 
                       return (
                         <button
                           key={category.id}
-                          onClick={() => onCategoryFilter(category.id)}
+                          onClick={() => handleCategoryClick(category.id)}
                           className="flex flex-col items-center"
                         >
                           <div className="relative w-20 h-20">
@@ -152,7 +178,7 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
             <div className="fixed bottom-4 left-0 right-0 z-[60] px-4">
               <div className="max-w-2xl mx-auto">
                 <button
-                  onClick={handleClose}
+                  onClick={handleShowResults}
                   className="w-full h-12 rounded-full bg-[#1ce3cf] text-[#0e1b19] flex items-center justify-center shadow-lg text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#1ce3cf] hover:text-[#0e1b19]"
                 >
                   Mostrar resultados

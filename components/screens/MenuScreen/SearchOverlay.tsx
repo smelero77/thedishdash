@@ -50,6 +50,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     const { categories, dietTags, loading: filtersLoading } = useFilters();
     const [showFilters, setShowFilters] = useState(false);
     const [activeCategoryFilters, setActiveCategoryFilters] = useState<string[]>([]);
+    const [confirmedCategoryFilters, setConfirmedCategoryFilters] = useState<string[]>([]);
     const [activeDietTagFilters, setActiveDietTagFilters] = useState<string[]>([]);
     const [activeFilterSection, setActiveFilterSection] = useState<
       'categories' | 'dietTags' | 'price' | 'allergens' | null
@@ -284,6 +285,10 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     const filteredResults = applyFilters(filteredItems);
 
     const handleFilterSectionChange = (section: 'categories' | 'dietTags' | 'price' | 'allergens' | null) => {
+      if (section === null) {
+        // Si se cierra el modal sin guardar, reseteamos los filtros
+        setActiveCategoryFilters(confirmedCategoryFilters);
+      }
       setActiveFilterSection(section);
       onFilterSectionChange?.(section);
     };
@@ -401,17 +406,18 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
             <button
               onClick={() => handleFilterSectionChange(activeFilterSection === 'categories' ? null : 'categories')}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                activeCategoryFilters.length > 0 || activeFilterSection === 'categories'
+                confirmedCategoryFilters.length > 0
                   ? 'bg-[#e0f2f1] text-[#00796b]'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Categorías {activeCategoryFilters.length > 0 && `(${activeCategoryFilters.length})`}
-              {activeCategoryFilters.length > 0 && (
+              Categorías {confirmedCategoryFilters.length > 0 && `(${confirmedCategoryFilters.length})`}
+              {confirmedCategoryFilters.length > 0 && (
                 <X 
                   className="h-4 w-4" 
                   onClick={(e) => {
                     e.stopPropagation();
+                    setConfirmedCategoryFilters([]);
                     setActiveCategoryFilters([]);
                   }}
                 />
@@ -487,9 +493,13 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 isOpen={true}
                 onClose={() => handleFilterSectionChange(null)}
                 categories={categories}
-                activeCategoryFilters={activeCategoryFilters}
                 onCategoryFilter={handleCategoryFilter}
                 onModalClose={() => handleFilterSectionChange(null)}
+                onFilterChange={(selected) => {
+                  setConfirmedCategoryFilters(selected);
+                  setActiveCategoryFilters(selected);
+                }}
+                selectedCategories={confirmedCategoryFilters}
               />
             ) : (
               <>
