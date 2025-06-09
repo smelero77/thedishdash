@@ -360,24 +360,40 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
         exit={{ opacity: 0, y: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg"
-        style={{ height: '100vh', paddingTop: 'calc(var(--safe-area-top) + 0.25rem)' }}
+        style={{ height: '100vh' }}
       >
-        <div className="p-4">
-          <div className="flex items-center justify-between">
+        <header
+          className="flex items-center justify-between bg-white px-4 mb-2"
+          style={{
+            height: 'var(--header-height)',
+            paddingTop: 'calc(var(--safe-area-top) + 1rem)',
+            paddingBottom: '0.5rem',
+            width: '100%',
+            maxWidth: '100vw'
+          }}
+        >
+          <div className="flex items-center h-16 flex-shrink-0">
             <button
               onClick={onClose}
-              className="p-1 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
+              className="w-16 h-16 flex items-center justify-center text-[#4f968f] hover:text-[#0e1b19] transition-colors"
               aria-label="Cerrar búsqueda"
             >
               <ArrowLeft className="h-6 w-6" />
             </button>
-            <div className="flex-1 flex justify-center min-w-0">
-              <div className="h-16 flex items-center w-[200px]">
-                <TextLogoSvg className="h-12 w-auto" />
-              </div>
+          </div>
+
+          <div className="flex-1 flex justify-center min-w-0">
+            <div className="h-16 flex items-center w-[200px]">
+              <TextLogoSvg className="h-12 w-auto" />
             </div>
           </div>
 
+          <div className="flex items-center h-16 flex-shrink-0">
+            <div className="w-16 h-16" />
+          </div>
+        </header>
+
+        <div className="p-4">
           <div className="relative mt-4">
             <input
               ref={inputRef}
