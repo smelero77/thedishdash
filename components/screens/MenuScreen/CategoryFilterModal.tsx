@@ -10,6 +10,7 @@ interface CategoryFilterModalProps {
   categories: Category[];
   activeCategoryFilters: string[];
   onCategoryFilter: (categoryId: string) => void;
+  onModalClose?: () => void;
 }
 
 const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
@@ -18,8 +19,14 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
   categories,
   activeCategoryFilters,
   onCategoryFilter,
+  onModalClose,
 }) => {
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    onClose();
+    onModalClose?.();
+  };
 
   console.log('Categories with images:', categories.map(cat => ({ name: cat.name, image_url: cat.image_url })));
 
@@ -34,7 +41,7 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 z-40"
-            onClick={onClose}
+            onClick={handleClose}
           />
           
           <motion.div
@@ -54,7 +61,7 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
               {/* Botón de cerrar */}
               <div className="absolute top-4 right-4">
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="p-2 -m-2 text-[#4f968f] hover:text-[#1ce3cf] active:scale-95 transition-all"
                 >
                   <X className="h-6 w-6" />
@@ -138,6 +145,18 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
                     })}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Botón de Mostrar resultados */}
+            <div className="fixed bottom-4 left-0 right-0 z-[60] px-4">
+              <div className="max-w-2xl mx-auto">
+                <button
+                  onClick={handleClose}
+                  className="w-full h-12 rounded-full bg-[#1ce3cf] text-[#0e1b19] flex items-center justify-center shadow-lg text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#1ce3cf] hover:text-[#0e1b19]"
+                >
+                  Mostrar resultados
+                </button>
               </div>
             </div>
           </motion.div>

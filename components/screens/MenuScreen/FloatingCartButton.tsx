@@ -6,10 +6,12 @@ import { cn } from '@/utils/cn';
 import { CartActionsContext } from '@/context/CartActionsContext';
 import { CartTotalContext } from '@/context/CartTotalContext';
 
-interface FloatingCartButtonProps extends React.HTMLAttributes<HTMLButtonElement> {}
+interface FloatingCartButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
+  isFilterModalOpen?: boolean;
+}
 
 const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButtonProps>(
-  ({ className, ...props }, ref) => {
+  ({ className, isFilterModalOpen = false, ...props }, ref) => {
     const router = useRouter();
     const actions = useContext(CartActionsContext);
     const cartTotal = useContext(CartTotalContext);
@@ -25,7 +27,7 @@ const FloatingCartButton = React.forwardRef<HTMLButtonElement, FloatingCartButto
       }
     }, [totalItems]);
 
-    if (!actions || cartTotal === null || totalItems === 0) return null;
+    if (!actions || cartTotal === null || totalItems === 0 || isFilterModalOpen) return null;
 
     const handleClick = () => {
       router.push('/cart');

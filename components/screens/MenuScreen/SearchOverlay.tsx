@@ -22,6 +22,7 @@ interface SearchOverlayProps {
   filteredItems: MenuItemData[];
   handleSearch: (query: string) => void;
   onClose: () => void;
+  onFilterSectionChange?: (section: 'categories' | 'dietTags' | 'price' | 'allergens' | null) => void;
 }
 
 interface PriceRange {
@@ -36,7 +37,7 @@ interface Allergen {
 }
 
 const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
-  ({ searchQuery, searchActive, filteredItems, handleSearch, onClose }, ref) => {
+  ({ searchQuery, searchActive, filteredItems, handleSearch, onClose, onFilterSectionChange }, ref) => {
     const cart = useContext(CartItemsContext);
     const cartActions = useContext(CartActionsContext);
     const cartTotal = useContext(CartTotalContext);
@@ -282,6 +283,11 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
 
     const filteredResults = applyFilters(filteredItems);
 
+    const handleFilterSectionChange = (section: 'categories' | 'dietTags' | 'price' | 'allergens' | null) => {
+      setActiveFilterSection(section);
+      onFilterSectionChange?.(section);
+    };
+
     const FilterSection = ({
       title,
       items,
@@ -344,12 +350,12 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     return (
       <motion.div
         ref={ref}
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: '100%' }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
+        exit={{ opacity: 0, y: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="fixed inset-0 z-50 bg-white"
-        style={{ paddingTop: 'calc(var(--safe-area-top) + 0.25rem)' }}
+        className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg"
+        style={{ height: '100vh', paddingTop: 'calc(var(--safe-area-top) + 0.25rem)' }}
       >
         <div className="p-4">
           <div className="flex items-center justify-between">
@@ -393,47 +399,83 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
         <div className="px-4 py-3">
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setActiveFilterSection(activeFilterSection === 'categories' ? null : 'categories')}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeFilterSection === 'categories'
-                  ? 'bg-[#1ce3cf] text-white'
+              onClick={() => handleFilterSectionChange(activeFilterSection === 'categories' ? null : 'categories')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                activeCategoryFilters.length > 0 || activeFilterSection === 'categories'
+                  ? 'bg-[#e0f2f1] text-[#00796b]'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               Categorías {activeCategoryFilters.length > 0 && `(${activeCategoryFilters.length})`}
+              {activeCategoryFilters.length > 0 && (
+                <X 
+                  className="h-4 w-4" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveCategoryFilters([]);
+                  }}
+                />
+              )}
             </button>
 
             <button
-              onClick={() => setActiveFilterSection(activeFilterSection === 'dietTags' ? null : 'dietTags')}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeFilterSection === 'dietTags'
-                  ? 'bg-[#1ce3cf] text-white'
+              onClick={() => handleFilterSectionChange(activeFilterSection === 'dietTags' ? null : 'dietTags')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                activeDietTagFilters.length > 0 || activeFilterSection === 'dietTags'
+                  ? 'bg-[#e0f2f1] text-[#00796b]'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               Etiquetas {activeDietTagFilters.length > 0 && `(${activeDietTagFilters.length})`}
+              {activeDietTagFilters.length > 0 && (
+                <X 
+                  className="h-4 w-4" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveDietTagFilters([]);
+                  }}
+                />
+              )}
             </button>
 
             <button
-              onClick={() => setActiveFilterSection(activeFilterSection === 'price' ? null : 'price')}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeFilterSection === 'price'
-                  ? 'bg-[#1ce3cf] text-white'
+              onClick={() => handleFilterSectionChange(activeFilterSection === 'price' ? null : 'price')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                (priceRange.min > priceLimits.min || priceRange.max < priceLimits.max) || activeFilterSection === 'price'
+                  ? 'bg-[#e0f2f1] text-[#00796b]'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               Precio {priceRange.min > priceLimits.min || priceRange.max < priceLimits.max ? '(Filtrado)' : ''}
+              {(priceRange.min > priceLimits.min || priceRange.max < priceLimits.max) && (
+                <X 
+                  className="h-4 w-4" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPriceRange({ min: priceLimits.min, max: priceLimits.max });
+                  }}
+                />
+              )}
             </button>
 
             <button
-              onClick={() => setActiveFilterSection(activeFilterSection === 'allergens' ? null : 'allergens')}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeFilterSection === 'allergens'
-                  ? 'bg-[#1ce3cf] text-white'
+              onClick={() => handleFilterSectionChange(activeFilterSection === 'allergens' ? null : 'allergens')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                excludedAllergens.length > 0 || activeFilterSection === 'allergens'
+                  ? 'bg-[#e0f2f1] text-[#00796b]'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               Alérgenos {excludedAllergens.length > 0 && `(${excludedAllergens.length})`}
+              {excludedAllergens.length > 0 && (
+                <X 
+                  className="h-4 w-4" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExcludedAllergens([]);
+                  }}
+                />
+              )}
             </button>
           </div>
         </div>
@@ -443,22 +485,16 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
             {activeFilterSection === 'categories' ? (
               <CategoryFilterModal
                 isOpen={true}
-                onClose={() => setActiveFilterSection(null)}
+                onClose={() => handleFilterSectionChange(null)}
                 categories={categories}
                 activeCategoryFilters={activeCategoryFilters}
                 onCategoryFilter={handleCategoryFilter}
+                onModalClose={() => handleFilterSectionChange(null)}
               />
             ) : (
               <>
                 {!searchQuery || searchQuery.trim().length < 3 ? (
                   <div className="flex flex-col items-center justify-center h-full py-8 px-4 text-center">
-                    <p className="text-lg text-[#4f968f]">
-                      ¿Qué te apetece probar hoy en EL GOURMETÓN?
-                    </p>
-                    <p className="text-sm text-gray-500 mt-2 mb-6">
-                      Escribe al menos 3 letras para buscar.
-                    </p>
-
                     {searchHistory && searchHistory.length > 0 && (
                       <div className="w-full max-w-md mb-6">
                         <h3 className="text-md font-semibold text-gray-700 mb-2">

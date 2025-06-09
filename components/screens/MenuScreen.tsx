@@ -96,6 +96,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const [filteredItems, setFilteredItems] = useState<MenuItemData[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [isAnyDetailOpen, setIsAnyDetailOpen] = useState(false);
+    const [activeFilterSection, setActiveFilterSection] = useState<string | null>(null);
 
     // 4. Refs
     const menuScrollRef = useRef<HTMLDivElement | null>(null);
@@ -322,8 +323,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     const floatingCartButtonProps = useMemo(
       () => ({
         onClick: () => router.push('/cart'),
+        isFilterModalOpen: activeFilterSection === 'categories',
       }),
-      [router],
+      [router, activeFilterSection],
     );
 
     const searchOverlayProps = useMemo(
@@ -333,6 +335,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         filteredItems,
         handleSearch,
         onClose: handleResetSearch,
+        onFilterSectionChange: setActiveFilterSection,
       }),
       [searchQuery, searchActive, filteredItems, handleSearch, handleResetSearch],
     );
