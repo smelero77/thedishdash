@@ -41,17 +41,24 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
   };
 
   const handleShowResults = () => {
+    console.log('CategoryFilterModal - handleShowResults - Categorías seleccionadas:', tempSelectedCategories);
     // Solo cuando se pulsa Mostrar resultados, guardamos los cambios
     if (onFilterChange) {
+      console.log('CategoryFilterModal - Llamando a onFilterChange con:', tempSelectedCategories);
       onFilterChange(tempSelectedCategories);
     }
     handleClose();
   };
 
   const handleCategoryClick = (categoryId: string) => {
-    setTempSelectedCategories(prev =>
-      prev.includes(categoryId) ? prev.filter(id => id !== categoryId) : [...prev, categoryId]
-    );
+    console.log('CategoryFilterModal - handleCategoryClick - Categoría clickeada:', categoryId);
+    setTempSelectedCategories(prev => {
+      const newSelection = prev.includes(categoryId) 
+        ? prev.filter(id => id !== categoryId) 
+        : [...prev, categoryId];
+      console.log('CategoryFilterModal - Nueva selección:', newSelection);
+      return newSelection;
+    });
   };
 
   console.log('Categories with images:', categories.map(cat => ({ name: cat.name, image_url: cat.image_url })));

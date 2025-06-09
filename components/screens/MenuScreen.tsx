@@ -336,8 +336,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         handleSearch,
         onClose: handleResetSearch,
         onFilterSectionChange: setActiveFilterSection,
+        setFilteredItems,
       }),
-      [searchQuery, searchActive, filteredItems, handleSearch, handleResetSearch],
+      [searchQuery, searchActive, filteredItems, handleSearch, handleResetSearch, setFilteredItems],
     );
 
     // 2. Función para renderizar el contenido condicional
