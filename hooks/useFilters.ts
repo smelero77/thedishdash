@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-
-export interface Category {
-  id: string;
-  name: string;
-  sort_order: number;
-}
+import { Category } from '@/types/menu';
 
 export interface DietTag {
   id: string;
@@ -24,7 +19,7 @@ export function useFilters() {
         // Obtener categorías
         const { data: categoriesData, error: categoriesError } = await supabase
           .from('categories')
-          .select('id, name, sort_order')
+          .select('id, name, sort_order, image_url, is_complementary')
           .order('sort_order', { ascending: true });
 
         if (categoriesError) throw categoriesError;

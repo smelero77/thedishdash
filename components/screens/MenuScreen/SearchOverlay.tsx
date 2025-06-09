@@ -13,6 +13,8 @@ import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { POPULAR_SEARCHES, getSimilarSuggestions } from '@/utils/searchConfig';
 import { useFilters } from '@/hooks/useFilters';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
+import CategoryFilterModal from './CategoryFilterModal';
 
 interface SearchOverlayProps {
   searchQuery: string;
@@ -340,310 +342,241 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     );
 
     return (
-      <AnimatePresence>
-        {searchActive && (
-          <motion.div
-            initial={{ opacity: 0, y: '100%' }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 250 }}
-            className="fixed inset-0 z-50 bg-[hsl(var(--background))] flex flex-col"
-            style={{
-              height: viewportHeight ? `${viewportHeight}px` : '100vh',
-            }}
-            ref={ref}
-          >
-            <div
-              className="p-4"
-              style={{ paddingTop: 'calc(var(--safe-area-top) + 0.25rem)' }}
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="fixed inset-0 z-50 bg-white"
+        style={{ paddingTop: 'calc(var(--safe-area-top) + 0.25rem)' }}
+      >
+        <div className="p-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={onClose}
+              className="p-1 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
+              aria-label="Cerrar búsqueda"
             >
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={onClose}
-                  className="p-1 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
-                  aria-label="Cerrar búsqueda"
-                >
-                  <ArrowLeft className="h-6 w-6" />
-                </button>
-                <div className="flex-1 flex justify-center min-w-0">
-                  <div className="h-16 flex items-center w-[200px]">
-                    <TextLogoSvg className="h-12 w-auto" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative mt-4">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Buscar"
-                  className="w-full pl-12 pr-10 py-3 text-lg rounded-full border-[1px] border-[#d0e6e4] focus:outline-none focus:ring-2 focus:ring-[#1ce3cf] focus:border-transparent"
-                  style={{ fontFamily: 'Epilogue, "Noto Sans", sans-serif' }}
-                />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#4f968f]" />
-                {searchQuery && (
-                  <button
-                    onClick={() => handleSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
-                    aria-label="Borrar búsqueda"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                )}
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+            <div className="flex-1 flex justify-center min-w-0">
+              <div className="h-16 flex items-center w-[200px]">
+                <TextLogoSvg className="h-12 w-auto" />
               </div>
             </div>
+          </div>
 
-            <div className="px-4 py-3">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setActiveFilterSection(activeFilterSection === 'categories' ? null : 'categories')}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    activeFilterSection === 'categories'
-                      ? 'bg-[#1ce3cf] text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  Categorías {activeCategoryFilters.length > 0 && `(${activeCategoryFilters.length})`}
-                </button>
+          <div className="relative mt-4">
+            <input
+              ref={inputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Buscar"
+              className="w-full pl-12 pr-10 py-3 text-lg rounded-full border-[1px] border-[#d0e6e4] focus:outline-none focus:ring-2 focus:ring-[#1ce3cf] focus:border-transparent"
+              style={{ fontFamily: 'Epilogue, "Noto Sans", sans-serif' }}
+            />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#4f968f]" />
+            {searchQuery && (
+              <button
+                onClick={() => handleSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
+                aria-label="Borrar búsqueda"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+        </div>
 
-                <button
-                  onClick={() => setActiveFilterSection(activeFilterSection === 'dietTags' ? null : 'dietTags')}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    activeFilterSection === 'dietTags'
-                      ? 'bg-[#1ce3cf] text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  Etiquetas {activeDietTagFilters.length > 0 && `(${activeDietTagFilters.length})`}
-                </button>
+        <div className="px-4 py-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveFilterSection(activeFilterSection === 'categories' ? null : 'categories')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeFilterSection === 'categories'
+                  ? 'bg-[#1ce3cf] text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Categorías {activeCategoryFilters.length > 0 && `(${activeCategoryFilters.length})`}
+            </button>
 
-                <button
-                  onClick={() => setActiveFilterSection(activeFilterSection === 'price' ? null : 'price')}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    activeFilterSection === 'price'
-                      ? 'bg-[#1ce3cf] text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  Precio {priceRange.min > priceLimits.min || priceRange.max < priceLimits.max ? '(Filtrado)' : ''}
-                </button>
+            <button
+              onClick={() => setActiveFilterSection(activeFilterSection === 'dietTags' ? null : 'dietTags')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeFilterSection === 'dietTags'
+                  ? 'bg-[#1ce3cf] text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Etiquetas {activeDietTagFilters.length > 0 && `(${activeDietTagFilters.length})`}
+            </button>
 
-                <button
-                  onClick={() => setActiveFilterSection(activeFilterSection === 'allergens' ? null : 'allergens')}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    activeFilterSection === 'allergens'
-                      ? 'bg-[#1ce3cf] text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  Alérgenos {excludedAllergens.length > 0 && `(${excludedAllergens.length})`}
-                </button>
-              </div>
-            </div>
+            <button
+              onClick={() => setActiveFilterSection(activeFilterSection === 'price' ? null : 'price')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeFilterSection === 'price'
+                  ? 'bg-[#1ce3cf] text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Precio {priceRange.min > priceLimits.min || priceRange.max < priceLimits.max ? '(Filtrado)' : ''}
+            </button>
 
-            <div className="flex-1 overflow-y-auto">
-              {activeFilterSection && (
-                <div className="p-4 space-y-6 pb-24">
-                  {activeFilterSection === 'categories' && (
-                    <FilterSection
-                      title="Categorías"
-                      items={categories}
-                      activeItems={activeCategoryFilters}
-                      onToggle={handleCategoryFilter}
-                      type="categories"
-                    />
-                  )}
+            <button
+              onClick={() => setActiveFilterSection(activeFilterSection === 'allergens' ? null : 'allergens')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeFilterSection === 'allergens'
+                  ? 'bg-[#1ce3cf] text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Alérgenos {excludedAllergens.length > 0 && `(${excludedAllergens.length})`}
+            </button>
+          </div>
+        </div>
 
-                  {activeFilterSection === 'dietTags' && (
-                    <FilterSection
-                      title="Etiquetas Dietéticas"
-                      items={dietTags}
-                      activeItems={activeDietTagFilters}
-                      onToggle={handleDietTagFilter}
-                      type="dietTags"
-                    />
-                  )}
+        <div className="flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {activeFilterSection === 'categories' ? (
+              <CategoryFilterModal
+                isOpen={true}
+                onClose={() => setActiveFilterSection(null)}
+                categories={categories}
+                activeCategoryFilters={activeCategoryFilters}
+                onCategoryFilter={handleCategoryFilter}
+              />
+            ) : (
+              <>
+                {!searchQuery || searchQuery.trim().length < 3 ? (
+                  <div className="flex flex-col items-center justify-center h-full py-8 px-4 text-center">
+                    <p className="text-lg text-[#4f968f]">
+                      ¿Qué te apetece probar hoy en EL GOURMETÓN?
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2 mb-6">
+                      Escribe al menos 3 letras para buscar.
+                    </p>
 
-                  {activeFilterSection === 'price' && (
-                    <FilterSection title="Rango de Precios" type="price">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between text-sm text-gray-600">
-                          <span>Mín: {priceRange.min}€</span>
-                          <span>Máx: {priceRange.max}€</span>
-                        </div>
-                        <div className="relative h-2 bg-gray-200 rounded-full">
-                          <div
-                            className="absolute h-full bg-[#1ce3cf] rounded-full"
-                            style={{
-                              left: `${((priceRange.min - priceLimits.min) / (priceLimits.max - priceLimits.min)) * 100}%`,
-                              right: `${100 - ((priceRange.max - priceLimits.min) / (priceLimits.max - priceLimits.min)) * 100}%`,
-                            }}
-                          />
-                          <input
-                            type="range"
-                            min={priceLimits.min}
-                            max={priceLimits.max}
-                            value={priceRange.min}
-                            onChange={(e) => handlePriceChange('min', Number(e.target.value))}
-                            className="absolute w-full h-full opacity-0 cursor-pointer"
-                          />
-                          <input
-                            type="range"
-                            min={priceLimits.min}
-                            max={priceLimits.max}
-                            value={priceRange.max}
-                            onChange={(e) => handlePriceChange('max', Number(e.target.value))}
-                            className="absolute w-full h-full opacity-0 cursor-pointer"
-                          />
-                        </div>
-                      </div>
-                    </FilterSection>
-                  )}
-
-                  {activeFilterSection === 'allergens' && (
-                    <FilterSection
-                      title="Excluir Alérgenos"
-                      items={allergens}
-                      activeItems={excludedAllergens}
-                      onToggle={handleAllergenExclusion}
-                      type="allergens"
-                    />
-                  )}
-                </div>
-              )}
-
-              {!activeFilterSection && (
-                <>
-                  {!searchQuery || searchQuery.trim().length < 3 ? (
-                    <div className="flex flex-col items-center justify-center h-full py-8 px-4 text-center">
-                      <p className="text-lg text-[#4f968f]">
-                        ¿Qué te apetece probar hoy en EL GOURMETÓN?
-                      </p>
-                      <p className="text-sm text-gray-500 mt-2 mb-6">
-                        Escribe al menos 3 letras para buscar.
-                      </p>
-
-                      {searchHistory && searchHistory.length > 0 && (
-                        <div className="w-full max-w-md mb-6">
-                          <h3 className="text-md font-semibold text-gray-700 mb-2">
-                            Búsquedas Recientes
-                          </h3>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {searchHistory.map((term, index) => (
-                              <button
-                                key={index}
-                                onClick={() => handleSearch(term)}
-                                className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors"
-                              >
-                                {term}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
+                    {searchHistory && searchHistory.length > 0 && (
+                      <div className="w-full max-w-md mb-6">
                         <h3 className="text-md font-semibold text-gray-700 mb-2">
-                          Quizás te interese...
+                          Búsquedas Recientes
                         </h3>
                         <div className="flex flex-wrap justify-center gap-2">
-                          {POPULAR_SEARCHES.map((suggestion, index) => (
+                          {searchHistory.map((term, index) => (
                             <button
                               key={index}
-                              onClick={() => handleSearch(suggestion.term)}
-                              className="px-3 py-1.5 bg-[#e0f2f1] text-[#00796b] rounded-full text-sm hover:bg-[#b2dfdb] transition-colors flex items-center gap-1"
+                              onClick={() => handleSearch(term)}
+                              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors"
                             >
-                              <span>{suggestion.icon}</span>
-                              <span>{suggestion.term}</span>
+                              {term}
                             </button>
                           ))}
                         </div>
                       </div>
-                    </div>
-                  ) : isSearching ? (
-                    <div className="flex flex-col items-center justify-center h-full py-8 px-4">
-                      <div className="w-64 h-64">
-                        <DotLottieReact
-                          src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
-                          loop
-                          autoplay
-                        />
+                    )}
+
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-700 mb-2">
+                        Quizás te interese...
+                      </h3>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {POPULAR_SEARCHES.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSearch(suggestion.term)}
+                            className="px-3 py-1.5 bg-[#e0f2f1] text-[#00796b] rounded-full text-sm hover:bg-[#b2dfdb] transition-colors flex items-center gap-1"
+                          >
+                            <span>{suggestion.icon}</span>
+                            <span>{suggestion.term}</span>
+                          </button>
+                        ))}
                       </div>
-                      <p className="text-[#4f968f] text-center mt-4 text-base font-medium">
-                        Buscando...
-                      </p>
                     </div>
-                  ) : filteredResults.length > 0 ? (
-                    <div className="space-y-2 pt-4">
-                      {filteredResults.map((item) => {
-                        const quantity = getCartQuantityForItem(item.id);
-                        return (
-                          <MenuItem
-                            key={item.id}
-                            {...item}
-                            allergens={item.allergens}
-                            onAddToCart={() => handleAddToCart(item.id)}
-                            onRemoveFromCart={() => handleRemoveFromCart(item.id)}
-                            quantity={quantity}
-                            diet_tags={[]}
-                            food_info=""
-                            origin=""
-                            pairing_suggestion=""
-                            chef_notes=""
-                          />
-                        );
-                      })}
+                  </div>
+                ) : isSearching ? (
+                  <div className="flex flex-col items-center justify-center h-full py-8 px-4">
+                    <div className="w-64 h-64">
+                      <DotLottieReact
+                        src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
+                        loop
+                        autoplay
+                      />
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full py-8 px-4">
-                      <div className="w-64 h-64">
-                        <DotLottieReact
-                          src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
-                          loop
-                          autoplay
+                    <p className="text-[#4f968f] text-center mt-4 text-base font-medium">
+                      Buscando...
+                    </p>
+                  </div>
+                ) : filteredResults.length > 0 ? (
+                  <div className="space-y-2 pt-4">
+                    {filteredResults.map((item) => {
+                      const quantity = getCartQuantityForItem(item.id);
+                      return (
+                        <MenuItem
+                          key={item.id}
+                          {...item}
+                          allergens={item.allergens}
+                          onAddToCart={() => handleAddToCart(item.id)}
+                          onRemoveFromCart={() => handleRemoveFromCart(item.id)}
+                          quantity={quantity}
+                          diet_tags={[]}
+                          food_info=""
+                          origin=""
+                          pairing_suggestion=""
+                          chef_notes=""
                         />
-                      </div>
-                      <p className="text-[#4f968f] text-center mb-2">
-                        Vaya, no encontramos nada para "{searchQuery}"
-                      </p>
-                      {similarSuggestions.length > 0 && (
-                        <div className="mb-4">
-                          <p className="text-[#4f968f] text-center text-sm mb-2">
-                            ¿Quizás quisiste decir...?
-                          </p>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {similarSuggestions.map((suggestion, index) => (
-                              <button
-                                key={index}
-                                onClick={() => handleSearch(suggestion)}
-                                className="px-3 py-1.5 bg-[#e0f2f1] text-[#00796b] rounded-full text-sm hover:bg-[#b2dfdb] transition-colors"
-                              >
-                                {suggestion}
-                              </button>
-                            ))}
-                          </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full py-8 px-4">
+                    <div className="w-64 h-64">
+                      <DotLottieReact
+                        src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
+                        loop
+                        autoplay
+                      />
+                    </div>
+                    <p className="text-[#4f968f] text-center mb-2">
+                      Vaya, no encontramos nada para "{searchQuery}"
+                    </p>
+                    {similarSuggestions.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-[#4f968f] text-center text-sm mb-2">
+                          ¿Quizás quisiste decir...?
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {similarSuggestions.map((suggestion, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handleSearch(suggestion)}
+                              className="px-3 py-1.5 bg-[#e0f2f1] text-[#00796b] rounded-full text-sm hover:bg-[#b2dfdb] transition-colors"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
                         </div>
-                      )}
-                      <p className="text-[#4f968f] text-center text-sm mb-4">
-                        Revisa la ortografía o intenta con términos más generales
-                      </p>
-                      <button
-                        onClick={onClose}
-                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1ce3cf] text-white hover:bg-[#16b8a8] transition-colors mt-4"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                        <span>Volver</span>
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                      </div>
+                    )}
+                    <p className="text-[#4f968f] text-center text-sm mb-4">
+                      Revisa la ortografía o intenta con términos más generales
+                    </p>
+                    <button
+                      onClick={onClose}
+                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1ce3cf] text-white hover:bg-[#16b8a8] transition-colors mt-4"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Volver</span>
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
     );
   },
 );
