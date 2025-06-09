@@ -9,7 +9,6 @@ import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import Script from 'next/script';
-import { OrientationMessage } from '@/components/ui/OrientationMessage';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -56,31 +55,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es" className={`${inter.variable} bg-background text-foreground`}>
       <head>
-        <meta name="screen-orientation" content="portrait" />
+        {/* <meta name="screen-orientation" content="portrait" />
         <meta name="x5-orientation" content="portrait" />
         <meta name="full-screen" content="yes" />
         <meta name="browsermode" content="application" />
         <meta name="x5-fullscreen" content="true" />
         <meta name="x5-page-mode" content="app" />
-        <meta name="orientation" content="portrait" />
+        <meta name="orientation" content="portrait" /> */}
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <Providers menuItems={processedMenuItems}>
           <ServiceWorkerRegistration />
           {children}
-          <OrientationMessage />
           <Analytics />
           <SpeedInsights />
         </Providers>
         <Script id="lock-orientation" strategy="beforeInteractive">
           {`
-            if (typeof window !== 'undefined' && window.screen && window.screen.orientation && typeof window.screen.orientation.lock === 'function') {
+            /* if (typeof window !== 'undefined' && window.screen && window.screen.orientation && typeof window.screen.orientation.lock === 'function') {
               window.screen.orientation.lock('portrait').catch(function(error) {
                 console.info('Bloqueo de orientación a vertical intentado. Error (puede ser informativo):', error.message);
               });
             } else {
               console.info('API Screen.orientation.lock no soportada completamente.');
-            }
+            } */
           `}
         </Script>
       </body>

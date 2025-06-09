@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 
 function getIsLandscape(): boolean {
-  if (typeof window === 'undefined') {
+  // Comentamos temporalmente la detección de orientación
+  return false;
+  /* if (typeof window === 'undefined') {
     return false;
   }
   if (window.screen && window.screen.orientation) {
     return window.screen.orientation.type.startsWith('landscape');
   }
-  return window.matchMedia('(orientation: landscape)').matches;
+  return window.matchMedia('(orientation: landscape)').matches; */
 }
 
 export function useOrientation() {

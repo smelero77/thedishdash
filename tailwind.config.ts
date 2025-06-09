@@ -19,6 +19,7 @@ const config: Config = {
     extend: {
       animation: {
         'gradient-x': 'gradient-x 8s linear infinite',
+        'shine': 'shine 2.5s ease-in-out forwards',
       },
       keyframes: {
         'gradient-x': {
@@ -29,6 +30,19 @@ const config: Config = {
           '50%': {
             'background-size': '400% 400%',
             'background-position': '100% 50%',
+          },
+        },
+        'shine': {
+          '0%': {
+            transform: 'translateX(-100%)',
+            opacity: '0.6',
+          },
+          '80%': {
+            opacity: '0.6',
+          },
+          '100%': {
+            transform: 'translateX(100%)',
+            opacity: '0',
           },
         },
       },

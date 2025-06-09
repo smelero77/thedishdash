@@ -19,9 +19,10 @@ export function OrientationMessage({
 }: OrientationMessageProps) {
   const isLandscape = useOrientation();
 
-  if (!isLandscape) {
+  // Comentamos temporalmente la restricción de orientación
+  /* if (!isLandscape) {
     return null;
-  }
+  } */
 
   return (
     <div className="fixed inset-0 z-[10000] bg-[#0e1b19]/95 flex flex-col justify-center items-center p-5 text-center">
