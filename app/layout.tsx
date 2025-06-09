@@ -1,6 +1,6 @@
 // app/layout.tsx
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Montserrat } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
 import { getMenuItems, getCurrentSlot } from '@/lib/data';
@@ -17,6 +17,13 @@ const inter = Inter({
   fallback: ['system-ui', 'arial'],
   adjustFontFallback: true,
   variable: '--font-inter',
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  variable: '--font-montserrat',
 });
 
 export const metadata: Metadata = {
@@ -53,7 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const processedMenuItems = menuItems.map(processMenuItem);
 
   return (
-    <html lang="es" className={`${inter.variable} bg-background text-foreground`}>
+    <html lang="es" className={`${inter.variable} ${montserrat.variable} bg-background text-foreground`}>
       <head>
         {/* <meta name="screen-orientation" content="portrait" />
         <meta name="x5-orientation" content="portrait" />

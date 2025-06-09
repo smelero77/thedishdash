@@ -17,6 +17,9 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        montserrat: ['var(--font-montserrat)'],
+      },
       animation: {
         'gradient-x': 'gradient-x 8s linear infinite',
         'shine': 'shine 2.5s ease-in-out forwards',

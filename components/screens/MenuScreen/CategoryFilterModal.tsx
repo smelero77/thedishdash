@@ -50,7 +50,7 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
               <div className="w-12 h-1 bg-gray-300 rounded-full" />
             </div>
 
-            <div className="h-full flex flex-col pt-6">
+            <div className="h-full flex flex-col pt-2">
               {/* Botón de cerrar */}
               <div className="absolute top-4 right-4">
                 <button
@@ -62,45 +62,80 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
               </div>
 
               {/* Header */}
-              <div className="px-4 py-2">
+              <div className="px-4 py-1">
                 <h2 className="text-lg font-semibold text-[#0e1b19]">Categorías</h2>
               </div>
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto">
-                <div className="p-4">
+                <div className="p-4 pb-20">
                   <div className="grid grid-cols-4 gap-4">
-                    {categories.map((category) => (
-                      <button
-                        key={category.id}
-                        onClick={() => onCategoryFilter(category.id)}
-                        className={`flex flex-col items-center space-y-2 ${
-                          activeCategoryFilters.includes(category.id)
-                            ? 'text-[#1ce3cf]'
-                            : 'text-gray-600'
-                        }`}
-                      >
-                        <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 relative">
-                          {category.image_url ? (
-                            <Image
-                              src={category.image_url}
-                              alt={category.name}
-                              fill
-                              className="object-cover"
-                              sizes="64px"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-[#e0f2f1]">
-                              <span className="text-2xl text-[#4f968f]">
-                                {category.name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-sm font-medium text-center">{category.name}</span>
-                      </button>
-                    ))}
+                    {categories.map((category) => {
+                      const isActive = activeCategoryFilters.includes(category.id);
+                      const rotateDeg = isActive ? -12 : 0;
+
+                      return (
+                        <button
+                          key={category.id}
+                          onClick={() => onCategoryFilter(category.id)}
+                          className="flex flex-col items-center"
+                        >
+                          <div className="relative w-20 h-20">
+                            {/* 1) animamos el SVG */}
+                            <motion.svg
+                              className="absolute inset-0 w-full h-full"
+                              viewBox="0 0 96 96"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              style={{ transformOrigin: 'center center' }}
+                              initial={{ rotate: 0 }}
+                              animate={{ rotate: rotateDeg }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <path
+                                d="M81 27C88.5 40.5 84 66 66 81C48 96 15 87 10.5 61.5C6 36 27 9 54 12C69 13.5 73.5 19.5 81 27Z"
+                                fill={isActive ? '#d1fae5' : '#f3f4f6'}
+                              />
+                            </motion.svg>
+
+                            {/* 2) animamos la foto/decoración exactamente igual */}
+                            <motion.div
+                              className="absolute inset-0 flex items-center justify-center"
+                              initial={{ rotate: 0 }}
+                              animate={{ rotate: rotateDeg }}
+                              transition={{ duration: 0.3 }}
+                              style={{ transformOrigin: 'center center' }}
+                            >
+                              <div className="w-10 h-10 relative overflow-hidden">
+                                {category.image_url ? (
+                                  <Image
+                                    src={category.image_url}
+                                    alt={category.name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="40px"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-[#e0f2f1]">
+                                    <span className="text-xl text-[#4f968f]">
+                                      {category.name.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          </div>
+
+                          <span 
+                            className="text-xs font-medium text-gray-700 text-center"
+                            style={{ fontFamily: 'var(--font-montserrat)' }}
+                          >
+                            {category.name}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
