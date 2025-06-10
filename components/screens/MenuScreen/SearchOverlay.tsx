@@ -161,13 +161,12 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
       return () => window.removeEventListener('resize', handleViewportResize);
     }, []);
 
-    // Efecto para manejar el foco inicial y scroll cuando se abre el overlay
+    // Efecto para hacer scroll al final cuando se abre el overlay
     useEffect(() => {
-      if (searchActive && inputRef.current) {
+      if (searchActive) {
         setTimeout(() => {
-          inputRef.current?.focus();
-          inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
+          window.scrollTo(0, document.body.scrollHeight);
+        }, 100);
       }
     }, [searchActive]);
 
