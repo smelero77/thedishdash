@@ -95,6 +95,13 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     } | null>(null);
     const { modifiers, fetchModifiers } = useModifiers();
 
+    const [localQuery, setLocalQuery] = useState(searchQuery);
+
+    // Efecto para sincronizar el estado local con el estado de búsqueda
+    useEffect(() => {
+      setLocalQuery(searchQuery);
+    }, [searchQuery]);
+
     // Efecto para cargar los límites de precio y alérgenos
     useEffect(() => {
       async function loadFilterData() {
@@ -540,17 +547,27 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 <div className="relative">
                   <input
                     ref={inputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
+                    type="search"
+                    inputMode="search"
+                    enterKeyHint="search"
+                    value={localQuery}
+                    onChange={(e) => setLocalQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearch(localQuery);
+                      }
+                    }}
                     placeholder="Buscar"
                     className="w-full pl-12 pr-10 py-3 text-lg rounded-full border-[1px] border-[#d0e6e4] focus:outline-none focus:ring-2 focus:ring-[#1ce3cf] focus:border-transparent"
                     style={{ fontFamily: 'Epilogue, "Noto Sans", sans-serif' }}
                   />
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#4f968f]" />
-                  {searchQuery && (
+                  {localQuery && (
                     <button
-                      onClick={() => handleSearch('')}
+                      onClick={() => {
+                        setLocalQuery('');
+                        handleSearch('');
+                      }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
                       aria-label="Borrar búsqueda"
                     >

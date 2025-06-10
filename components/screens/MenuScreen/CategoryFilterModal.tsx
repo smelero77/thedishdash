@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import Image from 'next/image';
 import { Category } from '@/types/menu';
 import { X } from 'lucide-react';
@@ -26,6 +26,7 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
   // Estado temporal para las selecciones dentro del modal
   const [tempSelectedCategories, setTempSelectedCategories] =
     useState<string[]>(selectedCategories);
+  const dragControls = useDragControls();
 
   // Actualizar el estado temporal cuando cambian las categorías seleccionadas
   useEffect(() => {
@@ -91,13 +92,25 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg"
             style={{ height: 'calc(100vh - 200px)' }}
+            drag="y"
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={(event, info) => {
+              if (info.offset.y > 100) {
+                handleClose();
+              }
+            }}
           >
             {/* Indicador de arrastre */}
-            <div className="absolute top-0 left-0 right-0 flex justify-center pt-2">
+            <div
+              className="absolute top-0 left-0 right-0 flex justify-center pt-2 cursor-grab active:cursor-grabbing"
+              onPointerDown={(e) => dragControls.start(e)}
+            >
               <div className="w-12 h-1 bg-gray-300 rounded-full" />
             </div>
 
-            <div className="h-full flex flex-col pt-2">
+            <div className="h-full flex flex-col">
               {/* Botón de cerrar */}
               <div className="absolute top-4 right-4">
                 <button

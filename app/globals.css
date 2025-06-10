@@ -484,3 +484,9 @@ main {
     opacity: 0;
   }
 }
+
+/* Ocultar el botón de borrado nativo del input search */
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
