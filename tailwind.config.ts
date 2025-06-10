@@ -22,7 +22,7 @@ const config: Config = {
       },
       animation: {
         'gradient-x': 'gradient-x 8s linear infinite',
-        'shine': 'shine 2.5s ease-in-out forwards',
+        shine: 'shine 2.5s ease-in-out forwards',
       },
       keyframes: {
         'gradient-x': {
@@ -35,7 +35,7 @@ const config: Config = {
             'background-position': '100% 50%',
           },
         },
-        'shine': {
+        shine: {
           '0%': {
             transform: 'translateX(-100%)',
             opacity: '0.6',

@@ -69,15 +69,15 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(
     // Podrías añadir lógica para deshabilitar botones si !is_available
 
     return (
-      <div 
-        className="w-full px-4 py-2" 
+      <div
+        className="w-full px-4 py-2"
         data-is-alcoholic={is_alcoholic?.toString()}
         data-is-new-item={is_new_item?.toString()}
         data-is-seasonal={is_seasonal?.toString()}
         data-is-vegetarian-base={is_vegetarian_base?.toString()}
         data-is-vegan-base={is_vegan_base?.toString()}
         data-is-gluten-free-base={is_gluten_free_base?.toString()}
-        {...rest} 
+        {...rest}
         ref={ref}
       >
         {/* Image with badge */}

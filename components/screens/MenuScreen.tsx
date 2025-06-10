@@ -329,7 +329,7 @@ export const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
     // Inicializar la categoría activa solo si no hay una seleccionada
     useEffect(() => {
       if (orderedCategories.length === 0) return;
-      // sólo inicializamos al primer render, 
+      // sólo inicializamos al primer render,
       // si activeTab ya tiene valor no lo tocamos
       if (!activeTab) {
         setActiveTab(orderedCategories[0].id);

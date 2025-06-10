@@ -24,7 +24,8 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
   selectedCategories,
 }) => {
   // Estado temporal para las selecciones dentro del modal
-  const [tempSelectedCategories, setTempSelectedCategories] = useState<string[]>(selectedCategories);
+  const [tempSelectedCategories, setTempSelectedCategories] =
+    useState<string[]>(selectedCategories);
 
   // Actualizar el estado temporal cuando cambian las categorías seleccionadas
   useEffect(() => {
@@ -41,7 +42,10 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
   };
 
   const handleShowResults = () => {
-    console.log('CategoryFilterModal - handleShowResults - Categorías seleccionadas:', tempSelectedCategories);
+    console.log(
+      'CategoryFilterModal - handleShowResults - Categorías seleccionadas:',
+      tempSelectedCategories,
+    );
     // Solo cuando se pulsa Mostrar resultados, guardamos los cambios
     if (onFilterChange) {
       console.log('CategoryFilterModal - Llamando a onFilterChange con:', tempSelectedCategories);
@@ -52,16 +56,19 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
 
   const handleCategoryClick = (categoryId: string) => {
     console.log('CategoryFilterModal - handleCategoryClick - Categoría clickeada:', categoryId);
-    setTempSelectedCategories(prev => {
-      const newSelection = prev.includes(categoryId) 
-        ? prev.filter(id => id !== categoryId) 
+    setTempSelectedCategories((prev) => {
+      const newSelection = prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId];
       console.log('CategoryFilterModal - Nueva selección:', newSelection);
       return newSelection;
     });
   };
 
-  console.log('Categories with images:', categories.map(cat => ({ name: cat.name, image_url: cat.image_url })));
+  console.log(
+    'Categories with images:',
+    categories.map((cat) => ({ name: cat.name, image_url: cat.image_url })),
+  );
 
   return (
     <AnimatePresence>
@@ -76,7 +83,7 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
             className="fixed inset-0 bg-black/50 z-40"
             onClick={handleClose}
           />
-          
+
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
@@ -167,7 +174,7 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
                             </motion.div>
                           </div>
 
-                          <span 
+                          <span
                             className="text-xs font-medium text-gray-700 text-center"
                             style={{ fontFamily: 'var(--font-montserrat)' }}
                           >
@@ -199,4 +206,4 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
   );
 };
 
-export default CategoryFilterModal; 
+export default CategoryFilterModal;

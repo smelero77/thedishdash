@@ -29,7 +29,9 @@ interface SearchOverlayProps {
   filteredItems: MenuItemData[];
   handleSearch: (query: string) => void;
   onClose: () => void;
-  onFilterSectionChange?: (section: 'categories' | 'dietTags' | 'price' | 'allergens' | null) => void;
+  onFilterSectionChange?: (
+    section: 'categories' | 'dietTags' | 'price' | 'allergens' | null,
+  ) => void;
   setFilteredItems: (items: MenuItemData[]) => void;
 }
 
@@ -45,7 +47,18 @@ interface Allergen {
 }
 
 const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
-  ({ searchQuery, searchActive, filteredItems, handleSearch, onClose, onFilterSectionChange, setFilteredItems }, ref) => {
+  (
+    {
+      searchQuery,
+      searchActive,
+      filteredItems,
+      handleSearch,
+      onClose,
+      onFilterSectionChange,
+      setFilteredItems,
+    },
+    ref,
+  ) => {
     const cart = useContext(CartItemsContext);
     const cartActions = useContext(CartActionsContext);
     const cartTotal = useContext(CartTotalContext);
@@ -216,14 +229,14 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
         console.log(`[SearchOverlay] Procesando item ${itemId}:`, {
           name: item.name,
           hasModifiers: item.modifiers?.length > 0,
-          modifiersCount: item.modifiers?.length
+          modifiersCount: item.modifiers?.length,
         });
 
         if (item.modifiers && item.modifiers.length > 0) {
           console.log(`[SearchOverlay] Item ${itemId} tiene modificadores, obteniendo detalles...`);
           await fetchModifiers(itemId);
           console.log(`[SearchOverlay] Modificadores obtenidos para ${itemId}:`, modifiers);
-          
+
           setSelectedItem({
             id: item.id,
             name: item.name,
@@ -262,18 +275,23 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     const onModifierSubmit = useCallback(
       (options: Record<string, string[]>) => {
         if (selectedItem && cartActions) {
-          console.log(`[SearchOverlay] Procesando selección de modificadores para ${selectedItem.id}:`, {
-            itemName: selectedItem.name,
-            selectedOptions: options
-          });
-          
+          console.log(
+            `[SearchOverlay] Procesando selección de modificadores para ${selectedItem.id}:`,
+            {
+              itemName: selectedItem.name,
+              selectedOptions: options,
+            },
+          );
+
           handleModifierSubmit(
             selectedItem,
             options,
             modifiers,
             cartActions.handleAddToCart,
             () => {
-              console.log(`[SearchOverlay] Cerrando modal de modificadores para ${selectedItem.id}`);
+              console.log(
+                `[SearchOverlay] Cerrando modal de modificadores para ${selectedItem.id}`,
+              );
               setShowModifierModal(false);
               setSelectedItem(null);
             },
@@ -305,9 +323,9 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
 
     const handleCategoryFilter = (categoryId: string) => {
       console.log('SearchOverlay - handleCategoryFilter - Categoría seleccionada:', categoryId);
-      setActiveCategoryFilters(prev => {
-        const newSelection = prev.includes(categoryId) 
-          ? prev.filter(id => id !== categoryId) 
+      setActiveCategoryFilters((prev) => {
+        const newSelection = prev.includes(categoryId)
+          ? prev.filter((id) => id !== categoryId)
           : [...prev, categoryId];
         console.log('SearchOverlay - Nueva selección de categorías:', newSelection);
         return newSelection;
@@ -315,8 +333,11 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     };
 
     const handleCategoryFilterChange = async (selectedCategories: string[]) => {
-      console.log('SearchOverlay - handleCategoryFilterChange - Categorías seleccionadas:', selectedCategories);
-      
+      console.log(
+        'SearchOverlay - handleCategoryFilterChange - Categorías seleccionadas:',
+        selectedCategories,
+      );
+
       try {
         // Consulta a la base de datos para obtener los artículos que pertenecen a las categorías seleccionadas
         const { data: items, error } = await supabase
@@ -326,7 +347,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
           .overlaps('category_ids', selectedCategories);
 
         if (error) throw error;
-        
+
         console.log('SearchOverlay - Artículos filtrados desde BD:', items);
         setFilteredItems(items || []);
         setConfirmedCategoryFilters(selectedCategories);
@@ -390,7 +411,9 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
 
     const filteredResults = applyFilters(filteredItems);
 
-    const handleFilterSectionChange = (section: 'categories' | 'dietTags' | 'price' | 'allergens' | null) => {
+    const handleFilterSectionChange = (
+      section: 'categories' | 'dietTags' | 'price' | 'allergens' | null,
+    ) => {
       if (section === null) {
         // Si se cierra el modal sin guardar, reseteamos los filtros
         setActiveCategoryFilters(confirmedCategoryFilters);
@@ -477,7 +500,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 paddingTop: 'calc(var(--safe-area-top) + 1rem)',
                 paddingBottom: '0.5rem',
                 width: '100%',
-                maxWidth: '100vw'
+                maxWidth: '100vw',
               }}
             >
               <div className="flex items-center h-16 flex-shrink-0">
@@ -528,17 +551,22 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
             <div className="px-4 py-3">
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => handleFilterSectionChange(activeFilterSection === 'categories' ? null : 'categories')}
+                  onClick={() =>
+                    handleFilterSectionChange(
+                      activeFilterSection === 'categories' ? null : 'categories',
+                    )
+                  }
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
                     confirmedCategoryFilters.length > 0
                       ? 'bg-[#e0f2f1] text-[#00796b]'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Categorías {confirmedCategoryFilters.length > 0 && `(${confirmedCategoryFilters.length})`}
+                  Categorías{' '}
+                  {confirmedCategoryFilters.length > 0 && `(${confirmedCategoryFilters.length})`}
                   {confirmedCategoryFilters.length > 0 && (
-                    <X 
-                      className="h-4 w-4" 
+                    <X
+                      className="h-4 w-4"
                       onClick={(e) => {
                         e.stopPropagation();
                         setConfirmedCategoryFilters([]);
@@ -549,7 +577,11 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 </button>
 
                 <button
-                  onClick={() => handleFilterSectionChange(activeFilterSection === 'dietTags' ? null : 'dietTags')}
+                  onClick={() =>
+                    handleFilterSectionChange(
+                      activeFilterSection === 'dietTags' ? null : 'dietTags',
+                    )
+                  }
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
                     activeDietTagFilters.length > 0 || activeFilterSection === 'dietTags'
                       ? 'bg-[#e0f2f1] text-[#00796b]'
@@ -558,8 +590,8 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 >
                   Etiquetas {activeDietTagFilters.length > 0 && `(${activeDietTagFilters.length})`}
                   {activeDietTagFilters.length > 0 && (
-                    <X 
-                      className="h-4 w-4" 
+                    <X
+                      className="h-4 w-4"
                       onClick={(e) => {
                         e.stopPropagation();
                         setActiveDietTagFilters([]);
@@ -569,17 +601,24 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 </button>
 
                 <button
-                  onClick={() => handleFilterSectionChange(activeFilterSection === 'price' ? null : 'price')}
+                  onClick={() =>
+                    handleFilterSectionChange(activeFilterSection === 'price' ? null : 'price')
+                  }
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                    (priceRange.min > priceLimits.min || priceRange.max < priceLimits.max) || activeFilterSection === 'price'
+                    priceRange.min > priceLimits.min ||
+                    priceRange.max < priceLimits.max ||
+                    activeFilterSection === 'price'
                       ? 'bg-[#e0f2f1] text-[#00796b]'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Precio {priceRange.min > priceLimits.min || priceRange.max < priceLimits.max ? '(Filtrado)' : ''}
+                  Precio{' '}
+                  {priceRange.min > priceLimits.min || priceRange.max < priceLimits.max
+                    ? '(Filtrado)'
+                    : ''}
                   {(priceRange.min > priceLimits.min || priceRange.max < priceLimits.max) && (
-                    <X 
-                      className="h-4 w-4" 
+                    <X
+                      className="h-4 w-4"
                       onClick={(e) => {
                         e.stopPropagation();
                         setPriceRange({ min: priceLimits.min, max: priceLimits.max });
@@ -589,7 +628,11 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 </button>
 
                 <button
-                  onClick={() => handleFilterSectionChange(activeFilterSection === 'allergens' ? null : 'allergens')}
+                  onClick={() =>
+                    handleFilterSectionChange(
+                      activeFilterSection === 'allergens' ? null : 'allergens',
+                    )
+                  }
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
                     excludedAllergens.length > 0 || activeFilterSection === 'allergens'
                       ? 'bg-[#e0f2f1] text-[#00796b]'
@@ -598,8 +641,8 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 >
                   Alérgenos {excludedAllergens.length > 0 && `(${excludedAllergens.length})`}
                   {excludedAllergens.length > 0 && (
-                    <X 
-                      className="h-4 w-4" 
+                    <X
+                      className="h-4 w-4"
                       onClick={(e) => {
                         e.stopPropagation();
                         setExcludedAllergens([]);
@@ -624,7 +667,8 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                   />
                 ) : (
                   <>
-                    {(!searchQuery || searchQuery.trim().length < 3) && confirmedCategoryFilters.length === 0 ? (
+                    {(!searchQuery || searchQuery.trim().length < 3) &&
+                    confirmedCategoryFilters.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full py-8 px-4 text-center">
                         {searchHistory && searchHistory.length > 0 && (
                           <div className="w-full max-w-md mb-6">
@@ -708,7 +752,9 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                           />
                         </div>
                         <p className="text-[#4f968f] text-center mb-2">
-                          {searchQuery ? `Vaya, no encontramos nada para "${searchQuery}"` : "No se encontraron artículos con los filtros seleccionados"}
+                          {searchQuery
+                            ? `Vaya, no encontramos nada para "${searchQuery}"`
+                            : 'No se encontraron artículos con los filtros seleccionados'}
                         </p>
                         {similarSuggestions.length > 0 && (
                           <div className="mb-4">
@@ -729,7 +775,9 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                           </div>
                         )}
                         <p className="text-[#4f968f] text-center text-sm mb-4">
-                          {searchQuery ? "Revisa la ortografía o intenta con términos más generales" : "Intenta con otras categorías"}
+                          {searchQuery
+                            ? 'Revisa la ortografía o intenta con términos más generales'
+                            : 'Intenta con otras categorías'}
                         </p>
                         <button
                           onClick={onClose}

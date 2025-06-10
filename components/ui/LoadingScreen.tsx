@@ -29,9 +29,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f8fbfb]">
         <div className="flex flex-col items-center gap-6">
-          <div className="text-xl font-semibold text-[#4f968f] text-center max-w-xs">
-            {message}
-          </div>
+          <div className="text-xl font-semibold text-[#4f968f] text-center max-w-xs">{message}</div>
           <div className="text-sm text-[#4f968f]/70 mt-2">
             Un momento, estamos preparando algo especial...
           </div>

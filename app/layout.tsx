@@ -60,7 +60,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const processedMenuItems = menuItems.map(processMenuItem);
 
   return (
-    <html lang="es" className={`${inter.variable} ${montserrat.variable} bg-background text-foreground`}>
+    <html
+      lang="es"
+      className={`${inter.variable} ${montserrat.variable} bg-background text-foreground`}
+    >
       <head>
         {/* <meta name="screen-orientation" content="portrait" />
         <meta name="x5-orientation" content="portrait" />
