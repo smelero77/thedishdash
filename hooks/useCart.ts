@@ -353,7 +353,6 @@ function useCart(
 
         // Siempre actualizamos el total y devolvemos un nuevo objeto
         updateCartTotal(newCart, menuItems);
-        console.log('[useCart] Realtime Update - newCart state:', JSON.stringify(newCart, null, 2));
         return { ...newCart };
       });
     };
@@ -445,10 +444,6 @@ function useCart(
         }
 
         updateCartTotal(newCart, menuItems);
-        console.log(
-          '[useCart] Optimistic Update - newCart state:',
-          JSON.stringify(newCart, null, 2),
-        );
         return newCart;
       });
 
@@ -509,10 +504,6 @@ function useCart(
           updateCartTotal(newCart, menuItems);
         }
 
-        console.log(
-          '[useCart] Optimistic Decrement - newCart state:',
-          JSON.stringify(newCart, null, 2),
-        );
         return newCart;
       });
 

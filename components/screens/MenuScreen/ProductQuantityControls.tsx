@@ -19,13 +19,28 @@ const ProductQuantityControls: React.FC<ProductQuantityControlsProps> = ({
   onRemove,
   onOpenCart,
 }) => {
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAdd(e);
+  };
+
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRemove(e);
+  };
+
+  const handleOpenCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenCart?.(e);
+  };
+
   return (
     <div className="flex items-center justify-between w-[8.5rem]">
       {quantity > 0 ? (
         <>
           {hasModifiers ? (
             <button
-              onClick={onOpenCart}
+              onClick={handleOpenCart}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
               aria-label="Open cart"
               type="button"
@@ -34,7 +49,7 @@ const ProductQuantityControls: React.FC<ProductQuantityControlsProps> = ({
             </button>
           ) : (
             <button
-              onClick={onRemove}
+              onClick={handleRemove}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
               aria-label="Remove one from cart"
               type="button"
@@ -46,7 +61,7 @@ const ProductQuantityControls: React.FC<ProductQuantityControlsProps> = ({
             {formatPrice(price)}
           </p>
           <button
-            onClick={onAdd}
+            onClick={handleAdd}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
             aria-label="Add one more to cart"
             type="button"
@@ -61,7 +76,7 @@ const ProductQuantityControls: React.FC<ProductQuantityControlsProps> = ({
             {formatPrice(price)}
           </p>
           <button
-            onClick={onAdd}
+            onClick={handleAdd}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1ce3cf] text-[#0e1b19] transition-opacity hover:opacity-80"
             aria-label="Add to cart"
             type="button"

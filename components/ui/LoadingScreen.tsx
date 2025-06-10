@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface LoadingScreenProps {
@@ -10,6 +10,12 @@ interface LoadingScreenProps {
 const LoadingScreen: React.FC<LoadingScreenProps> = ({
   message = 'Preparando tu experiencia culinaria...',
 }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Definimos diferentes patrones de altura para cada barra
   const barPatterns = [
     [10, 60, 10, 30, 10], // Sube alto, baja medio
@@ -18,6 +24,21 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
     [10, 20, 10, 50, 10], // Sube bajo, baja alto
     [10, 40, 10, 40, 10], // Sube y baja igual
   ];
+
+  if (!isClient) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f8fbfb]">
+        <div className="flex flex-col items-center gap-6">
+          <div className="text-xl font-semibold text-[#4f968f] text-center max-w-xs">
+            {message}
+          </div>
+          <div className="text-sm text-[#4f968f]/70 mt-2">
+            Un momento, estamos preparando algo especial...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f8fbfb]">

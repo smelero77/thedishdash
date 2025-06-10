@@ -2,7 +2,7 @@ import React, { useContext, forwardRef, useCallback, useState, useEffect, useRef
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft, Search, Filter, ChevronRight, Euro } from 'lucide-react';
 import MenuItem from '../MenuItem';
-import { MenuItemData } from '@/types/menu';
+import { MenuItemData, MenuItemAllergen } from '@/types/menu';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { CartItemsContext } from '@/context/CartItemsContext';
 import { CartActionsContext } from '@/context/CartActionsContext';
@@ -15,6 +15,13 @@ import { useFilters } from '@/hooks/useFilters';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
 import CategoryFilterModal from './CategoryFilterModal';
+import { useModifiers } from '@/hooks/useModifiers';
+import { Modifier } from '@/types/modifiers';
+import dynamic from 'next/dynamic';
+import { handleModifierSubmit } from '@/hooks/useModifierSubmit';
+
+// Load heavy libraries dynamically
+const ModifierModal = dynamic(() => import('../ModifierModal'), { ssr: false });
 
 interface SearchOverlayProps {
   searchQuery: string;
@@ -61,6 +68,17 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     const [excludedAllergens, setExcludedAllergens] = useState<string[]>([]);
     const [priceLimits, setPriceLimits] = useState<PriceRange>({ min: 0, max: 100 });
     const [allMenuItems, setAllMenuItems] = useState<MenuItemData[]>([]);
+
+    // Estados para manejar modificadores
+    const [showModifierModal, setShowModifierModal] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<{
+      id: string;
+      name: string;
+      description: string;
+      allergens: MenuItemAllergen[];
+      modifiers: Modifier[];
+    } | null>(null);
+    const { modifiers, fetchModifiers } = useModifiers();
 
     // Efecto para cargar los límites de precio y alérgenos
     useEffect(() => {
@@ -183,26 +201,86 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
       };
     }, [searchActive, onClose]);
 
+    const handleItemClick = useCallback(
+      async (itemId: string) => {
+        const item = filteredItems.find((i) => i.id === itemId);
+        if (!item) {
+          console.error(`[SearchOverlay] Item con ID ${itemId} no encontrado en filteredItems.`);
+          return;
+        }
+        if (!cartActions) {
+          console.error('[SearchOverlay] Cart actions no están disponibles.');
+          return;
+        }
+
+        console.log(`[SearchOverlay] Procesando item ${itemId}:`, {
+          name: item.name,
+          hasModifiers: item.modifiers?.length > 0,
+          modifiersCount: item.modifiers?.length
+        });
+
+        if (item.modifiers && item.modifiers.length > 0) {
+          console.log(`[SearchOverlay] Item ${itemId} tiene modificadores, obteniendo detalles...`);
+          await fetchModifiers(itemId);
+          console.log(`[SearchOverlay] Modificadores obtenidos para ${itemId}:`, modifiers);
+          
+          setSelectedItem({
+            id: item.id,
+            name: item.name,
+            description: item.description || '',
+            allergens: item.allergens,
+            modifiers: item.modifiers,
+          });
+          console.log(`[SearchOverlay] Mostrando modal de modificadores para ${itemId}`);
+          setShowModifierModal(true);
+          return;
+        }
+
+        console.log(`[SearchOverlay] Añadiendo item ${itemId} sin modificadores al carrito`);
+        cartActions.handleAddToCart(itemId, {});
+      },
+      [filteredItems, fetchModifiers, cartActions, modifiers],
+    );
+
     const handleAddToCart = useCallback(
       (itemId: string) => {
-        if (cartActions && typeof cartActions === 'object' && 'handleAddToCart' in cartActions) {
-          (cartActions as any).handleAddToCart(itemId, {});
-        }
+        console.log(`[SearchOverlay] handleAddToCart llamado para item ${itemId}`);
+        handleItemClick(itemId);
       },
-      [cartActions],
+      [handleItemClick],
     );
 
     const handleRemoveFromCart = useCallback(
       (itemId: string) => {
-        if (
-          cartActions &&
-          typeof cartActions === 'object' &&
-          'handleDecrementCart' in cartActions
-        ) {
-          (cartActions as any).handleDecrementCart(itemId, {});
-        }
+        if (!cartActions) return;
+        console.log(`[SearchOverlay] Eliminando item ${itemId} del carrito`);
+        cartActions.handleDecrementCart(itemId, {});
       },
       [cartActions],
+    );
+
+    const onModifierSubmit = useCallback(
+      (options: Record<string, string[]>) => {
+        if (selectedItem && cartActions) {
+          console.log(`[SearchOverlay] Procesando selección de modificadores para ${selectedItem.id}:`, {
+            itemName: selectedItem.name,
+            selectedOptions: options
+          });
+          
+          handleModifierSubmit(
+            selectedItem,
+            options,
+            modifiers,
+            cartActions.handleAddToCart,
+            () => {
+              console.log(`[SearchOverlay] Cerrando modal de modificadores para ${selectedItem.id}`);
+              setShowModifierModal(false);
+              setSelectedItem(null);
+            },
+          );
+        }
+      },
+      [selectedItem, modifiers, cartActions],
     );
 
     const getCartQuantityForItem = useCallback(
@@ -611,10 +689,11 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                               onRemoveFromCart={() => handleRemoveFromCart(item.id)}
                               quantity={quantity}
                               diet_tags={[]}
-                              food_info=""
                               origin=""
                               pairing_suggestion=""
                               chef_notes=""
+                              hasModifiers={item.modifiers?.length > 0}
+                              onOpenCart={() => handleAddToCart(item.id)}
                             />
                           );
                         })}
@@ -665,6 +744,24 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 )}
               </AnimatePresence>
             </div>
+
+            <AnimatePresence>
+              {showModifierModal && selectedItem && (
+                <ModifierModal
+                  isOpen={showModifierModal}
+                  itemName={selectedItem.name}
+                  itemDescription={selectedItem.description}
+                  itemAllergens={selectedItem.allergens}
+                  modifiers={modifiers}
+                  menuItems={filteredItems}
+                  onConfirm={onModifierSubmit}
+                  onClose={() => {
+                    setShowModifierModal(false);
+                    setSelectedItem(null);
+                  }}
+                />
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

@@ -27,6 +27,12 @@ interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   is_available: boolean;
   hasModifiers?: boolean;
   onOpenCart?: (e: React.MouseEvent) => void;
+  is_alcoholic?: boolean;
+  is_new_item?: boolean;
+  is_seasonal?: boolean;
+  is_vegetarian_base?: boolean;
+  is_vegan_base?: boolean;
+  is_gluten_free_base?: boolean;
 }
 
 const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(
@@ -50,6 +56,12 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(
       is_available, // Mantenemos la prop pero no la usamos en el JSX
       hasModifiers = false, // Valor por defecto
       onOpenCart,
+      is_alcoholic,
+      is_new_item,
+      is_seasonal,
+      is_vegetarian_base,
+      is_vegan_base,
+      is_gluten_free_base,
       ...rest
     },
     ref,
@@ -57,7 +69,17 @@ const MenuItemComponent = forwardRef<HTMLDivElement, MenuItemProps>(
     // Podrías añadir lógica para deshabilitar botones si !is_available
 
     return (
-      <div className="w-full px-4 py-2" {...rest} ref={ref}>
+      <div 
+        className="w-full px-4 py-2" 
+        data-is-alcoholic={is_alcoholic?.toString()}
+        data-is-new-item={is_new_item?.toString()}
+        data-is-seasonal={is_seasonal?.toString()}
+        data-is-vegetarian-base={is_vegetarian_base?.toString()}
+        data-is-vegan-base={is_vegan_base?.toString()}
+        data-is-gluten-free-base={is_gluten_free_base?.toString()}
+        {...rest} 
+        ref={ref}
+      >
         {/* Image with badge */}
         <div className="relative w-full overflow-hidden aspect-[4/3] bg-gray-200 bg-cover bg-center rounded-lg">
           {' '}

@@ -66,7 +66,7 @@ interface MenuScreenProps {
   initialCurrentSlot: Slot | null;
 }
 
-const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
+export const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
   ({ initialSlots, initialCategories, initialMenuItems, initialCurrentSlot }, ref) => {
     const router = useRouter();
     // 1. Context hooks primero
@@ -122,6 +122,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       [cart, alias],
     );
 
+    // ref para guardar la pestaña activa antes de abrir el modal
+    const prevActiveTabRef = useRef<string>('');
+
     const handleItemClick = useCallback(
       async (itemId: string) => {
         const item = memoizedInitialMenuItems?.find((i) => i.id === itemId);
@@ -133,6 +136,9 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
           console.error('[MenuScreen] Cart actions no están disponibles.');
           return;
         }
+
+        // guardamos la pestaña activa antes de abrir el modal
+        prevActiveTabRef.current = activeTab;
 
         if (item.modifiers && item.modifiers.length > 0) {
           await fetchModifiers(itemId);
@@ -150,8 +156,25 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         console.log(`[MenuScreen] Añadiendo item ${itemId} sin modificadores.`);
         memoizedCartActions.handleAddToCart(itemId, {});
       },
-      [memoizedInitialMenuItems, fetchModifiers, memoizedCartActions],
+      [memoizedInitialMenuItems, fetchModifiers, memoizedCartActions, activeTab],
     );
+
+    // función unificada para cerrar el modal y restaurar la pestaña
+    const closeModifierModal = useCallback(() => {
+      setShowModifierModal(false);
+      setSelectedItem(null);
+      // restauramos la pestaña previa
+      if (prevActiveTabRef.current) {
+        setActiveTab(prevActiveTabRef.current);
+      }
+
+      // silenciamos el scroll-spy mientras el body vuelve a su scroll original
+      isManualScroll.current = true;
+      // reactivamos tras un ratito (50–100ms suele ser suficiente)
+      setTimeout(() => {
+        isManualScroll.current = false;
+      }, 50);
+    }, []);
 
     const handleAddToCart = useCallback(
       (itemId: string) => {
@@ -188,7 +211,8 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
 
     // Scroll spy handler
     const handleScrollSpy = useCallback(() => {
-      if (isManualScroll.current) return; // Ignora mientras scroll manual
+      if (showModifierModal) return;
+      if (isManualScroll.current) return;
 
       const HEADER_HEIGHT = parseInt(
         getComputedStyle(document.documentElement).getPropertyValue('--header-height'),
@@ -197,7 +221,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
         getComputedStyle(document.documentElement).getPropertyValue('--tabs-height'),
       );
 
-      const scrollPosition = window.scrollY + HEADER_HEIGHT + TABS_HEIGHT + 10; // +10px "colchón"
+      const scrollPosition = window.scrollY + HEADER_HEIGHT + TABS_HEIGHT + 10;
       let current = orderedCategories[0]?.id;
 
       orderedCategories.forEach((cat) => {
@@ -209,7 +233,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       });
 
       setActiveTab(current);
-    }, [orderedCategories]);
+    }, [orderedCategories, showModifierModal]);
 
     // Inicializar el scroll spy
     useEffect(() => {
@@ -302,10 +326,15 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
       };
     }, [searchActive]);
 
+    // Inicializar la categoría activa solo si no hay una seleccionada
     useEffect(() => {
       if (orderedCategories.length === 0) return;
-      setActiveTab(orderedCategories[0].id);
-    }, [orderedCategories]);
+      // sólo inicializamos al primer render, 
+      // si activeTab ya tiene valor no lo tocamos
+      if (!activeTab) {
+        setActiveTab(orderedCategories[0].id);
+      }
+    }, [orderedCategories, activeTab]);
 
     const menuHeaderProps = useMemo(
       () => ({
@@ -408,10 +437,7 @@ const MenuScreenComponent = forwardRef<HTMLDivElement, MenuScreenProps>(
                 modifiers={memoizedModifiers as Modifier[]}
                 menuItems={memoizedInitialMenuItems ?? []}
                 onConfirm={onModifierSubmit}
-                onClose={() => {
-                  setShowModifierModal(false);
-                  setSelectedItem(null);
-                }}
+                onClose={closeModifierModal}
               />
             )}
 

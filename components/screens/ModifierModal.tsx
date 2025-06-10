@@ -32,26 +32,15 @@ const ModifierModalComponent = forwardRef<HTMLDivElement, ModifierModalProps>(
     // Efecto para controlar el scroll del body
     useEffect(() => {
       if (isOpen) {
+        // solo escondemos la barra de scroll del root
         document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
-        document.body.style.position = 'fixed';
-        document.body.style.width = '100%';
-        document.body.style.top = `-${window.scrollY}px`;
       } else {
-        const scrollY = document.body.style.top;
+        // al cerrar, volvemos a permitir scroll en el root
         document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.top = '';
-        window.scrollTo(0, parseInt(scrollY || '0') * -1);
       }
       return () => {
+        // por si acaso, limpiamos siempre
         document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.top = '';
       };
     }, [isOpen]);
 
