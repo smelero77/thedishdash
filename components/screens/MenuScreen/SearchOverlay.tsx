@@ -487,7 +487,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
         <Head>
           <meta
             name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
           />
         </Head>
         <AnimatePresence>
@@ -505,7 +505,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 className="flex items-center justify-between bg-white px-4 mb-2"
                 style={{
                   height: 'var(--header-height)',
-                  paddingTop: 'calc(var(--safe-area-top) + 1rem)',
+                  paddingTop: 'calc(env(safe-area-inset-top, 1rem) + 1rem)',
                   paddingBottom: '0.5rem',
                   width: '100%',
                   maxWidth: '100vw',
