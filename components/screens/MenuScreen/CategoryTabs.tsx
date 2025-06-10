@@ -52,25 +52,25 @@ const CategoryTabsComponent = forwardRef<HTMLDivElement, CategoryTabsProps>(
                       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                   }}
-                  className={`flex flex-col items-center justify-center px-6 py-2 cursor-pointer transition-all duration-300 border-b-4 relative ${
+                  className={`flex flex-col items-center justify-center px-6 py-1.5 cursor-pointer transition-all duration-300 border-b-4 relative ${
                     activeTab === category.id
                       ? 'text-[#0e1b19] font-bold border-[#1ce3cf]'
                       : 'text-[#4f968f] hover:text-[#0e1b19] border-transparent'
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 relative mb-2">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 relative mb-1.5">
                     {category.image_url ? (
                       <Image
                         src={category.image_url}
                         alt={category.name}
                         fill
                         className="object-cover"
-                        sizes="48px"
+                        sizes="40px"
                         unoptimized
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-[#e0f2f1]">
-                        <span className="text-2xl text-[#4f968f]">
+                        <span className="text-xl text-[#4f968f]">
                           {category.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
