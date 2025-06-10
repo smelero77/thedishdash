@@ -14,9 +14,18 @@ const sheetVariants = {
   visible: {
     y: '0%',
     opacity: 1,
-    transition: { type: 'spring', stiffness: 200, damping: 25 },
+    transition: { type: 'spring', stiffness: 300, damping: 30 },
   },
-  exit: { y: '100%', opacity: 0, transition: { duration: 0.2 } },
+  exit: {
+    y: '100%',
+    opacity: 0,
+    transition: {
+      type: 'spring',
+      stiffness: 400,
+      damping: 40,
+      duration: 0.2,
+    },
+  },
 };
 
 export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
@@ -27,16 +36,35 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
 }) => {
   const controls = useAnimation();
   const y = useMotionValue(0);
-  const opacity = useTransform(y, [0, 100], [1, 0]);
-  const scale = useTransform(y, [0, 100], [1, 0.95]);
+  const opacity = useTransform(y, [-100, 0, 100], [0, 1, 0]);
+  const scale = useTransform(y, [-100, 0, 100], [0.95, 1, 0.95]);
 
   const handleDragEnd = async (event: any, info: any) => {
-    const threshold = 100;
-    if (info.offset.y > threshold) {
-      await controls.start('exit');
+    const threshold = 50;
+    const velocity = info.velocity.y;
+
+    if (velocity > 500 || info.offset.y > threshold) {
+      await controls.start({
+        y: '100%',
+        opacity: 0,
+        transition: {
+          type: 'spring',
+          stiffness: 400,
+          damping: 40,
+          duration: 0.2,
+        },
+      });
       onClose();
     } else {
-      controls.start('visible');
+      await controls.start({
+        y: 0,
+        transition: {
+          type: 'spring',
+          stiffness: 300,
+          damping: 30,
+          velocity: velocity,
+        },
+      });
     }
   };
 
@@ -68,7 +96,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
               animate={controls}
               drag="y"
               dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.2}
+              dragElastic={0.1}
               onDragEnd={handleDragEnd}
             >
               {/* Indicador de deslizamiento */}

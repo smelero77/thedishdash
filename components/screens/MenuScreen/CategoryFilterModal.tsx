@@ -90,8 +90,8 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg"
-            style={{ height: 'calc(100vh - 200px)' }}
+            className="fixed inset-0 z-50 bg-white rounded-t-3xl shadow-lg flex flex-col"
+            style={{ top: 'auto' }}
             drag="y"
             dragControls={dragControls}
             dragConstraints={{ top: 0, bottom: 0 }}
@@ -110,7 +110,7 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
               <div className="w-12 h-1 bg-gray-300 rounded-full" />
             </div>
 
-            <div className="h-full flex flex-col">
+            <div className="flex-1 flex flex-col">
               {/* Botón de cerrar */}
               <div className="absolute top-4 right-4">
                 <button
@@ -128,7 +128,10 @@ const CategoryFilterModal: React.FC<CategoryFilterModalProps> = ({
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto">
-                <div className="p-4 pb-20">
+                <div
+                  className="p-4"
+                  style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
+                >
                   <div className="grid grid-cols-4 gap-4">
                     {categories.map((category) => {
                       const isActive = tempSelectedCategories.includes(category.id);

@@ -20,6 +20,17 @@ import { Modifier } from '@/types/modifiers';
 import dynamic from 'next/dynamic';
 import { handleModifierSubmit } from '@/hooks/useModifierSubmit';
 import Head from 'next/head';
+import ProductDetailSheet from './ProductDetailSheet';
+import ProductImage from './ProductImage';
+import ProductTitle from './ProductTitle';
+import ProductQuantityControls from './ProductQuantityControls';
+import ProductDescription from './ProductDescription';
+import ProductIngredients from './ProductIngredients';
+import ProductAllergens from './ProductAllergens';
+import ProductOrigin from './ProductOrigin';
+import ProductPairingSuggestion from './ProductPairingSuggestion';
+import ProductChefNotes from './ProductChefNotes';
+import { useRouter } from 'next/navigation';
 
 // Load heavy libraries dynamicall
 const ModifierModal = dynamic(() => import('../ModifierModal'), { ssr: false });
@@ -60,6 +71,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     },
     ref,
   ) => {
+    const router = useRouter();
     const cart = useContext(CartItemsContext);
     const cartActions = useContext(CartActionsContext);
     const cartTotal = useContext(CartTotalContext);
@@ -96,6 +108,25 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     const { modifiers, fetchModifiers } = useModifiers();
 
     const [localQuery, setLocalQuery] = useState(searchQuery);
+
+    // Nuevo estado para el detalle del producto
+    const [selectedProduct, setSelectedProduct] = useState<MenuItemData | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+    // Calcular la cantidad total para cada item
+    const getCartQuantityForItem = useCallback(
+      (itemId: string) => {
+        if (!cart || !alias) return 0;
+        let totalQuantity = 0;
+        Object.values(cart).forEach((item) => {
+          if (item.id === itemId && item.client_alias === alias) {
+            totalQuantity += item.quantity;
+          }
+        });
+        return totalQuantity;
+      },
+      [cart, alias],
+    );
 
     // Efecto para sincronizar el estado local con el estado de búsqueda
     useEffect(() => {
@@ -236,6 +267,21 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
           console.error(`[SearchOverlay] Item con ID ${itemId} no encontrado en filteredItems.`);
           return;
         }
+
+        // Solo abrir el detalle del producto
+        setSelectedProduct(item);
+        setIsDetailOpen(true);
+      },
+      [filteredItems],
+    );
+
+    const handleAddToCart = useCallback(
+      async (itemId: string) => {
+        const item = filteredItems.find((i) => i.id === itemId);
+        if (!item) {
+          console.error(`[SearchOverlay] Item con ID ${itemId} no encontrado en filteredItems.`);
+          return;
+        }
         if (!cartActions) {
           console.error('[SearchOverlay] Cart actions no están disponibles.');
           return;
@@ -270,21 +316,53 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
       [filteredItems, fetchModifiers, cartActions, modifiers],
     );
 
-    const handleAddToCart = useCallback(
-      (itemId: string) => {
-        console.log(`[SearchOverlay] handleAddToCart llamado para item ${itemId}`);
-        handleItemClick(itemId);
-      },
-      [handleItemClick],
-    );
-
     const handleRemoveFromCart = useCallback(
-      (itemId: string) => {
-        if (!cartActions) return;
-        console.log(`[SearchOverlay] Eliminando item ${itemId} del carrito`);
+      async (itemId: string) => {
+        const item = filteredItems.find((i) => i.id === itemId);
+        if (!item) {
+          console.error(`[SearchOverlay] Item con ID ${itemId} no encontrado en filteredItems.`);
+          return;
+        }
+        if (!cartActions) {
+          console.error('[SearchOverlay] Cart actions no están disponibles.');
+          return;
+        }
+
+        // Si el artículo ya está en el carrito, lo quitamos directamente
+        const quantity = getCartQuantityForItem(itemId);
+        if (quantity > 0) {
+          console.log(`[SearchOverlay] Eliminando item ${itemId} del carrito`);
+          cartActions.handleDecrementCart(itemId, {});
+          return;
+        }
+
+        console.log(`[SearchOverlay] Procesando eliminación de item ${itemId}:`, {
+          name: item.name,
+          hasModifiers: item.modifiers?.length > 0,
+          modifiersCount: item.modifiers?.length,
+        });
+
+        if (item.modifiers && item.modifiers.length > 0) {
+          console.log(`[SearchOverlay] Item ${itemId} tiene modificadores, obteniendo detalles...`);
+          await fetchModifiers(itemId);
+          console.log(`[SearchOverlay] Modificadores obtenidos para ${itemId}:`, modifiers);
+
+          setSelectedItem({
+            id: item.id,
+            name: item.name,
+            description: item.description || '',
+            allergens: item.allergens,
+            modifiers: item.modifiers,
+          });
+          console.log(`[SearchOverlay] Mostrando modal de modificadores para ${itemId}`);
+          setShowModifierModal(true);
+          return;
+        }
+
+        console.log(`[SearchOverlay] Eliminando item ${itemId} sin modificadores del carrito`);
         cartActions.handleDecrementCart(itemId, {});
       },
-      [cartActions],
+      [filteredItems, fetchModifiers, cartActions, modifiers, getCartQuantityForItem],
     );
 
     const onModifierSubmit = useCallback(
@@ -314,20 +392,6 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
         }
       },
       [selectedItem, modifiers, cartActions],
-    );
-
-    const getCartQuantityForItem = useCallback(
-      (itemId: string) => {
-        if (!cart || !alias) return 0;
-        let totalQuantity = 0;
-        Object.values(cart).forEach((item) => {
-          if (item.id === itemId && item.client_alias === alias) {
-            totalQuantity += item.quantity;
-          }
-        });
-        return totalQuantity;
-      },
-      [cart, alias],
     );
 
     // Obtener sugerencias similares cuando no hay resultados
@@ -436,6 +500,10 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
       setActiveFilterSection(section);
       onFilterSectionChange?.(section);
     };
+
+    const handleViewCart = useCallback(() => {
+      router.push('/cart');
+    }, [router]);
 
     const FilterSection = ({
       title,
@@ -740,15 +808,22 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                                 key={item.id}
                                 {...item}
                                 allergens={item.allergens}
-                                onAddToCart={() => handleAddToCart(item.id)}
-                                onRemoveFromCart={() => handleRemoveFromCart(item.id)}
+                                onAddToCart={(e) => {
+                                  e.stopPropagation();
+                                  handleAddToCart(item.id);
+                                }}
+                                onRemoveFromCart={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveFromCart(item.id);
+                                }}
                                 quantity={quantity}
                                 diet_tags={[]}
                                 origin=""
                                 pairing_suggestion=""
                                 chef_notes=""
                                 hasModifiers={item.modifiers?.length > 0}
-                                onOpenCart={() => handleAddToCart(item.id)}
+                                onOpenCart={handleViewCart}
+                                onClick={() => handleItemClick(item.id)}
                               />
                             );
                           })}
@@ -821,6 +896,51 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                   />
                 )}
               </AnimatePresence>
+
+              {/* Añadir el ProductDetailSheet */}
+              <ProductDetailSheet
+                isOpen={isDetailOpen}
+                onClose={() => {
+                  setIsDetailOpen(false);
+                  setSelectedProduct(null);
+                }}
+                product={selectedProduct}
+              >
+                {selectedProduct && (
+                  <>
+                    <ProductImage
+                      imageUrl={selectedProduct.image_url ?? ''}
+                      alt={selectedProduct.name ?? ''}
+                      quantity={getCartQuantityForItem(selectedProduct.id)}
+                    />
+                    <div className="px-4 pb-2 flex items-center justify-between gap-4 mt-4">
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <ProductTitle name={selectedProduct.name ?? ''} />
+                      </div>
+                      <ProductQuantityControls
+                        quantity={getCartQuantityForItem(selectedProduct.id)}
+                        price={selectedProduct.price}
+                        hasModifiers={selectedProduct.modifiers?.length > 0}
+                        onAdd={() => handleAddToCart(selectedProduct.id)}
+                        onRemove={() => handleRemoveFromCart(selectedProduct.id)}
+                        onOpenCart={() => {
+                          setIsDetailOpen(false);
+                          setSelectedProduct(null);
+                          onClose();
+                        }}
+                      />
+                    </div>
+                    <ProductDescription description={selectedProduct.description ?? ''} />
+                    <ProductIngredients ingredients={selectedProduct.ingredients} />
+                    <ProductAllergens allergens={selectedProduct.allergens ?? []} />
+                    <ProductOrigin origin={selectedProduct.origin ?? ''} />
+                    <ProductPairingSuggestion
+                      suggestion={selectedProduct.pairing_suggestion ?? ''}
+                    />
+                    <ProductChefNotes notes={selectedProduct.chef_notes ?? ''} />
+                  </>
+                )}
+              </ProductDetailSheet>
             </motion.div>
           )}
         </AnimatePresence>
