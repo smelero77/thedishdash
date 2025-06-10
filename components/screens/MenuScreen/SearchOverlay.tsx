@@ -67,6 +67,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     const [isSearching, setIsSearching] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const [viewportHeight, setViewportHeight] = useState<number | undefined>(undefined);
+    const [viewportOffset, setViewportOffset] = useState<number>(0);
     const { searchHistory, addToHistory } = useSearchHistory();
     const lastSearchRef = useRef<string>('');
     const { categories, dietTags, loading: filtersLoading } = useFilters();
@@ -138,6 +139,10 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
       const handleViewportResize = () => {
         if (visualViewport) {
           setViewportHeight(visualViewport.height);
+          // Calcular el offset entre window.innerHeight y visualViewport.height
+          const offset = window.innerHeight - visualViewport.height;
+          setViewportOffset(offset);
+
           // Si el input está enfocado, intentar traerlo a la vista
           if (document.activeElement === inputRef.current) {
             setTimeout(() => {
@@ -149,6 +154,8 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
 
       if (visualViewport) {
         setViewportHeight(visualViewport.height);
+        const initialOffset = window.innerHeight - visualViewport.height;
+        setViewportOffset(initialOffset);
         visualViewport.addEventListener('resize', handleViewportResize);
         return () => {
           visualViewport.removeEventListener('resize', handleViewportResize);
@@ -500,9 +507,10 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
               className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg overflow-y-auto"
               style={{
                 height: '100vh',
-                paddingTop: 'env(safe-area-inset-top, 0px)',
+                paddingTop: `calc(env(safe-area-inset-top, 0px) + ${viewportOffset}px)`,
                 paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
                 minHeight: '100vh',
+                marginTop: 'env(safe-area-inset-top, 0px)',
               }}
             >
               <header
