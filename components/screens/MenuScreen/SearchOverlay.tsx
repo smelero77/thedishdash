@@ -21,7 +21,7 @@ import dynamic from 'next/dynamic';
 import { handleModifierSubmit } from '@/hooks/useModifierSubmit';
 import Head from 'next/head';
 
-// Load heavy libraries dynamically
+// Load heavy libraries dynamicall
 const ModifierModal = dynamic(() => import('../ModifierModal'), { ssr: false });
 
 interface SearchOverlayProps {
