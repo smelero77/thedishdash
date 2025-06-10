@@ -504,23 +504,14 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg overflow-y-auto"
-              style={{
-                height: '100vh',
-                paddingTop: `calc(env(safe-area-inset-top, 0px) + ${viewportOffset}px)`,
-                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
-                minHeight: '100vh',
-                marginTop: 'env(safe-area-inset-top, 0px)',
-              }}
+              className="fixed inset-0 z-50 bg-white flex flex-col"
+              style={{ height: '100dvh' }}
             >
               <header
-                className="flex items-center justify-between bg-white px-4 mb-2"
+                className="flex items-center justify-between bg-white px-4 mb-2 flex-shrink-0"
                 style={{
-                  height: 'var(--header-height)',
                   paddingTop: 'calc(env(safe-area-inset-top, 1rem) + 1rem)',
                   paddingBottom: '0.5rem',
-                  width: '100%',
-                  maxWidth: '100vw',
                 }}
               >
                 <div className="flex items-center h-16 flex-shrink-0">
@@ -544,7 +535,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 </div>
               </header>
 
-              <div className="p-4">
+              <div className="p-4 flex-shrink-0">
                 <div className="relative">
                   <input
                     ref={inputRef}
@@ -568,7 +559,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 </div>
               </div>
 
-              <div className="px-4 py-3">
+              <div className="px-4 py-3 flex-shrink-0">
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() =>
@@ -591,31 +582,6 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                           e.stopPropagation();
                           setConfirmedCategoryFilters([]);
                           setActiveCategoryFilters([]);
-                        }}
-                      />
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      handleFilterSectionChange(
-                        activeFilterSection === 'dietTags' ? null : 'dietTags',
-                      )
-                    }
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                      activeDietTagFilters.length > 0 || activeFilterSection === 'dietTags'
-                        ? 'bg-[#e0f2f1] text-[#00796b]'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    Etiquetas{' '}
-                    {activeDietTagFilters.length > 0 && `(${activeDietTagFilters.length})`}
-                    {activeDietTagFilters.length > 0 && (
-                      <X
-                        className="h-4 w-4"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveDietTagFilters([]);
                         }}
                       />
                     )}
@@ -674,7 +640,13 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+              <div
+                className="flex-1 overflow-y-auto"
+                style={{
+                  paddingBottom: 'env(safe-area-inset-bottom, 1rem)',
+                  minHeight: 0,
+                }}
+              >
                 <AnimatePresence mode="wait">
                   {activeFilterSection === 'categories' ? (
                     <CategoryFilterModal
@@ -795,7 +767,7 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
                               </div>
                             </div>
                           )}
-                          <p className="text-[#4f968f] text-center text-sm mb-4">
+                          <p className="text-gray-500 text-center text-sm">
                             {searchQuery
                               ? 'Revisa la ortografía o intenta con términos más generales'
                               : 'Intenta con otras categorías'}
