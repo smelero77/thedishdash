@@ -28,6 +28,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
   const controls = useAnimation();
   const y = useMotionValue(0);
   const opacity = useTransform(y, [0, 100], [1, 0]);
+  const scale = useTransform(y, [0, 100], [1, 0.95]);
 
   const handleDragEnd = async (event: any, info: any) => {
     const threshold = 100;
@@ -49,7 +50,12 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
           exit="exit"
           variants={sheetVariants}
         >
-          <motion.div className="w-full bg-black/50 rounded-t-3xl overflow-hidden">
+          <motion.div
+            className="w-full bg-black/50 rounded-t-3xl overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
             <motion.div
               className="w-full bg-white rounded-t-3xl shadow-xl p-0 relative"
               style={{
@@ -57,9 +63,17 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
                 paddingBottom: 'var(--safe-area-bottom)',
                 y,
                 opacity,
+                scale,
               }}
               animate={controls}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={handleDragEnd}
             >
+              {/* Indicador de deslizamiento */}
+              <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-gray-300 rounded-full" />
+
               {/* Botón de cerrar */}
               <button
                 onClick={onClose}
