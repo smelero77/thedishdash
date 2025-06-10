@@ -498,8 +498,13 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg"
-              style={{ height: '100vh' }}
+              className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg overflow-y-auto"
+              style={{
+                height: '100vh',
+                paddingTop: 'env(safe-area-inset-top, 0px)',
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
+                minHeight: '100vh',
+              }}
             >
               <header
                 className="flex items-center justify-between bg-white px-4 mb-2"
