@@ -19,6 +19,7 @@ import { useModifiers } from '@/hooks/useModifiers';
 import { Modifier } from '@/types/modifiers';
 import dynamic from 'next/dynamic';
 import { handleModifierSubmit } from '@/hooks/useModifierSubmit';
+import Head from 'next/head';
 
 // Load heavy libraries dynamically
 const ModifierModal = dynamic(() => import('../ModifierModal'), { ssr: false });
@@ -482,337 +483,346 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
     );
 
     return (
-      <AnimatePresence>
-        {searchActive && (
-          <motion.div
-            ref={ref}
-            initial={{ opacity: 0, y: '100%' }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg"
-            style={{ height: '100vh' }}
-          >
-            <header
-              className="flex items-center justify-between bg-white px-4 mb-2"
-              style={{
-                height: 'var(--header-height)',
-                paddingTop: 'calc(var(--safe-area-top) + 1rem)',
-                paddingBottom: '0.5rem',
-                width: '100%',
-                maxWidth: '100vw',
-              }}
+      <>
+        <Head>
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+          />
+        </Head>
+        <AnimatePresence>
+          {searchActive && (
+            <motion.div
+              ref={ref}
+              initial={{ opacity: 0, y: '100%' }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-lg"
+              style={{ height: '100vh' }}
             >
-              <div className="flex items-center h-16 flex-shrink-0">
-                <button
-                  onClick={onClose}
-                  className="w-16 h-16 flex items-center justify-center text-[#4f968f] hover:text-[#0e1b19] transition-colors"
-                  aria-label="Cerrar búsqueda"
-                >
-                  <ArrowLeft className="h-6 w-6" />
-                </button>
-              </div>
+              <header
+                className="flex items-center justify-between bg-white px-4 mb-2"
+                style={{
+                  height: 'var(--header-height)',
+                  paddingTop: 'calc(var(--safe-area-top) + 1rem)',
+                  paddingBottom: '0.5rem',
+                  width: '100%',
+                  maxWidth: '100vw',
+                }}
+              >
+                <div className="flex items-center h-16 flex-shrink-0">
+                  <button
+                    onClick={onClose}
+                    className="w-16 h-16 flex items-center justify-center text-[#4f968f] hover:text-[#0e1b19] transition-colors"
+                    aria-label="Cerrar búsqueda"
+                  >
+                    <ArrowLeft className="h-6 w-6" />
+                  </button>
+                </div>
 
-              <div className="flex-1 flex justify-center min-w-0">
-                <div className="h-16 flex items-center w-[200px]">
-                  <TextLogoSvg className="h-12 w-auto" />
+                <div className="flex-1 flex justify-center min-w-0">
+                  <div className="h-16 flex items-center w-[200px]">
+                    <TextLogoSvg className="h-12 w-auto" />
+                  </div>
+                </div>
+
+                <div className="flex items-center h-16 flex-shrink-0">
+                  <div className="w-16 h-16" />
+                </div>
+              </header>
+
+              <div className="p-4">
+                <div className="relative">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    placeholder="Buscar"
+                    className="w-full pl-12 pr-10 py-3 text-lg rounded-full border-[1px] border-[#d0e6e4] focus:outline-none focus:ring-2 focus:ring-[#1ce3cf] focus:border-transparent"
+                    style={{ fontFamily: 'Epilogue, "Noto Sans", sans-serif' }}
+                  />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#4f968f]" />
+                  {searchQuery && (
+                    <button
+                      onClick={() => handleSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
+                      aria-label="Borrar búsqueda"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center h-16 flex-shrink-0">
-                <div className="w-16 h-16" />
-              </div>
-            </header>
-
-            <div className="p-4">
-              <div className="relative">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Buscar"
-                  className="w-full pl-12 pr-10 py-3 text-lg rounded-full border-[1px] border-[#d0e6e4] focus:outline-none focus:ring-2 focus:ring-[#1ce3cf] focus:border-transparent"
-                  style={{ fontFamily: 'Epilogue, "Noto Sans", sans-serif' }}
-                />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#4f968f]" />
-                {searchQuery && (
+              <div className="px-4 py-3">
+                <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => handleSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#4f968f] hover:text-[#0e1b19] transition-colors"
-                    aria-label="Borrar búsqueda"
+                    onClick={() =>
+                      handleFilterSectionChange(
+                        activeFilterSection === 'categories' ? null : 'categories',
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                      confirmedCategoryFilters.length > 0
+                        ? 'bg-[#e0f2f1] text-[#00796b]'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
                   >
-                    <X className="h-5 w-5" />
+                    Categorías{' '}
+                    {confirmedCategoryFilters.length > 0 && `(${confirmedCategoryFilters.length})`}
+                    {confirmedCategoryFilters.length > 0 && (
+                      <X
+                        className="h-4 w-4"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmedCategoryFilters([]);
+                          setActiveCategoryFilters([]);
+                        }}
+                      />
+                    )}
                   </button>
-                )}
+
+                  <button
+                    onClick={() =>
+                      handleFilterSectionChange(
+                        activeFilterSection === 'dietTags' ? null : 'dietTags',
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                      activeDietTagFilters.length > 0 || activeFilterSection === 'dietTags'
+                        ? 'bg-[#e0f2f1] text-[#00796b]'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Etiquetas{' '}
+                    {activeDietTagFilters.length > 0 && `(${activeDietTagFilters.length})`}
+                    {activeDietTagFilters.length > 0 && (
+                      <X
+                        className="h-4 w-4"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDietTagFilters([]);
+                        }}
+                      />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      handleFilterSectionChange(activeFilterSection === 'price' ? null : 'price')
+                    }
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                      priceRange.min > priceLimits.min ||
+                      priceRange.max < priceLimits.max ||
+                      activeFilterSection === 'price'
+                        ? 'bg-[#e0f2f1] text-[#00796b]'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Precio{' '}
+                    {priceRange.min > priceLimits.min || priceRange.max < priceLimits.max
+                      ? '(Filtrado)'
+                      : ''}
+                    {(priceRange.min > priceLimits.min || priceRange.max < priceLimits.max) && (
+                      <X
+                        className="h-4 w-4"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPriceRange({ min: priceLimits.min, max: priceLimits.max });
+                        }}
+                      />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      handleFilterSectionChange(
+                        activeFilterSection === 'allergens' ? null : 'allergens',
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                      excludedAllergens.length > 0 || activeFilterSection === 'allergens'
+                        ? 'bg-[#e0f2f1] text-[#00796b]'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Alérgenos {excludedAllergens.length > 0 && `(${excludedAllergens.length})`}
+                    {excludedAllergens.length > 0 && (
+                      <X
+                        className="h-4 w-4"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExcludedAllergens([]);
+                        }}
+                      />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="px-4 py-3">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() =>
-                    handleFilterSectionChange(
-                      activeFilterSection === 'categories' ? null : 'categories',
-                    )
-                  }
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                    confirmedCategoryFilters.length > 0
-                      ? 'bg-[#e0f2f1] text-[#00796b]'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  Categorías{' '}
-                  {confirmedCategoryFilters.length > 0 && `(${confirmedCategoryFilters.length})`}
-                  {confirmedCategoryFilters.length > 0 && (
-                    <X
-                      className="h-4 w-4"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setConfirmedCategoryFilters([]);
-                        setActiveCategoryFilters([]);
-                      }}
+              <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                <AnimatePresence mode="wait">
+                  {activeFilterSection === 'categories' ? (
+                    <CategoryFilterModal
+                      isOpen={true}
+                      onClose={() => handleFilterSectionChange(null)}
+                      categories={categories}
+                      onCategoryFilter={handleCategoryFilter}
+                      onModalClose={() => handleFilterSectionChange(null)}
+                      onFilterChange={handleCategoryFilterChange}
+                      selectedCategories={confirmedCategoryFilters}
                     />
-                  )}
-                </button>
+                  ) : (
+                    <>
+                      {(!searchQuery || searchQuery.trim().length < 3) &&
+                      confirmedCategoryFilters.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full py-8 px-4 text-center">
+                          {searchHistory && searchHistory.length > 0 && (
+                            <div className="w-full max-w-md mb-6">
+                              <h3 className="text-md font-semibold text-gray-700 mb-2">
+                                Búsquedas Recientes
+                              </h3>
+                              <div className="flex flex-wrap justify-center gap-2">
+                                {searchHistory.map((term, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => handleSearch(term)}
+                                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors"
+                                  >
+                                    {term}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
-                <button
-                  onClick={() =>
-                    handleFilterSectionChange(
-                      activeFilterSection === 'dietTags' ? null : 'dietTags',
-                    )
-                  }
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                    activeDietTagFilters.length > 0 || activeFilterSection === 'dietTags'
-                      ? 'bg-[#e0f2f1] text-[#00796b]'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  Etiquetas {activeDietTagFilters.length > 0 && `(${activeDietTagFilters.length})`}
-                  {activeDietTagFilters.length > 0 && (
-                    <X
-                      className="h-4 w-4"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveDietTagFilters([]);
-                      }}
-                    />
-                  )}
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleFilterSectionChange(activeFilterSection === 'price' ? null : 'price')
-                  }
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                    priceRange.min > priceLimits.min ||
-                    priceRange.max < priceLimits.max ||
-                    activeFilterSection === 'price'
-                      ? 'bg-[#e0f2f1] text-[#00796b]'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  Precio{' '}
-                  {priceRange.min > priceLimits.min || priceRange.max < priceLimits.max
-                    ? '(Filtrado)'
-                    : ''}
-                  {(priceRange.min > priceLimits.min || priceRange.max < priceLimits.max) && (
-                    <X
-                      className="h-4 w-4"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPriceRange({ min: priceLimits.min, max: priceLimits.max });
-                      }}
-                    />
-                  )}
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleFilterSectionChange(
-                      activeFilterSection === 'allergens' ? null : 'allergens',
-                    )
-                  }
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                    excludedAllergens.length > 0 || activeFilterSection === 'allergens'
-                      ? 'bg-[#e0f2f1] text-[#00796b]'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  Alérgenos {excludedAllergens.length > 0 && `(${excludedAllergens.length})`}
-                  {excludedAllergens.length > 0 && (
-                    <X
-                      className="h-4 w-4"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExcludedAllergens([]);
-                      }}
-                    />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-              <AnimatePresence mode="wait">
-                {activeFilterSection === 'categories' ? (
-                  <CategoryFilterModal
-                    isOpen={true}
-                    onClose={() => handleFilterSectionChange(null)}
-                    categories={categories}
-                    onCategoryFilter={handleCategoryFilter}
-                    onModalClose={() => handleFilterSectionChange(null)}
-                    onFilterChange={handleCategoryFilterChange}
-                    selectedCategories={confirmedCategoryFilters}
-                  />
-                ) : (
-                  <>
-                    {(!searchQuery || searchQuery.trim().length < 3) &&
-                    confirmedCategoryFilters.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full py-8 px-4 text-center">
-                        {searchHistory && searchHistory.length > 0 && (
-                          <div className="w-full max-w-md mb-6">
+                          <div>
                             <h3 className="text-md font-semibold text-gray-700 mb-2">
-                              Búsquedas Recientes
+                              Quizás te interese...
                             </h3>
                             <div className="flex flex-wrap justify-center gap-2">
-                              {searchHistory.map((term, index) => (
+                              {POPULAR_SEARCHES.map((suggestion, index) => (
                                 <button
                                   key={index}
-                                  onClick={() => handleSearch(term)}
-                                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors"
+                                  onClick={() => handleSearch(suggestion.term)}
+                                  className="px-3 py-1.5 bg-[#e0f2f1] text-[#00796b] rounded-full text-sm hover:bg-[#b2dfdb] transition-colors flex items-center gap-1"
                                 >
-                                  {term}
+                                  <span>{suggestion.icon}</span>
+                                  <span>{suggestion.term}</span>
                                 </button>
                               ))}
                             </div>
                           </div>
-                        )}
-
-                        <div>
-                          <h3 className="text-md font-semibold text-gray-700 mb-2">
-                            Quizás te interese...
-                          </h3>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {POPULAR_SEARCHES.map((suggestion, index) => (
-                              <button
-                                key={index}
-                                onClick={() => handleSearch(suggestion.term)}
-                                className="px-3 py-1.5 bg-[#e0f2f1] text-[#00796b] rounded-full text-sm hover:bg-[#b2dfdb] transition-colors flex items-center gap-1"
-                              >
-                                <span>{suggestion.icon}</span>
-                                <span>{suggestion.term}</span>
-                              </button>
-                            ))}
-                          </div>
                         </div>
-                      </div>
-                    ) : isSearching ? (
-                      <div className="flex flex-col items-center justify-center h-full py-8 px-4">
-                        <div className="w-64 h-64">
-                          <DotLottieReact
-                            src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
-                            loop
-                            autoplay
-                          />
-                        </div>
-                        <p className="text-[#4f968f] text-center mt-4 text-base font-medium">
-                          Buscando...
-                        </p>
-                      </div>
-                    ) : filteredItems.length > 0 ? (
-                      <div className="space-y-2 pt-4">
-                        {filteredItems.map((item) => {
-                          const quantity = getCartQuantityForItem(item.id);
-                          return (
-                            <MenuItem
-                              key={item.id}
-                              {...item}
-                              allergens={item.allergens}
-                              onAddToCart={() => handleAddToCart(item.id)}
-                              onRemoveFromCart={() => handleRemoveFromCart(item.id)}
-                              quantity={quantity}
-                              diet_tags={[]}
-                              origin=""
-                              pairing_suggestion=""
-                              chef_notes=""
-                              hasModifiers={item.modifiers?.length > 0}
-                              onOpenCart={() => handleAddToCart(item.id)}
+                      ) : isSearching ? (
+                        <div className="flex flex-col items-center justify-center h-full py-8 px-4">
+                          <div className="w-64 h-64">
+                            <DotLottieReact
+                              src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
+                              loop
+                              autoplay
                             />
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full py-8 px-4">
-                        <div className="w-64 h-64">
-                          <DotLottieReact
-                            src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
-                            loop
-                            autoplay
-                          />
-                        </div>
-                        <p className="text-[#4f968f] text-center mb-2">
-                          {searchQuery
-                            ? `Vaya, no encontramos nada para "${searchQuery}"`
-                            : 'No se encontraron artículos con los filtros seleccionados'}
-                        </p>
-                        {similarSuggestions.length > 0 && (
-                          <div className="mb-4">
-                            <p className="text-[#4f968f] text-center text-sm mb-2">
-                              ¿Quizás quisiste decir...?
-                            </p>
-                            <div className="flex flex-wrap justify-center gap-2">
-                              {similarSuggestions.map((suggestion, index) => (
-                                <button
-                                  key={index}
-                                  onClick={() => handleSearch(suggestion)}
-                                  className="px-3 py-1.5 bg-[#e0f2f1] text-[#00796b] rounded-full text-sm hover:bg-[#b2dfdb] transition-colors"
-                                >
-                                  {suggestion}
-                                </button>
-                              ))}
-                            </div>
                           </div>
-                        )}
-                        <p className="text-[#4f968f] text-center text-sm mb-4">
-                          {searchQuery
-                            ? 'Revisa la ortografía o intenta con términos más generales'
-                            : 'Intenta con otras categorías'}
-                        </p>
-                        <button
-                          onClick={onClose}
-                          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1ce3cf] text-white hover:bg-[#16b8a8] transition-colors mt-4"
-                        >
-                          <ArrowLeft className="h-4 w-4" />
-                          <span>Volver</span>
-                        </button>
-                      </div>
-                    )}
-                  </>
+                          <p className="text-[#4f968f] text-center mt-4 text-base font-medium">
+                            Buscando...
+                          </p>
+                        </div>
+                      ) : filteredItems.length > 0 ? (
+                        <div className="space-y-2 pt-4">
+                          {filteredItems.map((item) => {
+                            const quantity = getCartQuantityForItem(item.id);
+                            return (
+                              <MenuItem
+                                key={item.id}
+                                {...item}
+                                allergens={item.allergens}
+                                onAddToCart={() => handleAddToCart(item.id)}
+                                onRemoveFromCart={() => handleRemoveFromCart(item.id)}
+                                quantity={quantity}
+                                diet_tags={[]}
+                                origin=""
+                                pairing_suggestion=""
+                                chef_notes=""
+                                hasModifiers={item.modifiers?.length > 0}
+                                onOpenCart={() => handleAddToCart(item.id)}
+                              />
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full py-8 px-4">
+                          <div className="w-64 h-64">
+                            <DotLottieReact
+                              src="https://lottie.host/4ed7bf92-15ef-455a-8326-4b24d2ffac1e/GGQCg185BX.lottie"
+                              loop
+                              autoplay
+                            />
+                          </div>
+                          <p className="text-[#4f968f] text-center mb-2">
+                            {searchQuery
+                              ? `Vaya, no encontramos nada para "${searchQuery}"`
+                              : 'No se encontraron artículos con los filtros seleccionados'}
+                          </p>
+                          {similarSuggestions.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-[#4f968f] text-center text-sm mb-2">
+                                ¿Quizás quisiste decir...?
+                              </p>
+                              <div className="flex flex-wrap justify-center gap-2">
+                                {similarSuggestions.map((suggestion, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => handleSearch(suggestion)}
+                                    className="px-3 py-1.5 bg-[#e0f2f1] text-[#00796b] rounded-full text-sm hover:bg-[#b2dfdb] transition-colors"
+                                  >
+                                    {suggestion}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <p className="text-[#4f968f] text-center text-sm mb-4">
+                            {searchQuery
+                              ? 'Revisa la ortografía o intenta con términos más generales'
+                              : 'Intenta con otras categorías'}
+                          </p>
+                          <button
+                            onClick={onClose}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1ce3cf] text-white hover:bg-[#16b8a8] transition-colors mt-4"
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Volver</span>
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <AnimatePresence>
+                {showModifierModal && selectedItem && (
+                  <ModifierModal
+                    isOpen={showModifierModal}
+                    itemName={selectedItem.name}
+                    itemDescription={selectedItem.description}
+                    itemAllergens={selectedItem.allergens}
+                    modifiers={modifiers}
+                    menuItems={filteredItems}
+                    onConfirm={onModifierSubmit}
+                    onClose={() => {
+                      setShowModifierModal(false);
+                      setSelectedItem(null);
+                    }}
+                  />
                 )}
               </AnimatePresence>
-            </div>
-
-            <AnimatePresence>
-              {showModifierModal && selectedItem && (
-                <ModifierModal
-                  isOpen={showModifierModal}
-                  itemName={selectedItem.name}
-                  itemDescription={selectedItem.description}
-                  itemAllergens={selectedItem.allergens}
-                  modifiers={modifiers}
-                  menuItems={filteredItems}
-                  onConfirm={onModifierSubmit}
-                  onClose={() => {
-                    setShowModifierModal(false);
-                    setSelectedItem(null);
-                  }}
-                />
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
     );
   },
 );

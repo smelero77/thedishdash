@@ -114,7 +114,7 @@ export default function CartPage() {
           mass: 0.8,
         },
       }}
-      className="flex flex-col min-h-screen bg-white"
+      className="flex flex-col min-h-screen bg-white cart-container"
     >
       {/* Header + Stories fijos */}
       <motion.div
