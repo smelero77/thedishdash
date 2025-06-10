@@ -168,12 +168,13 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
       return () => window.removeEventListener('resize', handleViewportResize);
     }, []);
 
-    // Efecto para hacer scroll al final cuando se abre el overlay
+    // Efecto para manejar el scroll del contenedor interno
     useEffect(() => {
       if (searchActive) {
-        setTimeout(() => {
-          window.scrollTo(0, document.body.scrollHeight);
-        }, 100);
+        const container = document.querySelector('.flex-1.overflow-y-auto');
+        if (container) {
+          container.scrollTop = 0;
+        }
       }
     }, [searchActive]);
 
