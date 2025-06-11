@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import ReactDOM from 'react-dom';
 
@@ -16,6 +16,23 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
   children,
 }) => {
   const dragControls = useDragControls();
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        setIsVisible(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      setIsVisible(false);
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 300);
+  };
 
   const sheet = (
     <AnimatePresence>
@@ -24,18 +41,23 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
           {/* Overlay con fondo semitransparente */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: isVisible ? 1 : 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 z-40"
-            onClick={onClose}
+            onClick={handleClose}
           />
 
           <motion.div
             initial={{ y: '100%' }}
-            animate={{ y: 0 }}
+            animate={{ y: isVisible ? 0 : '100%' }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            transition={{
+              type: 'spring',
+              damping: 25,
+              stiffness: 300,
+              mass: 0.8,
+            }}
             className="fixed inset-0 z-50 bg-white rounded-t-3xl shadow-lg flex flex-col"
             style={{ top: 'auto' }}
             drag="y"
@@ -44,7 +66,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
             dragElastic={{ top: 0, bottom: 0.5 }}
             onDragEnd={(event, info) => {
               if (info.offset.y > 100) {
-                onClose();
+                handleClose();
               }
             }}
           >
@@ -58,7 +80,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
 
             {/* Botón de cerrar */}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Cerrar ficha"
               className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/60 text-[#0e1b19] shadow-md active:bg-white/80"
             >
