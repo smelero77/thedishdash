@@ -421,14 +421,79 @@ const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
         // Consulta a la base de datos para obtener los artículos que pertenecen a las categorías seleccionadas
         const { data: items, error } = await supabase
           .from('menu_items')
-          .select('*')
+          .select(
+            `
+            *,
+            menu_item_diet_tags (
+              diet_tags (
+                id,
+                name
+              )
+            ),
+            menu_item_allergens (
+              allergens (
+                id,
+                name,
+                icon_url
+              )
+            ),
+            modifiers (
+              id,
+              name,
+              description,
+              required,
+              multi_select,
+              modifier_options (
+                id,
+                name,
+                extra_price,
+                is_default,
+                icon_url,
+                related_menu_item_id,
+                modifier_options_allergens (
+                  allergens (
+                    id,
+                    name,
+                    icon_url
+                  )
+                )
+              )
+            )
+          `,
+          )
           .eq('is_available', true)
           .overlaps('category_ids', selectedCategories);
 
         if (error) throw error;
 
-        console.log('SearchOverlay - Artículos filtrados desde BD:', items);
-        setFilteredItems(items || []);
+        // Procesar los items para mantener la estructura correcta
+        const processedItems =
+          items?.map((item) => ({
+            ...item,
+            menu_item_diet_tags: (item.menu_item_diet_tags || []).map(
+              (tag: { diet_tags: { id: string; name: string }[] }) => ({
+                diet_tags: {
+                  id: tag.diet_tags?.[0]?.id || '',
+                  name: tag.diet_tags?.[0]?.name || '',
+                },
+              }),
+            ),
+            menu_item_allergens: (item.menu_item_allergens || []).map(
+              (allergen: {
+                allergens: { id: string; name: string; icon_url: string | null }[];
+              }) => ({
+                allergens: {
+                  id: allergen.allergens?.[0]?.id || '',
+                  name: allergen.allergens?.[0]?.name || '',
+                  icon_url: allergen.allergens?.[0]?.icon_url || '',
+                },
+              }),
+            ),
+            modifiers: item.modifiers || [],
+          })) || [];
+
+        console.log('SearchOverlay - Artículos filtrados desde BD:', processedItems);
+        setFilteredItems(processedItems);
         setConfirmedCategoryFilters(selectedCategories);
       } catch (err) {
         console.error('Error al filtrar artículos por categorías:', err);
