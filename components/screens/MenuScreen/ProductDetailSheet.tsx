@@ -16,23 +16,8 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
   children,
 }) => {
   const dragControls = useDragControls();
-  const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => {
-        setIsVisible(true);
-      }, 50);
-      return () => clearTimeout(timer);
-    } else {
-      setIsVisible(false);
-    }
-  }, [isOpen]);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    onClose();
-  };
+  if (!isOpen) return null;
 
   const sheet = (
     <AnimatePresence>
@@ -45,7 +30,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 z-40"
-            onClick={handleClose}
+            onClick={onClose}
           />
 
           <motion.div
@@ -61,7 +46,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
             dragElastic={{ top: 0, bottom: 0.5 }}
             onDragEnd={(event, info) => {
               if (info.offset.y > 100) {
-                handleClose();
+                onClose();
               }
             }}
           >
@@ -76,7 +61,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
             <div className="flex-1 flex flex-col">
               {/* Botón de cerrar */}
               <button
-                onClick={handleClose}
+                onClick={onClose}
                 aria-label="Cerrar ficha"
                 className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/60 text-[#0e1b19] shadow-md active:bg-white/80"
               >
