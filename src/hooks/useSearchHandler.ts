@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MenuItemData } from '@/types/menu';
-import { searchMenuItems } from '@/utils/searchUtils';
+import { searchMenuItems } from '../utils/searchUtils';
 import { SearchFilters } from './useSearchFilters';
 
 export const useSearchHandler = (initialMenuItems: MenuItemData[], filters: SearchFilters) => {

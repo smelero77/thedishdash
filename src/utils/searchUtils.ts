@@ -1,7 +1,8 @@
 import { MenuItemData } from '@/types/menu';
-import { SearchFilters } from '@/hooks/useSearchFilters';
+import { SearchFilters } from '../hooks/useSearchFilters';
 
-const normalizeText = (text: string = ''): string => {
+const normalizeText = (text: string | null | undefined): string => {
+  if (!text) return '';
   return text
     .toLowerCase()
     .normalize('NFD')
@@ -17,6 +18,7 @@ export const searchMenuItems = (
     const normalizedQuery = normalizeText(query);
 
     const filteredItems = items.filter((item) => {
+      // Filtro por texto
       const matchesQuery =
         normalizedQuery.length === 0 ||
         normalizeText(item.name).includes(normalizedQuery) ||
@@ -24,14 +26,16 @@ export const searchMenuItems = (
 
       if (!matchesQuery) return false;
 
-      const matchesCategory =
-        filters.categories.length === 0 || filters.categories.includes(item.category);
+      // Filtro por categorías
+      if (filters.categories.length > 0) {
+        const matchesCategory = item.category_ids.some((id) => filters.categories.includes(id));
+        if (!matchesCategory) return false;
+      }
 
-      if (!matchesCategory) return false;
-
-      const price = parseFloat(item.price);
-      const matchesPrice = price >= filters.priceRange[0] && price <= filters.priceRange[1];
-
+      // Filtro por precio
+      const [minPrice, maxPrice] = filters.priceRange;
+      const price = item.price;
+      const matchesPrice = price >= minPrice && price <= maxPrice;
       if (!matchesPrice) return false;
 
       return true;
