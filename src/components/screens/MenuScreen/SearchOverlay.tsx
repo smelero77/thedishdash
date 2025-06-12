@@ -3,24 +3,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 
 // Dependencias y Tipos
-import { CartActionsContext } from '@/context/CartActionsContext';
-import { useSearchHistory } from '@/hooks/useSearchHistory';
-import { useModifiers } from '@/hooks/useModifiers';
-import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
-import { handleModifierSubmit } from '@/hooks/useModifierSubmit';
-import { MenuItemData } from '@/types/menu';
+import { CartActionsContext } from 'context/CartActionsContext';
+import { useSearchHistory } from 'hooks/useSearchHistory';
+import { useModifiers } from 'hooks/useModifiers';
+import useLockBodyScroll from 'hooks/useLockBodyScroll';
+import { handleModifierSubmit } from 'hooks/useModifierSubmit';
+import { MenuItemData } from 'types/menu';
 
 // Lógica y UI Refactorizada
-import { useSearchHandler } from '@/hooks/useSearchHandler';
-import { useSearchFilters } from '@/hooks/useSearchFilters';
-import { TextLogoSvg } from '@/components/TextLogoSvg';
-import ProductDetailSheet from './ProductDetailSheet';
-import ModifierModal from '../ModifierModal';
-import CategoryFilterModal from './CategoryFilterModal';
+import { useSearchHandler } from 'hooks/useSearchHandler';
+import { useSearchFilters } from 'hooks/useSearchFilters';
+import { TextLogoSvg } from 'components/TextLogoSvg';
+import { ProductDetailSheet } from 'components/screens/MenuScreen/ProductDetailSheet';
+import ModifierModal from 'components/screens/ModifierModal';
+import CategoryFilterModal from 'components/screens/MenuScreen/CategoryFilterModal';
 import { SearchInput } from './SearchInput';
-import { SearchSuggestions } from './SearchSuggestions';
-import { SearchResults } from './SearchResults';
-import { FilterBar } from './FilterBar';
+import { SearchSuggestions } from './search/SearchSuggestions';
+import { SearchResults } from './search/SearchResults';
+import { FilterBar } from './search/FilterBar';
+import { POPULAR_SEARCHES, getSimilarSuggestions } from 'utils/searchConfig';
+import { useItemClick } from 'hooks/useItemClick';
+import { SearchFilters } from 'hooks/useSearchFilters';
 
 // Props del componente
 interface SearchOverlayProps {
@@ -34,7 +37,7 @@ interface SearchOverlayProps {
 const SearchOverlayComponent = forwardRef<HTMLDivElement, SearchOverlayProps>(
   ({ searchActive, onClose, initialMenuItems, allCategories, onFilterSectionChange }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    useLockBodyScroll(containerRef);
+    useLockBodyScroll(searchActive);
 
     // Hooks de lógica
     const {
